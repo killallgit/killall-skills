@@ -1,0 +1,24 @@
+{
+  "name": "killall-skills",
+  "version": "0.1.0",
+  "description": "General-purpose Claude Code skills for software engineering — debugging, TDD, architecture, triage, issue management, and git workflows. Language and framework agnostic.",
+  "author": {
+    "name": "killallgit",
+    "url": "https://github.com/killallgit"
+  },
+  "homepage": "https://github.com/killallgit/killall-skills",
+  "repository": "git@github.com:killallgit/killall-skills.git",
+  "license": "MIT",
+  "skills": [
+    "./skills/diagnose",
+    "./skills/grill-with-docs",
+    "./skills/improve-codebase-architecture",
+    "./skills/setup-skills",
+    "./skills/tdd",
+    "./skills/to-issues",
+    "./skills/to-prd",
+    "./skills/triage",
+    "./skills/worktree-cleanup",
+    "./skills/zoom-out"
+  ]
+}
