@@ -67,11 +67,42 @@ Confirm the layout:
 - **Single-context** — one `CONTEXT.md` + `docs/adr/` at the repo root. Most repos are this.
 - **Multi-context** — `CONTEXT-MAP.md` at the root pointing to per-context `CONTEXT.md` files (typically a monorepo).
 
+**Section D — Coding guidelines.**
+
+> Explainer: A `## Coding guidelines` section in CLAUDE.md sets ambient behavioral rules that apply to every coding session in this repo — how the agent handles assumptions, scope, complexity, and verification. The default template below is derived from Andrej Karpathy's observations about common LLM coding failure modes. You can edit, trim, or replace it entirely.
+
+Check whether a `## Coding guidelines` section already exists. If it does, show it and ask whether to keep, replace, or merge. If it doesn't, offer to add the default template:
+
+```markdown
+## Coding guidelines
+
+**Tradeoff:** These guidelines bias toward caution over speed. Use judgment for trivial tasks.
+
+### Think before coding
+
+State assumptions explicitly before implementing. If multiple interpretations exist, surface them — don't pick silently. If a simpler approach exists, say so. If something is unclear, stop and ask.
+
+### Simplicity first
+
+Minimum code that solves the problem. No features beyond what was asked. No abstractions for single-use code. No error handling for impossible scenarios. If 50 lines would do, don't write 200.
+
+### Surgical changes
+
+Touch only what the request requires. Don't improve adjacent code, comments, or formatting that isn't broken. Match existing style. If you notice unrelated dead code, mention it — don't delete it. Remove only the imports/variables/functions that *your* changes made unused.
+
+### Goal-driven execution
+
+Convert vague tasks into verifiable criteria before starting. "Fix the bug" → "write a test that reproduces it, then make it pass." For multi-step tasks, state a brief plan with a verify step for each item.
+```
+
+Ask: keep the default, skip it, or customize?
+
 ### 3. Confirm and edit
 
 Show the user a draft of:
 
 - The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 4 for selection rules)
+- The `## Coding guidelines` section (if the user opted in during Section D)
 - The contents of `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/domain.md`
 
 Let them edit before writing.
@@ -86,7 +117,7 @@ Let them edit before writing.
 
 Never create `AGENTS.md` when `CLAUDE.md` already exists (or vice versa) — always edit the one that's already there.
 
-If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather than appending a duplicate. Don't overwrite user edits to the surrounding sections.
+If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather than appending a duplicate. Same for `## Coding guidelines` — update in-place if present, append if not. Don't overwrite user edits to surrounding sections.
 
 The block:
 
