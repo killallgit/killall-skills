@@ -1,0 +1,15 @@
+{
+  "name": "killallgit",
+  "owner": {
+    "name": "killallgit",
+    "email": "anthropic@pocketcereal.com"
+  },
+  "description": "killallgit Claude Code plugins.",
+  "plugins": [
+    {
+      "name": "killall-skills",
+      "source": "./",
+      "description": "General-purpose Claude Code skills for software engineering — debugging, TDD, architecture, triage, issue management, and git workflows."
+    }
+  ]
+}
