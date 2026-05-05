@@ -1,0 +1,74 @@
+name: Auto-bump plugin version
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      level:
+        description: "Version bump level"
+        required: true
+        default: "patch"
+        type: choice
+        options: [patch, minor, major]
+
+concurrency:
+  group: bump-version
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    # Skip when the head commit is itself a release bump or marked [skip ci],
+    # otherwise the push triggered by this job would loop.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        !contains(github.event.head_commit.message, '[skip ci]') &&
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump version
+        id: bump
+        env:
+          LEVEL: ${{ inputs.level || 'patch' }}
+        run: |
+          set -euo pipefail
+          file=.claude-plugin/plugin.json
+          current=$(jq -r .version "$file")
+          IFS=. read -r major minor patch <<< "$current"
+          case "$LEVEL" in
+            major) major=$((major+1)); minor=0; patch=0 ;;
+            minor) minor=$((minor+1)); patch=0 ;;
+            patch) patch=$((patch+1)) ;;
+            *) echo "unknown level: $LEVEL" >&2; exit 1 ;;
+          esac
+          new="$major.$minor.$patch"
+          tmp=$(mktemp)
+          jq --arg v "$new" '.version = $v' "$file" > "$tmp"
+          mv "$tmp" "$file"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+          echo "Bumped $current -> $new ($LEVEL)"
+
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .claude-plugin/plugin.json
+          if git diff --cached --quiet; then
+            echo "No version change to commit."
+            exit 0
+          fi
+          git commit -m "chore(release): bump to v${{ steps.bump.outputs.new }} [skip ci]"
+          git tag "v${{ steps.bump.outputs.new }}"
+          git push origin HEAD:main
+          git push origin "v${{ steps.bump.outputs.new }}"
