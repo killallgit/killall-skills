@@ -16,10 +16,10 @@ Do **not** poll in the conversation. Each turn replays full context — expensiv
 
 ## How
 
-Invoke `scripts/wait-for.sh` once via the Bash tool.
+Invoke the bundled `wait-for.sh` once via the Bash tool. Path resolves relative to this skill's directory:
 
 ```bash
-scripts/wait-for.sh <kind> [args] [--profile quick|long]
+"${CLAUDE_PLUGIN_ROOT}/skills/wait-for-action/wait-for.sh" <kind> [args] [--profile quick|long]
 ```
 
 Kinds:
@@ -50,10 +50,6 @@ Script emits one stdout line per probe: `[t=Xs] STATE detail`. Exit codes:
 
 **Foreground (default)** — single Bash call, blocks until done. Use when the user is waiting on this result before doing anything else.
 
-```
-Bash: scripts/wait-for.sh coderabbit --profile long
-```
-
 **Background** — set `run_in_background: true` on the Bash call when the user wants Claude to keep working meanwhile. Then watch for the terminal stdout line via Monitor:
 
 ```
@@ -65,13 +61,13 @@ This is the closest Claude Code has to a callback — Claude continues other wor
 ## Examples
 
 User: "wait for CodeRabbit on this PR"
-→ `scripts/wait-for.sh coderabbit --profile long`
+→ `wait-for.sh coderabbit --profile long`
 
 User: "wait until CI is green on PR 142"
-→ `scripts/wait-for.sh gh-checks 142`
+→ `wait-for.sh gh-checks 142`
 
 User: "watch run 1234567890 and let me know when it's done"
-→ `scripts/wait-for.sh gh-action 1234567890 --profile long`
+→ `wait-for.sh gh-action 1234567890 --profile long`
 
 ## Notes
 
