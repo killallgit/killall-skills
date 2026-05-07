@@ -1,6 +1,6 @@
 {
   "name": "killall-skills",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "General-purpose Codex skills for software engineering: debugging, TDD, architecture, triage, issue management, and git workflows. Language and framework agnostic.",
   "author": {
     "name": "killallgit",
