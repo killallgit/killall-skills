@@ -7,8 +7,9 @@
     {
       "name": "killall-skills",
       "source": {
-        "source": "local",
-        "path": "./"
+        "source": "url",
+        "url": "https://github.com/killallgit/killall-skills.git",
+        "ref": "main"
       },
       "policy": {
         "installation": "AVAILABLE",
