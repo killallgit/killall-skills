@@ -1,6 +1,6 @@
 # AGENTS.md
 
-General-purpose Codex plugin for software engineering skills.
+General-purpose cross-tool skill pack for software engineering workflows.
 
 ## Critical Structure
 
@@ -12,8 +12,10 @@ General-purpose Codex plugin for software engineering skills.
 ## Workflow
 
 - **No Build**: Edits to Markdown skills take effect after reinstalling or restarting the agent session.
-- **Codex Testing**: Add the local marketplace with `codex plugin marketplace add ~/Code/killallgit/killall-skills`, then install `killall-skills` from `/plugins`.
-- **Claude Testing**: Install the local plugin path with `/plugin install .` from the repo root.
+- **Codex Testing**: Add the local marketplace with `codex plugin marketplace add /absolute/path/to/killall-skills`, then install `killall-skills` from the `killallgit` marketplace.
+- **Claude Testing**: Add the local marketplace with `claude plugin marketplace add /absolute/path/to/killall-skills`, then install `killall-skills@killallgit`.
+- **Cursor Testing**: Export the rule pack into a target repo with `bash scripts/export-cursor-rules.sh /path/to/project`.
+- **Validation**: Run `bash scripts/smoke-test-install.sh` before release-worthy changes to plugin packaging or skill metadata.
 
 ## Release
 

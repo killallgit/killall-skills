@@ -1,4 +1,5 @@
 ---
+name: wait-for-action
 description: Wait for an asynchronous CI/review action (CodeRabbit review, GitHub PR checks, GitHub Actions run) without burning conversation tokens. Triggers on "wait for the review", "wait until CI passes", "wait for the action to finish", "let me know when CodeRabbit is done".
 ---
 
