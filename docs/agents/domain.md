@@ -1,51 +1,48 @@
-# Domain Docs
+# Optional Context Docs
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+Context/glossary docs are optional. Only use them when the repo benefits from a shared vocabulary or explicit domain language.
 
-## Before exploring, read these
+## Before exploring, read these if they exist
 
-- **`CONTEXT.md`** at the repo root, or
-- **`CONTEXT-MAP.md`** at the repo root if it exists — it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
-- **`docs/adr/`** — read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
+- **`docs/CONTEXT.md`** or
+- **`docs/CONTEXT-MAP.md`** if the repo has multiple contexts
+- **`docs/adr/`** for durable architectural decisions
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The producer skill (`/grill-with-docs`) creates them lazily when terms or decisions actually get resolved.
+If none of these files exist, proceed silently. Do not force the repo into ceremony it does not need.
 
 ## File structure
 
-Single-context repo (most repos):
+Single-context repo:
 
-```
-/
-├── CONTEXT.md
-├── docs/adr/
-│   ├── 0001-event-sourced-orders.md
-│   └── 0002-postgres-for-write-model.md
-└── src/
+```text
+docs/
+  CONTEXT.md
+  adr/
 ```
 
-Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
+Multi-context repo:
 
+```text
+docs/
+  CONTEXT-MAP.md
+  adr/
+src/
+  ordering/
+    docs/
+      CONTEXT.md
+      adr/
+  billing/
+    docs/
+      CONTEXT.md
+      adr/
 ```
-/
-├── CONTEXT-MAP.md
-├── docs/adr/                          ← system-wide decisions
-└── src/
-    ├── ordering/
-    │   ├── CONTEXT.md
-    │   └── docs/adr/                  ← context-specific decisions
-    └── billing/
-        ├── CONTEXT.md
-        └── docs/adr/
-```
 
-## Use the glossary's vocabulary
+## Use the glossary only when it exists
 
-When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
+When a glossary exists, use its vocabulary in issue titles, refactor proposals, test names, and architecture discussions.
 
-If the concept you need isn't in the glossary yet, that's a signal — either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/grill-with-docs`).
+If no glossary exists, do not invent one unless the user is clearly doing design or architecture work that would benefit from it.
 
 ## Flag ADR conflicts
 
-If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
-
-> _Contradicts ADR-0007 (event-sourced orders) — but worth reopening because…_
+If your output contradicts an existing ADR, surface it explicitly rather than silently overriding it.

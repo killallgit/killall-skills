@@ -1,16 +1,18 @@
 ---
 name: setup-skills
-description: Sets up an `## Agent skills` block in AGENTS.md/CLAUDE.md and `docs/agents/` so the engineering skills know this repo's issue tracker (GitHub or local markdown), triage label vocabulary, and domain doc layout. Run before first use of `to-issues`, `to-prd`, `triage`, `diagnose`, `tdd`, `improve-codebase-architecture`, or `zoom-out` — or if those skills appear to be missing context about the issue tracker, triage labels, or domain docs.
+description: Sets up a PRD -> issues -> TDD workflow, with `docs/agents/issue-tracker.md` declaring whether local files or an external tracker are canonical. Run before first use of `to-prd`, `to-issues`, `tdd`, or `triage` when a repo has not established its planning workflow yet.
 disable-model-invocation: true
 ---
 
 # Setup Core Skills
 
-Scaffold the per-repo configuration that the engineering skills assume:
+Scaffold the per-repo workflow the engineering skills assume:
 
-- **Issue tracker** — where issues live (GitHub by default; local markdown is also supported out of the box)
-- **Triage labels** — the strings used for the five canonical triage roles
-- **Domain docs** — where `CONTEXT.md` and ADRs live, and the consumer rules for reading them
+- **Plans and work items** — local markdown under `docs/issues/` when the repo uses local files at all
+- **Tracker contract** — `docs/agents/issue-tracker.md` declares whether local files or an external tracker are canonical
+- **External tracker adapter** — optional GitHub, GitLab, or other rules recorded under `docs/agents/`
+- **Decision docs** — optional ADRs under `docs/adr/`, created lazily when the repo actually needs them
+- **Optional context docs** — `docs/CONTEXT.md` or `docs/CONTEXT-MAP.md`, created lazily by design-focused skills only when the extra vocabulary discipline is useful
 
 This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
 
@@ -20,136 +22,86 @@ This is a prompt-driven skill, not a deterministic script. Explore, present what
 
 Look at the current repo to understand its starting state. Read whatever exists; don't assume:
 
-- `git remote -v` and `.git/config` — is this a GitHub repo? Which one?
-- `AGENTS.md` and `CLAUDE.md` at the repo root — does either exist? Is there already an `## Agent skills` section in either?
-- `CONTEXT.md` and `CONTEXT-MAP.md` at the repo root
-- `docs/adr/` and any `src/*/docs/adr/` directories
-- `docs/agents/` — does this skill's prior output already exist?
-- `.scratch/` — sign that a local-markdown issue tracker convention is already in use
+- `git remote -v` and `.git/config`
+- `AGENTS.md` and `CLAUDE.md` at the repo root
+- `docs/issues/`
+- `docs/agents/`
+- `docs/adr/`
+- `docs/CONTEXT.md` and `docs/CONTEXT-MAP.md`
+- `docs/out-of-scope/`
 
 ### 2. Present findings and ask
 
-Summarise what's present and what's missing. Then walk the user through the three decisions **one at a time** — present a section, get the user's answer, then move to the next. Don't dump all three at once.
+Summarise what's present and what's missing. Then walk the user through the decisions **one at a time**. Do not dump every decision at once.
 
-Assume the user does not know what these terms mean. Each section starts with a short explainer (what it is, why these skills need it, what changes if they pick differently). Then show the choices and the default.
+Assume the user does not know the vocabulary yet. Each section starts with a short explainer, then the recommended default.
 
-**Section A — Issue tracker.**
+**Section A — Planning workflow.**
 
-> Explainer: The "issue tracker" is where issues live for this repo. Skills like `to-issues`, `triage`, `to-prd`, and `qa` read from and write to it — they need to know whether to call `gh issue create`, write a markdown file under `.scratch/`, or follow some other workflow you describe. Pick the place you actually track work for this repo.
+> Explainer: this skill set always follows the same conceptual path — `to-prd` -> `to-issues` -> `tdd` — but the canonical store may be local markdown, an external tracker, or a local+external mirror. The repo needs to declare which store is authoritative.
 
-Default posture: these skills were designed for GitHub. If a `git remote` points at GitHub, propose that. If a `git remote` points at GitLab (`gitlab.com` or a self-hosted host), propose GitLab. Otherwise (or if the user prefers), offer:
+Recommended default:
 
-- **GitHub** — issues live in the repo's GitHub Issues (uses the `gh` CLI)
-- **GitLab** — issues live in the repo's GitLab Issues (uses the [`glab`](https://gitlab.com/gitlab-org/cli) CLI)
-- **Local markdown** — issues live as files under `.scratch/<feature>/` in this repo (good for solo projects or repos without a remote)
-- **Other** (Jira, Linear, etc.) — ask the user to describe the workflow in one paragraph; the skill will record it as freeform prose
-
-**Section B — Triage label vocabulary.**
-
-> Explainer: When the `triage` skill processes an incoming issue, it moves it through a state machine — needs evaluation, waiting on reporter, ready for an AFK agent to pick up, ready for a human, or won't fix. To do that, it needs to apply labels (or the equivalent in your issue tracker) that match strings *you've actually configured*. If your repo already uses different label names (e.g. `bug:triage` instead of `needs-triage`), map them here so the skill applies the right ones instead of creating duplicates.
-
-The five canonical roles:
-
-- `needs-triage` — maintainer needs to evaluate
-- `needs-info` — waiting on reporter
-- `ready-for-agent` — fully specified, AFK-ready (an agent can pick it up with no human context)
-- `ready-for-human` — needs human implementation
-- `wontfix` — will not be actioned
-
-Default: each role's string equals its name. Ask the user if they want to override any. If their issue tracker has no existing labels, the defaults are fine.
-
-**Section C — Domain docs.**
-
-> Explainer: Some skills (`improve-codebase-architecture`, `diagnose`, `tdd`) read a `CONTEXT.md` file to learn the project's domain language, and `docs/adr/` for past architectural decisions. They need to know whether the repo has one global context or multiple (e.g. a monorepo with separate frontend/backend contexts) so they look in the right place.
-
-Confirm the layout:
-
-- **Single-context** — one `CONTEXT.md` + `docs/adr/` at the repo root. Most repos are this.
-- **Multi-context** — `CONTEXT-MAP.md` at the root pointing to per-context `CONTEXT.md` files (typically a monorepo).
-
-**Section D — Coding guidelines.**
-
-> Explainer: A `## Coding guidelines` section in CLAUDE.md sets ambient behavioral rules that apply to every coding session in this repo — how the agent handles assumptions, scope, complexity, and verification. The default template below is derived from Andrej Karpathy's observations about common LLM coding failure modes. You can edit, trim, or replace it entirely.
-
-Check whether a `## Coding guidelines` section already exists. If it does, show it and ask whether to keep, replace, or merge. If it doesn't, offer to add the default template:
-
-````markdown
-## Coding guidelines
-
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
-
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
-
-### 1. Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-### 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-### 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-### 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
+```text
+docs/
+  issues/
+    <initiative-slug>/
+      PRD.md
+      01-<issue-slug>.md
+      02-<issue-slug>.md
+  adr/                      # optional, created lazily
+  CONTEXT.md                # optional, created lazily
+  CONTEXT-MAP.md            # optional, created lazily
+  out-of-scope/             # optional, created lazily
 ```
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+Explain the status model:
 
----
+- PRDs use `draft`, `approved`, `done`, `superseded`
+- Issue files use `draft`, `ready`, `in_progress`, `blocked`, `done`, `wontfix`
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
-````
+Explain the file flow:
 
-Ask: keep the default, skip it, or customize?
+- `to-prd` writes `docs/issues/<initiative-slug>/PRD.md`
+- `to-issues` writes numbered issue files in the same directory
+- `tdd` works one issue at a time and updates the issue file status
+
+Ask whether the repo should use that default local workflow.
+
+**Section B — External tracker adapter.**
+
+> Explainer: an external tracker is optional. If the repo uses GitHub or GitLab, we still need to know whether it is only a mirror or whether it is the canonical source of truth.
+
+Default posture: **local only**.
+
+Offer:
+
+- **Local only** — no external tracker adapter
+- **GitHub mirror** — local markdown is canonical, GitHub is mirrored via `gh`
+- **GitHub canonical** — GitHub is canonical, local files are absent or secondary
+- **GitLab mirror** — local markdown is canonical, GitLab is mirrored via `glab`
+- **GitLab canonical** — GitLab is canonical, local files are absent or secondary
+- **Other** — record the workflow in plain prose
+
+If a GitHub or GitLab remote exists, mention it as an available option, not the default.
+
+**Section C — Coding guidelines.**
+
+> Explainer: a `## Coding guidelines` section in `CLAUDE.md` sets ambient behavioral rules for coding sessions in this repo. Keep it if it helps, skip it if it feels like ceremony.
+
+Check whether a `## Coding guidelines` section already exists. If it does, show it and ask whether to keep, replace, or merge. If it doesn't, offer the existing default template.
+
+**Do not proactively ask about context docs.** If `docs/CONTEXT.md`, `docs/CONTEXT-MAP.md`, or `docs/adr/` already exist, preserve them and mention them in the findings. Otherwise, treat them as optional follow-on docs that other skills create lazily when needed.
 
 ### 3. Confirm and edit
 
 Show the user a draft of:
 
-- The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 4 for selection rules)
-- The `## Coding guidelines` section (if the user opted in during Section D)
-- The contents of `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/domain.md`
+- The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited
+- The `## Coding guidelines` section, if applicable
+- `docs/agents/issue-tracker.md`
+- `docs/agents/triage-labels.md` only if an external tracker adapter is configured
+- `docs/agents/domain.md` only if the repo already has context docs or the user explicitly wants the reminder
 
 Let them edit before writing.
 
@@ -159,40 +111,46 @@ Let them edit before writing.
 
 - If `CLAUDE.md` exists, edit it.
 - Else if `AGENTS.md` exists, edit it.
-- If neither exists, ask the user which one to create — don't pick for them.
+- If neither exists, ask the user which one to create.
 
-Never create `AGENTS.md` when `CLAUDE.md` already exists (or vice versa) — always edit the one that's already there.
+Never create `AGENTS.md` when `CLAUDE.md` already exists, or vice versa.
 
-If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather than appending a duplicate. Same for `## Coding guidelines` — update in-place if present, append if not. Don't overwrite user edits to surrounding sections.
+If an `## Agent skills` block already exists in the chosen file, update it in place rather than appending a duplicate. Same for `## Coding guidelines`.
 
-The block:
+Default `## Agent skills` block:
 
 ```markdown
 ## Agent skills
 
-### Issue tracker
+### Planning workflow
 
-[one-line summary of where issues are tracked]. See `docs/agents/issue-tracker.md`.
+Start with `to-prd`, break the PRD into issues with `to-issues`, then implement one issue at a time with `tdd`. The canonical store and any mirror rules are defined in `docs/agents/issue-tracker.md`.
 
-### Triage labels
+### External tracker
 
-[one-line summary of the label vocabulary]. See `docs/agents/triage-labels.md`.
+If this repo uses an external tracker, label and adapter rules live in `docs/agents/triage-labels.md`.
 
-### Domain docs
+### Decision docs
 
-[one-line summary of layout — "single-context" or "multi-context"]. See `docs/agents/domain.md`.
+ADRs live under `docs/adr/` and are created lazily for durable, non-obvious trade-offs.
+
+### Optional context docs
+
+If the repo uses glossary/context docs, they live under `docs/CONTEXT.md` or `docs/CONTEXT-MAP.md`. See `docs/agents/domain.md`.
 ```
 
-Then write the three docs files using the seed templates in this skill folder as a starting point:
+Then write the companion docs using the seed templates in this skill folder:
 
-- [issue-tracker-github.md](./issue-tracker-github.md) — GitHub issue tracker
-- [issue-tracker-gitlab.md](./issue-tracker-gitlab.md) — GitLab issue tracker
-- [issue-tracker-local.md](./issue-tracker-local.md) — local-markdown issue tracker
-- [triage-labels.md](./triage-labels.md) — label mapping
-- [domain.md](./domain.md) — domain doc consumer rules + layout
+- [issue-tracker-local.md](./issue-tracker-local.md) — local markdown source of truth
+- [issue-tracker-github.md](./issue-tracker-github.md) — GitHub mirror workflow
+- [issue-tracker-gitlab.md](./issue-tracker-gitlab.md) — GitLab mirror workflow
+- [triage-labels.md](./triage-labels.md) — optional external label mapping
+- [domain.md](./domain.md) — optional context doc conventions
+
+For every repo, `docs/agents/issue-tracker.md` should be written with an explicit frontmatter contract describing the canonical store. `docs/agents/triage-labels.md` is optional and should only be written if an external tracker adapter is configured or the repo already has one. `docs/agents/domain.md` is optional and should only be written if the repo already has context docs or the user asks for it.
 
 For "other" issue trackers, write `docs/agents/issue-tracker.md` from scratch using the user's description.
 
 ### 5. Done
 
-Tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later — re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.
+Tell the user the setup is complete and which skills now rely on `docs/agents/issue-tracker.md`. Mention they can edit `docs/agents/*.md` directly later. Re-running this skill should only be necessary if they want to change the canonical store, local issue layout, or external tracker adapter.

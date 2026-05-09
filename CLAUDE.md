@@ -72,12 +72,16 @@ Source: derived from [Andrej Karpathy's observations](https://github.com/forrest
 
 ### Issue tracker
 
-Issues live as markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+The local source of truth lives under `docs/issues/`. Start with `to-prd`, break the PRD into numbered issues with `to-issues`, then implement one issue at a time with `tdd`. See `docs/agents/issue-tracker.md`.
 
-### Triage labels
+### External tracker
 
-Five canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) mapped 1:1 to defaults. See `docs/agents/triage-labels.md`.
+Local markdown is canonical. If this repo mirrors work to GitHub, GitLab, or another tracker, the adapter rules live in `docs/agents/triage-labels.md`.
 
-### Domain docs
+### Decision docs
 
-Single-context: one `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
+ADRs live under `docs/adr/` and are created lazily for durable, non-obvious trade-offs.
+
+### Optional context docs
+
+If the repo uses glossary/context docs, they live under `docs/CONTEXT.md` or `docs/CONTEXT-MAP.md`. See `docs/agents/domain.md`.

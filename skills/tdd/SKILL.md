@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+description: Test-driven development with a red-green-refactor loop, usually against a single issue contract from the store declared in `docs/agents/issue-tracker.md`. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
 ---
 
 # Test-Driven Development
@@ -44,7 +44,26 @@ RIGHT (vertical):
 
 ### 1. Planning
 
-When exploring the codebase, use the project's domain glossary so that test names and interface vocabulary match the project's language, and respect ADRs in the area you're touching.
+Read `docs/agents/issue-tracker.md` first if it exists. Treat its frontmatter as the contract for where issue slices live and which store is canonical.
+
+If `canonical_store: local`, read the local issue file first and treat it as the contract for the current session.
+
+If `canonical_store: external`, read the external issue first and treat that artifact as the contract. If a local mirror exists, use it as convenience context but keep the canonical external issue authoritative.
+
+When exploring the codebase, use the project's domain glossary if one exists so that test names and interface vocabulary match the project's language, and respect ADRs in the area you're touching.
+
+If `canonical_store: local` and a local issue file exists:
+
+- move the issue file to `status: in_progress` when implementation starts
+- move it to `status: done` when the work is implemented and verified
+- move it to `status: blocked` if you discover a real blocker and record the reason in `## Notes`
+- do not rewrite unrelated issue files
+
+If `canonical_store: external`:
+
+- update the external issue first when status, blockers, or acceptance details materially change
+- update any local mirror second if one exists
+- do not assume a local issue file exists at all
 
 Before writing any code:
 
