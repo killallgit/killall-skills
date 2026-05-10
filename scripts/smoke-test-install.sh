@@ -119,6 +119,27 @@ check_commands() {
   info "all commands have frontmatter"
 }
 
+check_local_marketplace() {
+  local marketplace_path plugin_count plugin_source plugin_path
+
+  marketplace_path="$REPO_ROOT/.agents/plugins/marketplace.json"
+
+  [[ -f "$marketplace_path" ]] || fail "missing repo marketplace: $marketplace_path"
+
+  plugin_count="$(jq '.plugins | length' "$marketplace_path")"
+  [[ "$plugin_count" == "1" ]] || fail "expected exactly one plugin in $marketplace_path, found $plugin_count"
+
+  plugin_source="$(jq -r '.plugins[0].source.source' "$marketplace_path")"
+  plugin_path="$(jq -r '.plugins[0].source.path // ""' "$marketplace_path")"
+
+  [[ "$plugin_source" == "local" ]] || fail "repo marketplace must resolve the plugin locally, found source=$plugin_source"
+  [[ "$plugin_path" == "./plugins/killall-skills" ]] || fail "repo marketplace must point at the repo-local Codex plugin dir, found path=$plugin_path"
+  [[ -f "$REPO_ROOT/plugins/killall-skills/.codex-plugin/plugin.json" ]] || fail "repo-local Codex plugin is missing .codex-plugin/plugin.json"
+  [[ -f "$REPO_ROOT/plugins/killall-skills/skills/diagnose/SKILL.md" ]] || fail "repo-local Codex plugin is missing skills"
+
+  info "repo marketplace points at the repo-local Codex plugin dir"
+}
+
 smoke_claude() {
   local home_dir
 
@@ -172,6 +193,7 @@ smoke_cursor_export() {
 check_versions
 check_skills
 check_commands
+check_local_marketplace
 smoke_claude
 smoke_codex
 smoke_cursor_export

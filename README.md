@@ -21,6 +21,7 @@ codex plugin marketplace add /absolute/path/to/killall-skills
 ```
 
 Then reopen Codex, open the Plugins UI, and install `killall-skills` from the `killallgit` marketplace backed by your local checkout.
+Codex reads the in-repo plugin from `./plugins/killall-skills`. That directory points back at the root source files, so local edits do not need a sync or copy step; restart Codex or reinstall the plugin if the current session has stale plugin state.
 
 ### Claude Code
 

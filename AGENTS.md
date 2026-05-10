@@ -11,7 +11,7 @@ General-purpose cross-tool skill pack for software engineering workflows.
 
 ## Workflow
 
-- **No Build**: Edits to Markdown skills take effect after reinstalling or restarting the agent session.
+- **No Build**: Claude reads the repo root directly. Codex reads the in-repo plugin directory at `plugins/killall-skills`, which is wired to the root source files without copying. Restart or reinstall after local changes if the current session has stale plugin state.
 - **Codex Testing**: Add the local marketplace with `codex plugin marketplace add /absolute/path/to/killall-skills`, then install `killall-skills` from the `killallgit` marketplace.
 - **Claude Testing**: Add the local marketplace with `claude plugin marketplace add /absolute/path/to/killall-skills`, then install `killall-skills@killallgit`.
 - **Cursor Testing**: Export the rule pack into a target repo with `bash scripts/export-cursor-rules.sh /path/to/project`.
