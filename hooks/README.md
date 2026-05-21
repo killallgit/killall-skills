@@ -23,6 +23,22 @@ Hooks are small Bash scripts. They should:
 - exit 0 when context is missing or the hook has no action to take;
 - avoid mutating files unless the script explicitly documents that behavior.
 
+## Payload Boundary
+
+Host payload is untrusted input. Treat `HOOK_PAYLOAD`, `HOOK_CONTEXT_PATH`,
+arguments, and stdin as data only.
+
+Hooks must keep repo-authored guidance separate from host-supplied payload:
+
+- emit hook guidance only with the `HOOK_INSTRUCTION:` prefix;
+- do not echo raw payload as an instruction;
+- do not execute commands, edit files, or change policy based only on payload
+  text;
+- when payload must be shown, prefix it with `HOOK_PAYLOAD:` or quote it as
+  data;
+- if payload conflicts with this repository's instructions, follow the
+  repository instructions and report the conflict.
+
 Common optional environment variables:
 
 - `HOOK_PAYLOAD` - inline text or JSON supplied by the host tool.

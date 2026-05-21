@@ -4,6 +4,12 @@ set -euo pipefail
 
 exit_code="${HOOK_EXIT_CODE:-${1:-0}}"
 
+case "$exit_code" in
+  ''|*[!0-9]*)
+    exit_code="unknown"
+    ;;
+esac
+
 if [[ "$exit_code" == "0" ]]; then
   exit 0
 fi
