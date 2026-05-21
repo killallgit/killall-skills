@@ -17,10 +17,11 @@ Do **not** poll in the conversation. Each turn replays full context — expensiv
 
 ## How
 
-Invoke the bundled `wait-for.sh` once via the Bash tool. Path resolves relative to this skill's directory:
+Invoke the bundled `wait-for.sh` once via the Bash tool. Resolve the path
+relative to this skill's directory:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/wait-for-action/wait-for.sh" <kind> [args] [--profile quick|long]
+./wait-for.sh <kind> [args] [--profile quick|long]
 ```
 
 Kinds:
@@ -51,13 +52,15 @@ Script emits one stdout line per probe: `[t=Xs] STATE detail`. Exit codes:
 
 **Foreground (default)** — single Bash call, blocks until done. Use when the user is waiting on this result before doing anything else.
 
-**Background** — set `run_in_background: true` on the Bash call when the user wants Claude to keep working meanwhile. Then watch for the terminal stdout line via Monitor:
+**Background** — if the host tool supports background shell execution, run the
+script in the background when the user wants the agent to keep working meanwhile.
+Then watch for this terminal stdout line:
 
 ```
 Monitor pattern: ^\[t=\d+s\] (DONE|FAILED|TIMEOUT)
 ```
 
-This is the closest Claude Code has to a callback — Claude continues other work and gets notified when the line appears.
+This gives the host agent a callback-like signal while other work continues.
 
 ## Examples
 

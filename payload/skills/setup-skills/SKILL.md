@@ -23,7 +23,7 @@ This is a prompt-driven skill, not a deterministic script. Explore, present what
 Look at the current repo to understand its starting state. Read whatever exists; don't assume:
 
 - `git remote -v` and `.git/config`
-- `AGENTS.md` and `CLAUDE.md` at the repo root
+- agent instruction files at the repo root
 - `docs/issues/`
 - `docs/agents/`
 - `docs/adr/`
@@ -87,7 +87,9 @@ If a GitHub or GitLab remote exists, mention it as an available option, not the 
 
 **Section C — Coding guidelines.**
 
-> Explainer: a `## Coding guidelines` section in `CLAUDE.md` sets ambient behavioral rules for coding sessions in this repo. Keep it if it helps, skip it if it feels like ceremony.
+> Explainer: a `## Coding guidelines` section in the repo's agent instruction
+> file sets ambient behavioral rules for coding sessions in this repo. Keep it
+> if it helps, skip it if it feels like ceremony.
 
 Check whether a `## Coding guidelines` section already exists. If it does, show it and ask whether to keep, replace, or merge. If it doesn't, offer the existing default template.
 
@@ -97,7 +99,7 @@ Check whether a `## Coding guidelines` section already exists. If it does, show 
 
 Show the user a draft of:
 
-- The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited
+- The `## Agent skills` block to add to the repo's agent instruction file
 - The `## Coding guidelines` section, if applicable
 - `docs/agents/issue-tracker.md`
 - `docs/agents/triage-labels.md` only if an external tracker adapter is configured
@@ -109,11 +111,11 @@ Let them edit before writing.
 
 **Pick the file to edit:**
 
-- If `CLAUDE.md` exists, edit it.
-- Else if `AGENTS.md` exists, edit it.
-- If neither exists, ask the user which one to create.
+- If an agent instruction file exists, edit it.
+- Else create `AGENTS.md`.
 
-Never create `AGENTS.md` when `CLAUDE.md` already exists, or vice versa.
+Never create a second agent instruction file when an equivalent one already
+exists.
 
 If an `## Agent skills` block already exists in the chosen file, update it in place rather than appending a duplicate. Same for `## Coding guidelines`.
 

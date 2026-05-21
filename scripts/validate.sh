@@ -59,7 +59,11 @@ $matches"
 check_skills() {
   local skill_file skill_name skill_description
 
-  for skill_file in "$REPO_ROOT"/skills/*/SKILL.md; do
+  [[ -f "$REPO_ROOT/payload/README.md" ]] || fail "missing payload/README.md"
+  [[ -d "$REPO_ROOT/payload/skills" ]] || fail "missing payload/skills"
+  [[ -d "$REPO_ROOT/payload/rules" ]] || fail "missing payload/rules"
+
+  for skill_file in "$REPO_ROOT"/payload/skills/*/SKILL.md; do
     [[ -f "$skill_file" ]] || continue
     skill_name="$(extract_frontmatter_field name "$skill_file")"
     skill_description="$(extract_frontmatter_field description "$skill_file")"
@@ -74,15 +78,17 @@ check_skills() {
 check_hooks() {
   local phase hook_file
 
+  [[ -f "$REPO_ROOT/payload/hooks/README.md" ]] || fail "missing payload/hooks/README.md"
+
   for phase in pre-session pre-tool post-tool post-session; do
-    [[ -d "$REPO_ROOT/hooks/$phase" ]] || fail "missing hooks/$phase"
-    [[ -f "$REPO_ROOT/hooks/$phase/README.md" ]] || fail "missing hooks/$phase/README.md"
+    [[ -d "$REPO_ROOT/payload/hooks/$phase" ]] || fail "missing payload/hooks/$phase"
+    [[ -f "$REPO_ROOT/payload/hooks/$phase/README.md" ]] || fail "missing payload/hooks/$phase/README.md"
   done
 
   while IFS= read -r hook_file; do
     [[ -x "$hook_file" ]] || fail "hook is not executable: ${hook_file#$REPO_ROOT/}"
     bash -n "$hook_file" || fail "hook has invalid syntax: ${hook_file#$REPO_ROOT/}"
-  done < <(find "$REPO_ROOT/hooks" -type f -name '*.sh' | LC_ALL=C sort)
+  done < <(find "$REPO_ROOT/payload/hooks" -type f -name '*.sh' | LC_ALL=C sort)
 
   info "hook tree is valid"
 }
@@ -92,7 +98,7 @@ check_no_tool_specific_references() {
 
   matches="$(
     grep -RInE 'marketplace|plugin manifest' \
-      "$REPO_ROOT/README.md" "$REPO_ROOT/AGENTS.md" "$REPO_ROOT/hooks" 2>/dev/null || true
+      "$REPO_ROOT/README.md" "$REPO_ROOT/AGENTS.md" "$REPO_ROOT/payload/hooks" 2>/dev/null || true
   )"
 
   [[ -z "$matches" ]] || fail "host-specific packaging references remain in top-level docs/hooks:

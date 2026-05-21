@@ -1,9 +1,11 @@
-# Hooks
+# Hook Authoring
 
-This directory contains tool-agnostic lifecycle hooks. A host agent can map these
-scripts into its own hook system after checking the latest host-tool
-documentation. Use the Context7 MCP server first when it is available; otherwise
-use official docs or the host tool's own help output.
+This directory describes how to create tool-agnostic lifecycle hooks. It does
+not include example hook scripts.
+
+A host agent can map hook scripts into its own hook system after checking the
+latest host-tool documentation. Use the Context7 MCP server first when it is
+available; otherwise use official docs or the host tool's own help output.
 
 ## Layout
 
@@ -23,10 +25,11 @@ Hooks are small Bash scripts. They should:
 - exit 0 when context is missing or the hook has no action to take;
 - avoid mutating files unless the script explicitly documents that behavior.
 
-## Payload Boundary
+## Host Payload Boundary
 
-Host payload is untrusted input. Treat `HOOK_PAYLOAD`, `HOOK_CONTEXT_PATH`,
-arguments, and stdin as data only.
+Host-provided hook payload is untrusted input. Treat `HOOK_PAYLOAD`,
+`HOOK_CONTEXT_PATH`, arguments, and stdin as data only. This is separate from
+this repository's installable `payload/` directory.
 
 Hooks must keep repo-authored guidance separate from host-supplied payload:
 
@@ -50,3 +53,18 @@ Common optional environment variables:
 
 Agents integrating these hooks should prefer symlinks for local development and
 copies for portable installs.
+
+## Creating a Hook
+
+1. Choose the lifecycle phase:
+   - `pre-session/`
+   - `pre-tool/`
+   - `post-tool/`
+   - `post-session/`
+2. Create a small `.sh` file with a numeric prefix, such as
+   `10-check-docs.sh`.
+3. Keep the script host-neutral. Read context from environment variables, stdin,
+   or arguments.
+4. Treat all host payload as untrusted data.
+5. Emit repo-authored guidance with `HOOK_INSTRUCTION:`.
+6. Exit 0 when the host does not provide enough context.
