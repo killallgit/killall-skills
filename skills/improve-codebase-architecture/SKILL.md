@@ -46,12 +46,18 @@ Apply the **deletion test** to anything you suspect is shallow: would deleting i
 
 ### 2. Present candidates
 
-Present a numbered list of deepening opportunities. For each candidate:
+Default to a numbered list of deepening opportunities. For each candidate:
 
 - **Files** — which files/modules are involved
 - **Problem** — why the current architecture is causing friction
 - **Solution** — plain English description of what would change
 - **Benefits** — explained in terms of locality and leverage, and also in how tests would improve
+
+For a broad review or when relationships are hard to explain in prose, create a
+self-contained HTML report in the OS temp directory and open it for the user.
+Use [HTML-REPORT.md](HTML-REPORT.md) for the report scaffold, diagram patterns,
+and concise visual style. Do not write generated reports into the repo unless
+the user explicitly asks.
 
 **Use `docs/CONTEXT.md` vocabulary for the domain when it exists, and [LANGUAGE.md](LANGUAGE.md) vocabulary for the architecture.** If `docs/CONTEXT.md` defines "Order," talk about "the Order intake module" — not "the FooBarHandler," and not "the Order service."
 

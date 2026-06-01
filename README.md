@@ -1,15 +1,16 @@
 # killall-skills
 
-Prompt your coding agent:
+A plain collection of tool-agnostic agent content:
 
-> Use `/path/to/killall-skills` as a tool-agnostic skill pack. Read its
-> `AGENTS.md`, check the latest docs for my coding tool using Context7 MCP when
-> available, then integrate only the installable files under `payload/` with
-> symlinks where possible. Preserve existing config, verify discovery, and
-> report exactly what changed.
+- `skills/` — reusable skills (one `SKILL.md` per directory)
+- `rules/` — reusable behavioral rules (one Markdown file each)
+- `hooks/` — lifecycle hook scripts (conventions in `hooks/README.md`)
 
-For cleanup, ask: "Undo the killall-skills integration using the cleanup
-instructions in `AGENTS.md`."
+No installer, no packaging. To set it up, point a coding agent at this repo:
+
+> Read `AGENTS.md` and install the skills, rules, and hooks into my coding tool.
+
+`AGENTS.md` has the per-host install recipe (symlink/copy + verify).
 
 ## License
 
