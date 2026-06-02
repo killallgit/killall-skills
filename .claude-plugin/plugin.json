@@ -1,0 +1,8 @@
+{
+  "name": "killall-skills",
+  "description": "Engineering workflow skills — planning (PRD → issues → TDD), triage, diagnostics, and tooling — for Claude Code.",
+  "version": "0.2.0",
+  "author": { "name": "killallgit", "url": "https://github.com/killallgit" },
+  "homepage": "https://github.com/killallgit/killall-skills",
+  "repository": "git@github.com:killallgit/killall-skills.git"
+}

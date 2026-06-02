@@ -1,0 +1,12 @@
+{
+  "name": "killallgit",
+  "description": "Personal engineering workflow skills for Claude Code and Codex.",
+  "owner": { "name": "killallgit", "url": "https://github.com/killallgit" },
+  "plugins": [
+    {
+      "name": "killall-skills",
+      "source": "./",
+      "description": "Planning (PRD → issues → TDD), triage, diagnostics, and tooling skills."
+    }
+  ]
+}
