@@ -8,7 +8,7 @@
       "name": "killall-skills",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./payload"
       },
       "policy": {
         "installation": "AVAILABLE",

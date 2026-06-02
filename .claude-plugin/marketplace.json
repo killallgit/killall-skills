@@ -5,7 +5,7 @@
   "plugins": [
     {
       "name": "killall-skills",
-      "source": "./",
+      "source": "./payload",
       "description": "Planning (PRD → issues → TDD), triage, diagnostics, and tooling skills."
     }
   ]
