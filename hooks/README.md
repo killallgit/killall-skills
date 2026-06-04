@@ -1,6 +1,13 @@
 # hooks
 
-Tool-agnostic lifecycle hook scripts. None ship yet — add them here.
+Hook scripts shipped by this pack. Two kinds:
+
+- **Advisory phase hooks** (below) — tool-agnostic Bash that emits
+  `HOOK_INSTRUCTION:`. None ship yet — add them here.
+- **Host-registered side-effect hooks** — wired directly into a host's native
+  hook and may perform side effects (audio, notifications). They do not follow
+  the phase / `HOOK_INSTRUCTION:` contract. Shipped: `voice-readback/` (speaks
+  agent replies; see its `README.md`). Register via the repo `AGENTS.md`.
 
 ## Phases
 
