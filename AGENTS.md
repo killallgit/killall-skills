@@ -8,7 +8,11 @@ before editing, and preserve user-owned config** — merge, never clobber.
 ## What ships
 
 - `payload/skills/` — skills (discovered via `.claude-plugin/marketplace.json`
-  for Claude Code and `payload/.codex-plugin/plugin.json` for Codex).
+  for Claude Code and `payload/.codex-plugin/plugin.json` for Codex),
+  including cross-host workflows like `project-planner`.
+- `payload/agents/` — Claude Code subagents (auto-discovered by the plugin).
+  Claude-only; other hosts fall back to the skill's inline protocol. Add a
+  matching skill for any reusable subagent behavior that should work cross-host.
 - `rules/` — installable rules.
 - `hooks/` — hook scripts. Two kinds:
   - **Advisory phase hooks** (`hooks/<phase>/NN-*.sh`) — Bash, emit
@@ -21,7 +25,8 @@ before editing, and preserve user-owned config** — merge, never clobber.
 1. Inspect the target host: existing agent instructions, skills, rules, hooks, config.
 2. Check the host tool's latest docs before changing config or hook wiring
    (Context7 MCP first when available).
-3. Link or copy `payload/skills/`, `rules/`, and any requested `hooks/`.
+3. Link or copy `payload/skills/`, `payload/agents/` (Claude Code only),
+   `rules/`, and any requested `hooks/`.
 4. Verify the host discovers them.
 5. Report exactly what was linked, copied, merged, skipped, or left for manual follow-up.
 

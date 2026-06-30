@@ -1,7 +1,16 @@
 # killall-skills
 
-Engineering workflow skills — planning (PRD → issues → TDD), triage,
-diagnostics, and tooling — for Claude Code and Codex.
+Engineering workflow skills — project scoping, planning
+(brief -> PRD -> issues -> TDD), triage, diagnostics, and tooling — for
+Claude Code and Codex.
+
+## What ships
+
+- `payload/skills/` — installable skills, including project-planner and the
+  PRD/issues/TDD workflow.
+- `payload/agents/` — Claude Code subagents, including project-planner and
+  git-janitor helpers.
+- `rules/` and root `hooks/` — installable repo rules and optional host hooks.
 
 ## Install — Claude Code
 

@@ -6,7 +6,7 @@
     {
       "name": "killall-skills",
       "source": "./payload",
-      "description": "Planning (PRD → issues → TDD), triage, diagnostics, and tooling skills."
+      "description": "Project scoping, planning (brief -> PRD -> issues -> TDD), triage, diagnostics, and tooling skills."
     }
   ]
 }

@@ -1,6 +1,37 @@
 {
   "name": "killall-skills",
-  "description": "Engineering workflow skills for Codex.",
+  "description": "Engineering workflow skills for Codex, including project scoping and planning workflows.",
   "version": "0.2.0",
-  "skills": "./skills/"
+  "author": {
+    "name": "killallgit",
+    "url": "https://github.com/killallgit"
+  },
+  "homepage": "https://github.com/killallgit/killall-skills",
+  "repository": "https://github.com/killallgit/killall-skills",
+  "license": "MIT",
+  "keywords": [
+    "engineering",
+    "skills",
+    "workflow",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Killall Skills",
+    "shortDescription": "Project scoping and engineering workflow skills.",
+    "longDescription": "Reusable engineering workflow skills for project scoping, planning, triage, diagnosis, TDD, reviews, and cleanup.",
+    "developerName": "killallgit",
+    "category": "Productivity",
+    "capabilities": [
+      "Write"
+    ],
+    "websiteURL": "https://github.com/killallgit/killall-skills",
+    "privacyPolicyURL": "https://github.com/killallgit/killall-skills/blob/main/README.md",
+    "termsOfServiceURL": "https://github.com/killallgit/killall-skills/blob/main/README.md",
+    "defaultPrompt": [
+      "Use the relevant killall-skills workflow for this task."
+    ],
+    "screenshots": [],
+    "brandColor": "#111827"
+  }
 }

@@ -1,7 +1,6 @@
 ---
 name: setup-skills
 description: Sets up a PRD -> issues -> TDD workflow, with `docs/agents/issue-tracker.md` declaring whether local files or an external tracker are canonical. Run before first use of `to-prd`, `to-issues`, `tdd`, or `triage` when a repo has not established its planning workflow yet.
-disable-model-invocation: true
 ---
 
 # Setup Core Skills
