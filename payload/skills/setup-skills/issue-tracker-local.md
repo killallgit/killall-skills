@@ -104,3 +104,15 @@ Read the local file first. The user may pass:
 - the initiative slug
 - the frontmatter `id`
 - the external tracker reference
+
+## Wayfinding operations
+
+Used by `wayfinder`. The **map** is a file with one **child** file per ticket, using the same layout and frontmatter machinery as an initiative.
+
+- **Map**: `docs/issues/<effort-slug>/map.md` — frontmatter `labels: [wayfinder:map]`; body holds Destination / Notes / Decisions-so-far / Not-yet-specified / Out-of-scope.
+- **Child ticket**: `docs/issues/<effort-slug>/NN-<slug>.md`, numbered from `01`. Frontmatter: `parent: ./map.md`, `labels: [wayfinder:<type>]` (`research`/`prototype`/`grilling`/`task`), `depends_on:` listing sibling ids, and `status:`. The body is the `## Question`.
+- **Blocking**: `depends_on` — a ticket is unblocked when every sibling it lists is `done`.
+- **Frontier**: scan the effort directory for tickets with `status: ready` whose `depends_on` is empty or fully `done`; first by number wins.
+- **Claim**: set `status: in_progress` and save before any work.
+- **Resolve**: append the answer under an `## Answer` heading, set `status: done`, then append a context pointer (gist + link) to the map's Decisions-so-far.
+- **Out of scope**: set `status: wontfix` and add the one-line gist plus reason to the map's Out-of-scope section.
