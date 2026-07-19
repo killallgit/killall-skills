@@ -127,6 +127,10 @@ Default `## Agent skills` block:
 
 Start with `to-prd`, break the PRD into issues with `to-issues`, then implement one issue at a time with `tdd`. The canonical store and any mirror rules are defined in `docs/agents/issue-tracker.md`.
 
+### Wayfinding
+
+For an effort too big and foggy for one session, chart a map of decision tickets with `wayfinder` and resolve them one per session. Tracker mechanics live in the "Wayfinding operations" section of `docs/agents/issue-tracker.md`.
+
 ### External tracker
 
 If this repo uses an external tracker, label and adapter rules live in `docs/agents/triage-labels.md`.
