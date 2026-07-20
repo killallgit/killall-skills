@@ -1,7 +1,7 @@
 {
   "name": "killall-skills",
   "description": "Engineering workflow skills with project-planning subagents.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "killallgit",
     "url": "https://github.com/killallgit"
