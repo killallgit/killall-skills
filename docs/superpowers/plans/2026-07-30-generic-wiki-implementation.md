@@ -337,7 +337,7 @@ Run the repository Ruby validator over `payload/skills/*/SKILL.md`:
 - intended scripts are executable;
 - plugin manifests parse as JSON.
 
-Expected: 31 skills validate.
+Expected: 30 skills validate.
 
 - [ ] **Step 3: Exercise a temporary end-to-end vault**
 

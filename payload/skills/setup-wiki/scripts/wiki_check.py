@@ -96,20 +96,26 @@ def _page_slugs(vault):
     return slugs
 
 
-def _page_ids(vault, errors):
+def _page_ids(vault, errors, page_types):
     identifiers = set()
     for page in (vault / "wiki").rglob("*.md"):
         text = page.read_text(encoding="utf-8")
         match = re.match(r"---\s*\n(.*?)\n---", text, re.DOTALL)
-        if not match:
-            continue
-        identifier_match = re.search(r"^id:\s*([^\s#]+)\s*$", match.group(1), re.MULTILINE)
+        metadata = match.group(1) if match else ""
+        relative = page.relative_to(vault).as_posix()
+        identifier_match = re.search(r"^id:\s*([^\s#]+)\s*$", metadata, re.MULTILINE)
+        type_match = re.search(r"^type:\s*([^\s#]+)\s*$", metadata, re.MULTILINE)
         if not identifier_match:
-            continue
-        identifier = identifier_match.group(1)
-        if identifier in identifiers:
-            errors.append(f"duplicate page id: {identifier}")
-        identifiers.add(identifier)
+            errors.append(f"{relative} is missing page id")
+        else:
+            identifier = identifier_match.group(1)
+            if identifier in identifiers:
+                errors.append(f"duplicate page id: {identifier}")
+            identifiers.add(identifier)
+        if not type_match:
+            errors.append(f"{relative} is missing page type")
+        elif type_match.group(1) not in page_types:
+            errors.append(f"{relative} has unknown page type: {type_match.group(1)}")
     return identifiers
 
 
@@ -196,9 +202,10 @@ def check_vault(vault):
     schema = schema_path.read_text(encoding="utf-8") if schema_path.exists() else ""
     predicates = _section_values(schema, "relation_types")
     states = _section_values(schema, "claim_states")
+    page_types = _section_values(schema, "page_types")
     claims = _json_lines(vault / "claims" / "claims.jsonl", "claims/claims.jsonl", errors)
     _check_unique_ids(claims, "claim", errors)
-    page_ids = _page_ids(vault, errors)
+    page_ids = _page_ids(vault, errors, page_types)
     for claim in claims:
         identifier = claim.get("id", "<unknown>")
         if not claim.get("statement"):

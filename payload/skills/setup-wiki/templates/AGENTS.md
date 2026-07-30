@@ -19,6 +19,9 @@ compiled wiki, claim graph, links, and indexes.
 - `queues/` holds proposed ingest, review, and contradiction work.
 - `indexes/` contains rebuildable projections only.
 
+Every compiled page has YAML frontmatter with a stable `id`, accepted `type`,
+created and updated dates, source IDs, and tags.
+
 ## Knowledge boundary
 
 Deterministic metadata, link, and generated-index maintenance may apply

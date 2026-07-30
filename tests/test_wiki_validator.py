@@ -191,6 +191,22 @@ class WikiValidatorTests(unittest.TestCase):
 
         self.assertIn("duplicate page id: duplicate-entity", result.errors)
 
+    def test_rejects_page_without_graph_identity(self):
+        (self.vault / "wiki" / "concepts" / "anonymous.md").write_text(
+            "# Anonymous concept\n"
+        )
+
+        result = wiki_check.check_vault(self.vault)
+
+        self.assertIn(
+            "wiki/concepts/anonymous.md is missing page id",
+            result.errors,
+        )
+        self.assertIn(
+            "wiki/concepts/anonymous.md is missing page type",
+            result.errors,
+        )
+
     def test_rejects_claim_endpoint_without_entity_page(self):
         (self.vault / "wiki" / "entities" / "api.md").write_text(
             "---\nid: api\ntype: entity\n---\n\n# API\n"

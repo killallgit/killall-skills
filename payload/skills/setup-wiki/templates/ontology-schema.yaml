@@ -6,6 +6,7 @@ entity_types:
   - component
   - concept
 page_types:
+  - index
   - overview
   - entity
   - concept

@@ -3,8 +3,8 @@
 ## Observe
 
 Accept explicit sources only. Check `wiki.json` scope and exclusions before
-reading. Sources may be copied into `raw/` or referenced by stable origin, but
-their manifest entries require:
+reading. Capture an immutable local snapshot under `raw/`; preserve its
+original path or URI as optional origin metadata. Manifest entries require:
 
 - stable source ID;
 - path or URI;
