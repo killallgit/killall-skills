@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import json
 import tempfile
 import unittest
@@ -47,7 +48,7 @@ class WikiValidatorTests(unittest.TestCase):
                 {
                     "id": "source-1",
                     "path": "raw/source.md",
-                    "sha256": "a" * 64,
+                    "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
                     "acquired_at": "2026-07-30",
                     "sensitivity": "internal",
                 }
@@ -167,6 +168,52 @@ class WikiValidatorTests(unittest.TestCase):
 
         self.assertIn(
             "claim claim-4 uses unknown predicate: invented_relation",
+            result.errors,
+        )
+
+    def test_rejects_source_hash_mismatch(self):
+        manifest = self.vault / "raw" / "manifest.jsonl"
+        record = json.loads(manifest.read_text())
+        record["sha256"] = "0" * 64
+        manifest.write_text(json.dumps(record) + "\n")
+
+        result = wiki_check.check_vault(self.vault)
+
+        self.assertIn("source source-1 hash does not match raw/source.md", result.errors)
+
+    def test_rejects_duplicate_page_ids(self):
+        for name in ("first.md", "second.md"):
+            (self.vault / "wiki" / "entities" / name).write_text(
+                "---\nid: duplicate-entity\ntype: entity\n---\n\n# Entity\n"
+            )
+
+        result = wiki_check.check_vault(self.vault)
+
+        self.assertIn("duplicate page id: duplicate-entity", result.errors)
+
+    def test_rejects_claim_endpoint_without_entity_page(self):
+        (self.vault / "wiki" / "entities" / "api.md").write_text(
+            "---\nid: api\ntype: entity\n---\n\n# API\n"
+        )
+        self.write_claims(
+            [
+                {
+                    "id": "claim-5",
+                    "statement": "API depends on an unknown component.",
+                    "source_ids": ["source-1"],
+                    "status": "candidate",
+                    "observed_at": "2026-07-30",
+                    "subject_id": "api",
+                    "predicate": "depends_on",
+                    "object_id": "missing-component",
+                }
+            ]
+        )
+
+        result = wiki_check.check_vault(self.vault)
+
+        self.assertIn(
+            "claim claim-5 references missing entity: missing-component",
             result.errors,
         )
 

@@ -6,6 +6,13 @@ from pathlib import Path
 from wiki_setup import scaffold_vault
 
 
+def option_value(value):
+    key, separator, option = value.partition("=")
+    if not separator or not key.strip():
+        raise argparse.ArgumentTypeError("options must use KEY=VALUE")
+    return key.strip(), option.strip()
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Create or adopt a cross-project agent wiki vault."
@@ -15,6 +22,7 @@ def parse_args():
     parser.add_argument("--purpose", required=True)
     parser.add_argument("--project", action="append", required=True, type=Path)
     parser.add_argument("--exclude", action="append", default=[])
+    parser.add_argument("--option", action="append", default=[], type=option_value)
     return parser.parse_args()
 
 
@@ -26,6 +34,7 @@ def main():
         args.purpose,
         args.project,
         args.exclude,
+        options=dict(args.option),
     )
     print(
         f"created={len(result.created)} "

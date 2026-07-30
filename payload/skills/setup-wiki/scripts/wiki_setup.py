@@ -78,7 +78,7 @@ def _validate_pointer(project, vault):
         raise ValueError(f"{pointer} already points to another vault")
 
 
-def scaffold_vault(vault, name, purpose, projects, excludes):
+def scaffold_vault(vault, name, purpose, projects, excludes, options=None):
     vault = Path(vault).expanduser().resolve()
     projects = tuple(Path(project).expanduser().resolve() for project in projects)
     if not projects:
@@ -106,6 +106,38 @@ def scaffold_vault(vault, name, purpose, projects, excludes):
         "purpose": purpose,
         "projects": [str(project) for project in projects],
         "excludes": list(excludes),
+        "options": dict(options or {}),
+        "layers": {
+            "sources": "raw",
+            "compiled": "wiki",
+            "claims": "claims",
+            "ontology": "ontology",
+            "queues": "queues",
+            "indexes": "indexes",
+        },
+        "workflows": {
+            "ingest": "observe, extract, resolve, reconcile, compile, review",
+            "query": "retrieve, traverse, cite, abstain or queue synthesis",
+            "lint": "validate structure, provenance, links, time, and drift",
+            "evaluate": "run representative evidence and abstention questions",
+            "ontology": "review aliases, candidates, types, and predicates",
+            "journal": "record durable learnings and refresh session context",
+        },
+        "review_required": [
+            "new_claim",
+            "contradiction",
+            "entity_merge",
+            "destructive_change",
+            "ontology_change",
+        ],
+        "commands": {
+            "validator": "python3 scripts/wiki-check.py .",
+        },
+        "entry_points": {
+            "session_context": "KNOWLEDGE.md",
+            "operations": "WIKI-OPERATIONS.md",
+            "index": "wiki/index.md",
+        },
     }
     if config_path.exists():
         existing = json.loads(config_path.read_text(encoding="utf-8"))

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -95,6 +96,23 @@ def _page_slugs(vault):
     return slugs
 
 
+def _page_ids(vault, errors):
+    identifiers = set()
+    for page in (vault / "wiki").rglob("*.md"):
+        text = page.read_text(encoding="utf-8")
+        match = re.match(r"---\s*\n(.*?)\n---", text, re.DOTALL)
+        if not match:
+            continue
+        identifier_match = re.search(r"^id:\s*([^\s#]+)\s*$", match.group(1), re.MULTILINE)
+        if not identifier_match:
+            continue
+        identifier = identifier_match.group(1)
+        if identifier in identifiers:
+            errors.append(f"duplicate page id: {identifier}")
+        identifiers.add(identifier)
+    return identifiers
+
+
 def _check_links(vault, errors, warnings):
     slugs = _page_slugs(vault)
     inbound = {path: 0 for paths in slugs.values() for path in paths}
@@ -166,6 +184,13 @@ def check_vault(vault):
             errors.append(
                 f"source {source.get('id', '<unknown>')} path is missing: {relative_path}"
             )
+            continue
+        expected_hash = source.get("sha256")
+        actual_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        if expected_hash != actual_hash:
+            errors.append(
+                f"source {source.get('id', '<unknown>')} hash does not match {relative_path}"
+            )
 
     schema_path = vault / "ontology" / "schema.yaml"
     schema = schema_path.read_text(encoding="utf-8") if schema_path.exists() else ""
@@ -173,6 +198,7 @@ def check_vault(vault):
     states = _section_values(schema, "claim_states")
     claims = _json_lines(vault / "claims" / "claims.jsonl", "claims/claims.jsonl", errors)
     _check_unique_ids(claims, "claim", errors)
+    page_ids = _page_ids(vault, errors)
     for claim in claims:
         identifier = claim.get("id", "<unknown>")
         if not claim.get("statement"):
@@ -189,6 +215,12 @@ def check_vault(vault):
         predicate = claim.get("predicate")
         if predicate and predicate not in predicates:
             errors.append(f"claim {identifier} uses unknown predicate: {predicate}")
+        for endpoint in ("subject_id", "object_id"):
+            entity_id = claim.get(endpoint)
+            if entity_id and entity_id not in page_ids:
+                errors.append(
+                    f"claim {identifier} references missing entity: {entity_id}"
+                )
         valid_from = _parse_date(claim.get("valid_from"))
         valid_to = _parse_date(claim.get("valid_to"))
         if claim.get("valid_from") and not valid_from:

@@ -104,6 +104,79 @@ class WikiScaffoldTests(unittest.TestCase):
                     [],
                 )
 
+    def test_generated_contract_exposes_runtime_workflows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            projects_root = Path(tmp)
+            project = projects_root / "api"
+            project.mkdir()
+            vault = projects_root / "platform-wiki"
+
+            wiki_setup.scaffold_vault(
+                vault,
+                "platform",
+                "Explain the platform.",
+                [project],
+                ["**/.env"],
+            )
+
+            config = json.loads((vault / "wiki.json").read_text())
+            self.assertEqual(config["layers"]["sources"], "raw")
+            self.assertEqual(config["layers"]["compiled"], "wiki")
+            self.assertEqual(config["layers"]["claims"], "claims")
+            self.assertEqual(config["layers"]["ontology"], "ontology")
+            self.assertEqual(
+                set(config["workflows"]),
+                {"ingest", "query", "lint", "evaluate", "ontology", "journal"},
+            )
+            self.assertEqual(
+                config["review_required"],
+                [
+                    "new_claim",
+                    "contradiction",
+                    "entity_merge",
+                    "destructive_change",
+                    "ontology_change",
+                ],
+            )
+            self.assertEqual(
+                config["commands"]["validator"],
+                "python3 scripts/wiki-check.py .",
+            )
+            self.assertEqual(config["entry_points"]["operations"], "WIKI-OPERATIONS.md")
+            self.assertEqual(config["entry_points"]["session_context"], "KNOWLEDGE.md")
+
+    def test_records_confirmed_setup_options(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            projects_root = Path(tmp)
+            project = projects_root / "api"
+            project.mkdir()
+            vault = projects_root / "platform-wiki"
+
+            wiki_setup.scaffold_vault(
+                vault,
+                "platform",
+                "Explain the platform.",
+                [project],
+                [],
+                options={
+                    "audience": "team",
+                    "git_policy": "reviewed",
+                    "retrieval": "qmd",
+                    "sensitivity": "internal",
+                },
+            )
+
+            config = json.loads((vault / "wiki.json").read_text())
+            self.assertEqual(
+                config["options"],
+                {
+                    "audience": "team",
+                    "git_policy": "reviewed",
+                    "retrieval": "qmd",
+                    "sensitivity": "internal",
+                },
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
