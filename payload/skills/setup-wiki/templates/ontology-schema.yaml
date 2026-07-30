@@ -1,0 +1,33 @@
+version: 1
+entity_types:
+  - person
+  - organization
+  - project
+  - component
+  - concept
+page_types:
+  - overview
+  - entity
+  - concept
+  - decision
+  - procedure
+  - source
+  - question
+relation_types:
+  - id: depends_on
+    inverse: required_by
+    temporal: false
+  - id: part_of
+    inverse: contains
+    temporal: false
+  - id: supersedes
+    inverse: superseded_by
+    temporal: true
+  - id: contradicts
+    inverse: contradicted_by
+    temporal: true
+claim_states:
+  - candidate
+  - verified
+  - disputed
+  - superseded
