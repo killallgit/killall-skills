@@ -12,18 +12,32 @@ diagnostics, and tooling — for Claude Code and Codex.
   git-janitor helpers.
 - `rules/` and root `hooks/` — installable repo rules and optional host hooks.
 
-## Install — Claude Code
+## Install
 
 ```bash
+git clone https://github.com/killallgit/killall-skills
+cd killall-skills
+./install.sh
+```
+
+The installer idempotently installs or refreshes the plugin in every supported
+host found on `PATH`. Re-run it after `git pull`, or use `./install.sh --remove`
+to uninstall it. Restart Claude Code and Codex after either operation.
+
+<details>
+<summary>Manual install</summary>
+
+```bash
+# Claude Code
 claude plugin marketplace add killallgit/killall-skills
 claude plugin install killall-skills@killallgit
-```
 
-## Install — Codex
-
-```bash
+# Codex
 codex plugin marketplace add killallgit/killall-skills
+codex plugin add killall-skills@killallgit
 ```
+
+</details>
 
 ## Local development
 
