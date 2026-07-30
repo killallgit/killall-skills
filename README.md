@@ -44,3 +44,17 @@ codex plugin add killall-skills@killallgit
 ```bash
 claude --plugin-dir ~/Code/killallgit/killall-skills
 ```
+
+## Release
+
+Releases are intentionally manual. Update the version in both plugin manifests
+and add the release notes to `CHANGELOG.md`, then commit, tag, and publish:
+
+```bash
+git commit -am "chore: release X.Y.Z"
+git tag "killall-skills--vX.Y.Z"
+git push origin main "killall-skills--vX.Y.Z"
+gh release create "killall-skills--vX.Y.Z" \
+  --title "killall-skills X.Y.Z" \
+  --notes-file /path/to/release-notes.md
+```

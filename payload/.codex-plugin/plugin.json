@@ -1,7 +1,7 @@
 {
   "name": "killall-skills",
   "description": "Engineering workflow skills for Codex, including project scoping and planning workflows.",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "author": {
     "name": "killallgit",
     "url": "https://github.com/killallgit"
