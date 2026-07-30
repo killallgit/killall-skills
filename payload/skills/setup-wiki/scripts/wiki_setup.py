@@ -35,6 +35,8 @@ TEMPLATE_TARGETS = {
     "ontology-candidates.yaml": "ontology/candidates.yaml",
     "ontology-aliases.yaml": "ontology/aliases.yaml",
     "eval-questions.yaml": "evals/questions.yaml",
+    "hooks/wiki-session-start.py": "hooks/wiki-session-start.py",
+    "hooks/wiki-session-end.py": "hooks/wiki-session-end.py",
 }
 
 
