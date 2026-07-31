@@ -20,7 +20,11 @@
 #   - Adaptive backoff after that
 #   - Hard cap: 10 min total
 #   - One stdout line per probe: "[t=Xs] STATE detail"
-#   - Exit 0 done-ok, 1 done-fail, 2 timeout, 3 usage error
+#   - Exit 0 done-ok, 1 done-fail, 2 timeout, 3 usage error, 4 no-review
+#
+# Exit 4 (NO-REVIEW) is specific to `coderabbit`: the check run finished green
+# but no review was produced — rate limited, or skipped by configuration. This
+# is NOT success. Treating it as success is the whole reason this code exists.
 
 set -euo pipefail
 
@@ -57,20 +61,80 @@ resolve_pr() {
   echo "$pr"
 }
 
+# CodeRabbit reports its check run SUCCESS whether it reviewed the diff or bailed
+# with a notice ("Review rate limited", "Review skipped: excluded by label
+# configuration"). The check state alone therefore cannot tell you a review
+# happened — you have to look at what it actually posted.
 probe_coderabbit() {
   local pr; pr=$(resolve_pr "${ARGS[0]:-}")
   [[ -z "$pr" ]] && { echo "no-pr"; return 1; }
 
-  local state
-  state=$(gh pr checks "$pr" --json name,state 2>/dev/null \
-    | jq -r '.[] | select(.name|test("coderabbit";"i")) | .state' | head -1)
+  local check state desc
+  check=$(gh pr checks "$pr" --json name,state,description 2>/dev/null \
+    | jq -c '[.[] | select(.name|test("coderabbit";"i"))] | first // {}')
+  state=$(jq -r '.state // ""' <<<"$check")
+  desc=$(jq -r '.description // ""' <<<"$check")
 
   case "${state:-PENDING}" in
-    SUCCESS)              echo "review-done";        return 0 ;;
-    FAILURE|CANCEL*|SKIP*) echo "review-$state";     return 1 ;;
-    PENDING|"")           echo "pr=$pr";             return 2 ;;
-    *)                    echo "unknown=$state";     return 2 ;;
+    SUCCESS) ;;
+    FAILURE|CANCEL*|SKIP*) echo "review-$state"; return 1 ;;
+    PENDING|"")            echo "pr=$pr";        return 2 ;;
+    *)                     echo "unknown=$state"; return 2 ;;
   esac
+
+  # Green check. Deciding what that means comes from the check *description*,
+  # which is a clean tri-state ("Review completed" / "Review rate limited" /
+  # "Review skipped: ..."). Do not sniff the summary comment body for this — it
+  # is long boilerplate and contains words like "skipped" in unrelated sections.
+  local inline
+  inline=$(gh api "repos/{owner}/{repo}/pulls/$pr/comments" --paginate --jq \
+    '[.[] | select(.user.login|test("coderabbit";"i"))] | length' 2>/dev/null || echo 0)
+  inline=${inline:-0}
+
+  # Findings from an *earlier* run still on the PR. Worth surfacing when the
+  # latest run produced nothing, so stale comments do not go unnoticed.
+  local stale=""
+  (( inline > 0 )) && stale=" (prior-inline=$inline)"
+
+  case "$(tr '[:upper:]' '[:lower:]' <<<"$desc")" in
+    *"rate limit"*|*"limit reached"*)
+      echo "NOT-A-REVIEW rate-limited$(coderabbit_retry_hint "$pr")${stale} -- ${desc}"; return 4 ;;
+    *skip*)
+      echo "NOT-A-REVIEW skipped${stale} -- ${desc}"; return 4 ;;
+    *complete*|*"review done"*)
+      echo "review-done inline=${inline} -- ${desc}"; return 0 ;;
+  esac
+
+  # No usable description, so fall back to what CodeRabbit posted. The notice
+  # markers are distinctive enough to match on; a real review carries an
+  # "Actionable comments posted" summary or inline comments.
+  local verdict
+  verdict=$(gh pr view "$pr" --json comments --jq '
+    [.comments[] | select(.author.login|test("coderabbit";"i")) | .body] | last // ""
+  ' 2>/dev/null)
+
+  if grep -qiE 'review limit reached|rate limited by coderabbit' <<<"$verdict"; then
+    echo "NOT-A-REVIEW rate-limited$(coderabbit_retry_hint "$pr")${stale}"; return 4
+  fi
+
+  if grep -qiE 'actionable comments posted' <<<"$verdict" || (( inline > 0 )); then
+    echo "review-done inline=${inline}"; return 0
+  fi
+
+  # Green, no notice, no review content — do not call this done.
+  echo "NOT-A-REVIEW no-review-content -- desc='${desc}'"; return 4
+}
+
+# Pull "Next review available in: **29 minutes**" out of the notice so the wait
+# window is visible without opening the PR.
+coderabbit_retry_hint() {
+  local hint
+  hint=$(gh pr view "$1" --json comments --jq '
+    [.comments[] | select(.author.login|test("coderabbit";"i")) | .body] | last // ""
+  ' 2>/dev/null | tr -d '*_\r' | grep -oiE 'next review available in:.*' | head -1 \
+    | sed -e 's/<br>.*//' -e 's/[[:space:]]*$//' \
+          -e 's/next review available in:[[:space:]]*/ retry-in=/I')
+  [[ -n "$hint" ]] && printf '%s' "$hint"
 }
 
 probe_gh_checks() {
@@ -127,6 +191,9 @@ while :; do
     0) log "DONE" "$detail"; exit 0 ;;
     1) log "FAILED" "$detail"; exit 1 ;;
     2) log "PENDING" "$detail" ;;
+    # Terminal, but NOT done: the action completed without producing a review.
+    # Stop waiting — retrying on the same commit will keep hitting this.
+    4) log "NO-REVIEW" "$detail"; exit 4 ;;
   esac
 
   if (( idx < ${#intervals[@]} )); then

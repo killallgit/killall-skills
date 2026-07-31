@@ -43,10 +43,34 @@ Script emits one stdout line per probe: `[t=Xs] STATE detail`. Exit codes:
 
 | Exit | Meaning |
 |---|---|
-| 0 | Done — success |
+| 0 | Done — success (for `coderabbit`, a review actually landed) |
 | 1 | Done — failed |
 | 2 | Timed out (10 min cap) |
 | 3 | Usage error |
+| 4 | Completed but produced **no review** — rate limited or skipped |
+
+## Exit 4: green check, no review
+
+**A green CodeRabbit check does not mean the PR was reviewed.** CodeRabbit reports
+its check run `SUCCESS` whether it reviewed the diff or bailed with a notice:
+
+- `Review rate limited` — fair-usage limit hit; the comment carries a
+  "Next review available in: N minutes" window
+- `Review skipped: excluded by label configuration` — config opted this PR out
+
+Both are green. Neither is a review. The script now distinguishes them and exits
+**4** with a `NOT-A-REVIEW` detail line rather than reporting success.
+
+**Never report a PR as reviewed on exit 0 alone if you have not seen findings or
+an explicit "Actionable comments posted" summary.** On exit 4, say plainly that
+the review did not happen and surface the reason — the rate-limit notice is
+signal, not noise: it tells the user their review budget is being consumed and
+lets them decide when to spend the next one.
+
+Exit 4 is terminal. Do not loop on it — re-running against the same commit hits
+the same notice. Either wait out the stated window and re-trigger with
+`@coderabbitai review`, or let the user decide. Re-triggering posts a public
+comment on someone's repo, so ask before doing it on their behalf.
 
 ## Foreground vs background
 
