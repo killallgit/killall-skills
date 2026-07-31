@@ -45,6 +45,26 @@ codex plugin add killall-skills@killallgit
 claude --plugin-dir ~/Code/killallgit/killall-skills
 ```
 
+## Proofcast
+
+Proofcast records one agent command or focused validation flow as an H.264 MP4.
+It requires Bash, [asciinema](https://asciinema.org/),
+[AGG](https://github.com/asciinema/agg), FFmpeg with `libx264`, and
+[Task](https://taskfile.dev/).
+
+```bash
+task install
+proofcast --out smoke-test.mp4 -- python3 smoke_test.py
+```
+
+Without `--out`, Proofcast writes a timestamped MP4 in the current directory.
+It prints the recorded command output and then the absolute video path. A failed
+command is still rendered and Proofcast returns that command's exit status.
+
+Recording is explicitly activated by saying “let's record this.” Proofcast
+captures output verbatim and performs no automatic secret redaction, so never
+record commands that print or contain credentials.
+
 ## Release
 
 Releases are intentionally manual. Update the version in both plugin manifests
