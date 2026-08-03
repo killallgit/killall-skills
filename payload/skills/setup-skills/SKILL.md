@@ -156,6 +156,26 @@ For every repo, `docs/agents/issue-tracker.md` should be written with an explici
 
 For "other" issue trackers, write `docs/agents/issue-tracker.md` from scratch using the user's description.
 
+### 4a. Check the written docs are tracked
+
+Run `git check-ignore -v` against every file you just wrote. Repos commonly
+gitignore `docs/agents/`, `docs/CONTEXT.md`, and `docs/issues/` as "agent
+scratch", which silently defeats the setup: an ignored file is untracked, so it
+does not exist in a fresh clone or in any new `git worktree`, and agents working
+there start with no tracker contract and no glossary.
+
+Split the decision by what the file is:
+
+- **Contracts and vocabulary must be tracked** — `docs/agents/*.md` and
+  `docs/CONTEXT.md` are repo policy, not scratch. If they are ignored, tell the
+  user and offer to un-ignore them.
+- **Planning artifacts may stay ignored** — `docs/issues/` is high-churn and
+  only needs tracking when local markdown is the canonical store. If an external
+  tracker is canonical, leaving it ignored is correct.
+
+Never work around an ignore rule with `git add -f`; fix `.gitignore` instead, so
+the next worktree inherits the setup.
+
 ### 5. Done
 
 Tell the user the setup is complete and which skills now rely on `docs/agents/issue-tracker.md`. Mention they can edit `docs/agents/*.md` directly later. Re-running this skill should only be necessary if they want to change the canonical store, local issue layout, or external tracker adapter.
