@@ -3,29 +3,77 @@ set -euo pipefail
 
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 MARKETPLACE=killallgit
-PLUGIN=killall-skills
 ACTION=install
+DOMAINS=(planning engineering architecture knowledge experimental)
+SELECTED=()
+INSTALL_ALL=false
+LIST_ONLY=false
+
+usage() {
+  cat <<'EOF'
+Usage: ./install.sh [--remove] <domain> [domain...]
+       ./install.sh [--remove] --all
+       ./install.sh --list
+
+Install or remove selected domain plugins in every supported host on PATH.
+
+  --all     Select every domain
+  --list    List available domains
+  --remove  Remove selected domains instead of installing them
+  --help    Show this help
+EOF
+}
+
+is_domain() {
+  local candidate=$1
+  local domain
+  for domain in "${DOMAINS[@]}"; do
+    [ "$candidate" = "$domain" ] && return 0
+  done
+  return 1
+}
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --remove) ACTION=remove ;;
+    --all) INSTALL_ALL=true ;;
+    --list) LIST_ONLY=true ;;
     -h|--help)
-      cat <<'EOF'
-Usage: ./install.sh [--remove]
-
-Install or refresh killall-skills for every supported host found on PATH.
-
-  --remove  Uninstall the plugin from Claude Code and Codex
-  --help    Show this help
-EOF
+      usage
       exit 0
       ;;
-    *)
+    --*)
       echo "unknown argument: $1 (try --help)" >&2
       exit 1
       ;;
+    *) SELECTED+=("$1") ;;
   esac
   shift
+done
+
+if [ "$LIST_ONLY" = true ]; then
+  printf '%s\n' "${DOMAINS[@]}"
+  exit 0
+fi
+
+if [ "$INSTALL_ALL" = true ]; then
+  if [ ${#SELECTED[@]} -gt 0 ]; then
+    echo "--all cannot be combined with domain names" >&2
+    exit 1
+  fi
+  SELECTED=("${DOMAINS[@]}")
+fi
+
+if [ ${#SELECTED[@]} -eq 0 ]; then
+  usage
+  exit 1
+fi
+
+for domain in "${SELECTED[@]}"; do
+  if ! is_domain "$domain"; then
+    echo "unknown domain: $domain (try --list)" >&2
+    exit 1
+  fi
 done
 
 say() {
@@ -43,16 +91,20 @@ install_claude() {
   }
 
   if [ "$ACTION" = remove ]; then
-    say "Claude Code: removing plugin"
-    claude plugin uninstall "$PLUGIN@$MARKETPLACE" || true
+    for domain in "${SELECTED[@]}"; do
+      say "Claude Code: removing $domain"
+      claude plugin uninstall "$domain@$MARKETPLACE" || true
+    done
     return
   fi
 
-  say "Claude Code: installing plugin"
+  say "Claude Code: installing ${SELECTED[*]}"
   claude plugin marketplace add "$REPO" 2>/dev/null \
     || claude plugin marketplace update "$MARKETPLACE"
-  claude plugin uninstall "$PLUGIN@$MARKETPLACE" >/dev/null 2>&1 || true
-  claude plugin install "$PLUGIN@$MARKETPLACE"
+  for domain in "${SELECTED[@]}"; do
+    claude plugin uninstall "$domain@$MARKETPLACE" >/dev/null 2>&1 || true
+    claude plugin install "$domain@$MARKETPLACE"
+  done
 }
 
 install_codex() {
@@ -62,15 +114,19 @@ install_codex() {
   }
 
   if [ "$ACTION" = remove ]; then
-    say "Codex: removing plugin"
-    codex plugin remove "$PLUGIN@$MARKETPLACE" || true
+    for domain in "${SELECTED[@]}"; do
+      say "Codex: removing $domain"
+      codex plugin remove "$domain@$MARKETPLACE" || true
+    done
     return
   fi
 
-  say "Codex: installing plugin"
+  say "Codex: installing ${SELECTED[*]}"
   codex plugin marketplace add "$REPO" 2>/dev/null || true
-  codex plugin remove "$PLUGIN@$MARKETPLACE" >/dev/null 2>&1 || true
-  codex plugin add "$PLUGIN@$MARKETPLACE"
+  for domain in "${SELECTED[@]}"; do
+    codex plugin remove "$domain@$MARKETPLACE" >/dev/null 2>&1 || true
+    codex plugin add "$domain@$MARKETPLACE"
+  done
 }
 
 install_claude

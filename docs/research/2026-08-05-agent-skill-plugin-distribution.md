@@ -60,16 +60,15 @@ Claude marketplace manifests as skill discovery sources.
 
 Source: [vercel-labs/skills CLI documentation](https://github.com/vercel-labs/skills/blob/main/README.md)
 
-## What already works in this repository
+## Repository implementation
 
-The native manifests currently expose one plugin named `killall-skills` whose
-source is `./payload`. Installing it necessarily installs the full payload. The
-shell installer mirrors that boundary and only supports installing or removing
-the complete plugin.
+The repository exposes five native plugins: planning, engineering,
+architecture, knowledge, and experimental. Each domain directory is a complete
+Claude Code and Codex plugin containing its own manifests, skills, and optional
+agents. The shell installer accepts selected domains or an explicit `--all`.
 
-The repository already works as an individual-skill catalog without a layout
-change. This command was tested against the public GitHub repository on
-2026-08-05 and discovered 31 skills:
+The same repository is an individual-skill catalog. List its available skills
+with:
 
 ```bash
 npx skills@latest add killallgit/killall-skills --list
@@ -86,55 +85,11 @@ npx skills@latest add killallgit/killall-skills \
   --yes
 ```
 
-This path installs only the skill directory. It does not install plugin-only
-components such as Claude subagents, host hooks, MCP servers, or companion
-binaries kept elsewhere in the repository.
+This path installs only the selected skill directory. It does not install
+plugin-only components such as Claude subagents or companion resources outside
+that skill directory.
 
-## Options
-
-### Hybrid monorepo
-
-Keep one repository. Make individual skills available through the cross-agent
-skills installer, and expose several cohesive native plugins through both host
-marketplaces. Each plugin owns its skills and any agents, hooks, scripts, or
-other resources that must travel with them.
-
-This gives users the smallest useful unit in both models: one raw skill when it
-is self-contained, or one plugin when the capability needs a dependency closure.
-It also keeps discovery, contribution, CI, and shared changes centralized.
-
-### One plugin per skill in one monorepo
-
-Create a plugin directory and dual host manifests for every skill. Native host
-commands can then install every skill independently, but simple skills gain
-extra manifests and namespacing. Skills that depend on companion skills or
-agents still need explicit dependency handling or duplication.
-
-### One repository per skill or plugin
-
-Separate repositories provide independent ownership, release cadence, access
-control, and issue tracking. They also multiply CI, release, documentation, and
-cross-skill change overhead. Public repositories surveyed here generally use a
-monorepo catalog unless a capability is independently owned or released.
-
-## Recommendation
-
-Use the hybrid monorepo:
-
-1. Make `npx skills add ... --skill <name>` the primary documented path for
-   installing a single self-contained skill in Claude Code, Codex, or both.
-2. Replace the single native marketplace entry with a small set of cohesive
-   plugin entries. A plugin boundary should contain the complete runtime unit:
-   tightly coupled skills plus required agents, hooks, scripts, or assets.
-3. Keep an explicit complete-pack plugin only for users who intentionally want
-   everything; do not make it the default installer behavior.
-4. Avoid cross-skill dependencies in individually installed skills. Where the
-   dependency is essential, keep the skills in one plugin or make the caller's
-   fallback protocol self-contained.
-5. Split into separate repositories only when ownership, permissions, release
-   cadence, or artifact size genuinely differs.
-
-A suitable canonical layout is:
+The canonical layout is:
 
 ```text
 plugins/
@@ -146,10 +101,9 @@ plugins/
     .claude-plugin/plugin.json
     .codex-plugin/plugin.json
     skills/
-  wiki/
-    .claude-plugin/plugin.json
-    .codex-plugin/plugin.json
-    skills/
+  engineering/
+  knowledge/
+  experimental/
 .claude-plugin/marketplace.json
 .agents/plugins/marketplace.json
 ```

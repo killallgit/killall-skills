@@ -20,11 +20,11 @@ def load_module(name, relative_path):
 
 wiki_setup = load_module(
     "wiki_setup_for_hooks",
-    "payload/skills/setup-wiki/scripts/wiki_setup.py",
+    "plugins/knowledge/skills/setup-wiki/scripts/wiki_setup.py",
 )
 hook_installer = load_module(
     "wiki_hook_installer",
-    "payload/skills/setup-wiki/scripts/install-wiki-hooks.py",
+    "plugins/knowledge/skills/setup-wiki/scripts/install-wiki-hooks.py",
 )
 
 

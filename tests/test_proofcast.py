@@ -7,7 +7,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 PROOFCAST = REPO / "scripts" / "proofcast"
-SKILL = REPO / "payload" / "skills" / "record" / "SKILL.md"
+SKILL = REPO / "plugins" / "experimental" / "skills" / "record" / "SKILL.md"
 
 
 class ProofcastTests(unittest.TestCase):

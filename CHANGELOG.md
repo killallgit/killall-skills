@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 (2026-08-05)
+
+### Features
+
+* distribute planning, engineering, architecture, knowledge, and experimental as independent plugins
+* install selected domain plugins or individual cross-agent skills
+* consolidate extension authoring and Git worktree maintenance workflows
+
+### Removals
+
+* remove redundant grilling, setup, and prompt-shortcut skills
+
 ## 0.4.0 (2026-07-30)
 
 ### Features

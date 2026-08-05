@@ -4,9 +4,29 @@
   "owner": { "name": "killallgit", "url": "https://github.com/killallgit" },
   "plugins": [
     {
-      "name": "killall-skills",
-      "source": "./payload",
-      "description": "Project scoping, planning (brief -> PRD -> issues -> TDD), triage, diagnostics, and tooling skills."
+      "name": "planning",
+      "source": "./plugins/planning",
+      "description": "Project planning, PRDs, issue slicing, triage, and long-range wayfinding."
+    },
+    {
+      "name": "engineering",
+      "source": "./plugins/engineering",
+      "description": "Implementation, diagnosis, review, Git maintenance, and delivery workflows."
+    },
+    {
+      "name": "architecture",
+      "source": "./plugins/architecture",
+      "description": "Domain modeling, deep-module design, and architecture improvement."
+    },
+    {
+      "name": "knowledge",
+      "source": "./plugins/knowledge",
+      "description": "Research, handoffs, and durable cross-project knowledge wikis."
+    },
+    {
+      "name": "experimental",
+      "source": "./plugins/experimental",
+      "description": "Prototypes, proof recordings, and extension authoring experiments."
     }
   ]
 }

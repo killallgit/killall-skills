@@ -17,9 +17,8 @@ cross-agent `skills` CLI.
 - `triage`
 - `wayfinder`
 
-`setup-planning` replaces `setup-skills`. The generic grilling behavior is
-embedded into the planning workflows that need it. `grilling` and `grill-me`
-are not separate installable skills.
+Planning workflows carry their own one-question-at-a-time clarification
+protocol and remain usable without another domain plugin.
 
 ### Engineering
 
@@ -31,8 +30,8 @@ are not separate installable skills.
 - `git-janitor`
 - `wait-for-action`
 
-`git-janitor` owns worktree cleanup. `worktree-cleanup` is not a separate
-skill. The stack-specific `setup-pre-commit` recipe is not distributed.
+`git-janitor` owns branch and worktree cleanup as one repository-maintenance
+workflow.
 
 ### Architecture
 
@@ -40,8 +39,8 @@ skill. The stack-specific `setup-pre-commit` recipe is not distributed.
 - `codebase-design`
 - `improve-codebase-architecture`
 
-`domain-modeling` owns the one-question-at-a-time documentation workflow from
-`grill-with-docs`. `zoom-out` is not distributed as a standalone skill.
+`domain-modeling` owns the one-question-at-a-time documentation workflow and
+records resolved language or decisions as they crystallize.
 
 ### Knowledge
 
@@ -60,9 +59,8 @@ query, maintenance, validation, journaling, and synchronization.
 - `record`
 - `create-extension`
 
-`create-extension` replaces the separate `create-skill`, `create-rule`, and
-`create-hook` authoring workflows. `init-project` is replaced by the repository
-installer and marketplace documentation.
+`create-extension` authors portable skills, rules, and lifecycle hooks. Domain
+installation is handled by the repository installer and marketplace metadata.
 
 ## Repository structure
 
@@ -117,7 +115,7 @@ Automated tests enforce:
 
 - the exact five marketplace entries and matching dual manifests;
 - the exact 23-skill domain inventory;
-- absence of removed skill directories and stale references;
+- the absence of skill directories outside the approved inventory;
 - selective, multiple-domain, removal, listing, invalid-input, and `--all`
   installer behavior;
 - existing wiki, hook, proofcast, and validator behavior after relocation.

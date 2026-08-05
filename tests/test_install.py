@@ -7,6 +7,7 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[1]
 INSTALLER = REPO / "install.sh"
+DOMAINS = ("planning", "engineering", "architecture", "knowledge", "experimental")
 
 
 class InstallerTests(unittest.TestCase):
@@ -38,27 +39,68 @@ class InstallerTests(unittest.TestCase):
             result.install_log = log.read_text() if log.exists() else ""
             return result
 
-    def test_installs_both_plugin_hosts(self) -> None:
+    def test_requires_a_domain_or_all(self) -> None:
         result = self.run_installer()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Usage:", result.stdout)
+        self.assertEqual(result.install_log, "")
+
+    def test_lists_domains_without_calling_hosts(self) -> None:
+        result = self.run_installer("--list")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for domain in DOMAINS:
+            self.assertIn(domain, result.stdout)
+        self.assertEqual(result.install_log, "")
+
+    def test_installs_one_domain_in_both_plugin_hosts(self) -> None:
+        result = self.run_installer("planning")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("plugin marketplace add", result.install_log)
-        self.assertIn("plugin install killall-skills@killallgit", result.install_log)
-        self.assertIn("plugin add killall-skills@killallgit", result.install_log)
+        self.assertIn("plugin install planning@killallgit", result.install_log)
+        self.assertIn("plugin add planning@killallgit", result.install_log)
+        self.assertNotIn("engineering@killallgit", result.install_log)
 
-    def test_remove_uninstalls_from_both_hosts(self) -> None:
-        result = self.run_installer("--remove")
+    def test_installs_multiple_selected_domains(self) -> None:
+        result = self.run_installer("planning", "engineering")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("plugin uninstall killall-skills@killallgit", result.install_log)
-        self.assertIn("plugin remove killall-skills@killallgit", result.install_log)
+        self.assertIn("plugin install planning@killallgit", result.install_log)
+        self.assertIn("plugin install engineering@killallgit", result.install_log)
+        self.assertNotIn("architecture@killallgit", result.install_log)
+
+    def test_all_installs_every_domain(self) -> None:
+        result = self.run_installer("--all")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for domain in DOMAINS:
+            self.assertIn(f"plugin install {domain}@killallgit", result.install_log)
+            self.assertIn(f"plugin add {domain}@killallgit", result.install_log)
+
+    def test_remove_uninstalls_only_selected_domain(self) -> None:
+        result = self.run_installer("--remove", "knowledge")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("plugin uninstall knowledge@killallgit", result.install_log)
+        self.assertIn("plugin remove knowledge@killallgit", result.install_log)
         self.assertNotIn("marketplace add", result.install_log)
+        self.assertNotIn("planning@killallgit", result.install_log)
 
     def test_rejects_unknown_argument(self) -> None:
         result = self.run_installer("--wat")
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("unknown argument", result.stderr)
+        self.assertEqual(result.install_log, "")
+
+    def test_rejects_unknown_domain_before_calling_hosts(self) -> None:
+        result = self.run_installer("planning", "nope")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unknown domain", result.stderr)
+        self.assertEqual(result.install_log, "")
 
 
 if __name__ == "__main__":

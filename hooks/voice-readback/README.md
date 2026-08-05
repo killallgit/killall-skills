@@ -50,7 +50,7 @@ System.Speech.
 
 ## Registration
 
-`init-project` does this automatically (see the repo `AGENTS.md`). Manual wiring:
+Register the hook manually after opting in (see the repo `AGENTS.md`):
 
 ### Claude Code — `Stop` hook in `settings.json`
 
@@ -80,7 +80,7 @@ Codex appends the `agent-turn-complete` JSON payload as the last argument.
 
 > **Codex allows only one `notify` program.** If you already have a `notify`
 > configured, you must chain them (point `notify` at a small dispatcher that
-> calls both) rather than overwrite it. `init-project` checks for this and stops
+> calls both) rather than overwrite it. Stop when an existing program is present
 > rather than clobber an existing `notify`.
 
 ## Testing without audio

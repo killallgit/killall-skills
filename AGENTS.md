@@ -1,18 +1,19 @@
-# AGENTS.md — install recipe
+# AGENTS.md — distribution and host wiring
 
-Per-host recipe for `init-project` (the `init-project` skill reads this file).
-There is no package manager; wiring is done by hand. Prefer **symlinks** for
-local development, **copies** for portable installs. **Back up any host config
-before editing, and preserve user-owned config** — merge, never clobber.
+Install domain plugins through the native Claude Code and Codex marketplaces,
+or install individual skills with the cross-agent `skills` CLI. **Back up any
+host config before editing, and preserve user-owned config** — merge, never
+clobber.
 
 ## What ships
 
-- `payload/skills/` — skills (discovered via `.claude-plugin/marketplace.json`
-  for Claude Code and `payload/.codex-plugin/plugin.json` for Codex),
-  including cross-host workflows like `project-planner`.
-- `payload/agents/` — Claude Code subagents (auto-discovered by the plugin).
-  Claude-only; other hosts fall back to the skill's inline protocol. Add a
-  matching skill for any reusable subagent behavior that should work cross-host.
+- `plugins/planning/` — project planning, PRDs, issue slicing, triage, and wayfinding.
+- `plugins/engineering/` — implementation, diagnosis, review, Git maintenance, and delivery.
+- `plugins/architecture/` — domain modeling and deep-module design.
+- `plugins/knowledge/` — research, handoffs, and cross-project wikis.
+- `plugins/experimental/` — prototypes, proof recordings, and extension authoring.
+- Each plugin has Claude and Codex manifests, a `skills/` directory, and any
+  Claude-only agents it needs. Other hosts use the skills' inline fallbacks.
 - `rules/` — installable rules.
 - `hooks/` — hook scripts. Two kinds:
   - **Advisory phase hooks** (`hooks/<phase>/NN-*.sh`) — Bash, emit
@@ -22,13 +23,15 @@ before editing, and preserve user-owned config** — merge, never clobber.
 
 ## General install steps
 
-1. Inspect the target host: existing agent instructions, skills, rules, hooks, config.
-2. Check the host tool's latest docs before changing config or hook wiring
-   (Context7 MCP first when available).
-3. Link or copy `payload/skills/`, `payload/agents/` (Claude Code only),
-   `rules/`, and any requested `hooks/`.
-4. Verify the host discovers them.
-5. Report exactly what was linked, copied, merged, skipped, or left for manual follow-up.
+1. Inspect the target host and determine which domains or individual skills the
+   user requested.
+2. Check the host tool's latest docs before changing config or hook wiring.
+3. Run `./install.sh <domain>...` for native plugins, or `npx skills@latest add
+   killallgit/killall-skills --skill <name>` for one portable skill.
+4. Register root hooks only when separately requested; plugin installation does
+   not imply side-effect-hook registration.
+5. Verify discovery and report exactly what was installed, removed, configured,
+   skipped, or left for manual follow-up.
 
 ## Voice readback (`hooks/voice-readback/`) — optional, ask first
 
