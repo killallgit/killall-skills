@@ -16,10 +16,18 @@ class InstallerTests(unittest.TestCase):
         host.write_text(
             "#!/bin/sh\n"
             'printf "%s %s\\n" "$0" "$*" >> "$INSTALL_LOG"\n'
+            'if [ "$(basename "$0")" = codex ] '
+            '&& [ "$1 $2 $3" = "plugin marketplace add" ] '
+            '&& [ "${FAIL_CODEX_MARKETPLACE_ADD:-}" = 1 ]; then exit 9; fi\n'
+            'if [ "$(basename "$0")" = codex ] '
+            '&& [ "$1 $2 $3" = "plugin marketplace upgrade" ] '
+            '&& [ "${FAIL_CODEX_MARKETPLACE_UPGRADE:-}" = 1 ]; then exit 10; fi\n'
         )
         host.chmod(0o755)
 
-    def run_installer(self, *args: str) -> subprocess.CompletedProcess[str]:
+    def run_installer(
+        self, *args: str, environment_overrides: dict[str, str] | None = None
+    ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self.make_host(root, "claude")
@@ -28,6 +36,7 @@ class InstallerTests(unittest.TestCase):
             environment = os.environ.copy()
             environment["PATH"] = f"{root}:{environment['PATH']}"
             environment["INSTALL_LOG"] = str(log)
+            environment.update(environment_overrides or {})
             result = subprocess.run(
                 [str(INSTALLER), *args],
                 cwd=REPO,
@@ -64,17 +73,35 @@ class InstallerTests(unittest.TestCase):
             for line in result.install_log.splitlines()
             if Path(line.split(" ", 1)[0]).name == "codex"
         ]
-        self.assertLess(
-            codex_calls.index("plugin marketplace remove killallgit"),
-            next(
-                index
-                for index, call in enumerate(codex_calls)
-                if call.startswith("plugin marketplace add ")
-            ),
-        )
+        self.assertNotIn("plugin marketplace remove killallgit", codex_calls)
         self.assertIn("plugin install planning@killallgit", result.install_log)
         self.assertIn("plugin add planning@killallgit", result.install_log)
         self.assertNotIn("engineering@killallgit", result.install_log)
+
+    def test_codex_upgrades_an_existing_git_marketplace(self) -> None:
+        result = self.run_installer(
+            "planning",
+            environment_overrides={"FAIL_CODEX_MARKETPLACE_ADD": "1"},
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("plugin marketplace upgrade killallgit", result.install_log)
+        self.assertIn("plugin add planning@killallgit", result.install_log)
+        self.assertNotIn("plugin marketplace remove killallgit", result.install_log)
+
+    def test_codex_preserves_marketplace_when_refresh_fails(self) -> None:
+        result = self.run_installer(
+            "planning",
+            environment_overrides={
+                "FAIL_CODEX_MARKETPLACE_ADD": "1",
+                "FAIL_CODEX_MARKETPLACE_UPGRADE": "1",
+            },
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("plugin marketplace upgrade killallgit", result.install_log)
+        self.assertNotIn("plugin marketplace remove killallgit", result.install_log)
+        self.assertNotIn("plugin add planning@killallgit", result.install_log)
 
     def test_installs_multiple_selected_domains(self) -> None:
         result = self.run_installer("planning", "engineering")
