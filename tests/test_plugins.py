@@ -97,13 +97,27 @@ class PluginManifestTests(unittest.TestCase):
 
 class PluginInventoryTests(unittest.TestCase):
     def test_each_domain_contains_its_exact_skill_inventory(self) -> None:
+        plugin_directories = {
+            path.name for path in (REPO / "plugins").iterdir() if path.is_dir()
+        }
+        self.assertEqual(plugin_directories, set(DOMAINS))
+
         for domain, expected in DOMAINS.items():
             skills_root = REPO / "plugins" / domain / "skills"
-            actual = {
-                path.parent.name
-                for path in skills_root.glob("*/SKILL.md")
-            }
+            actual = {path.name for path in skills_root.iterdir() if path.is_dir()}
             self.assertEqual(actual, expected, domain)
+
+    def test_domains_do_not_hard_invoke_skills_from_other_plugins(self) -> None:
+        for domain, skills in DOMAINS.items():
+            foreign_skills = set().union(
+                *(names for owner, names in DOMAINS.items() if owner != domain)
+            )
+            for skill in skills:
+                text = (
+                    REPO / "plugins" / domain / "skills" / skill / "SKILL.md"
+                ).read_text()
+                for foreign_skill in foreign_skills:
+                    self.assertNotIn(f"/{foreign_skill}", text, f"{domain}/{skill}")
 
     def test_skill_frontmatter_names_match_directories(self) -> None:
         for domain in DOMAINS:

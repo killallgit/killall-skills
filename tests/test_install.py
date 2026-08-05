@@ -59,6 +59,19 @@ class InstallerTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("plugin marketplace add", result.install_log)
+        codex_calls = [
+            line.split(" ", 1)[1]
+            for line in result.install_log.splitlines()
+            if Path(line.split(" ", 1)[0]).name == "codex"
+        ]
+        self.assertLess(
+            codex_calls.index("plugin marketplace remove killallgit"),
+            next(
+                index
+                for index, call in enumerate(codex_calls)
+                if call.startswith("plugin marketplace add ")
+            ),
+        )
         self.assertIn("plugin install planning@killallgit", result.install_log)
         self.assertIn("plugin add planning@killallgit", result.install_log)
         self.assertNotIn("engineering@killallgit", result.install_log)

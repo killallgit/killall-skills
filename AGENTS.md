@@ -26,7 +26,7 @@ clobber.
 1. Inspect the target host and determine which domains or individual skills the
    user requested.
 2. Check the host tool's latest docs before changing config or hook wiring.
-3. Run `./install.sh <domain>...` for native plugins, or `npx skills@latest add
+3. Run `rtk ./install.sh <domain>...` for native plugins, or `rtk npx skills@latest add
    killallgit/killall-skills --skill <name>` for one portable skill.
 4. Register root hooks only when separately requested; plugin installation does
    not imply side-effect-hook registration.
@@ -79,7 +79,7 @@ notify = ["python3", "$HOOK", "--codex-notify"]
 ### Verify (no audio)
 
 ```bash
-python3 "$HOOK" --codex-notify --dry-run \
+rtk python3 "$HOOK" --codex-notify --dry-run \
   '{"type":"agent-turn-complete","cwd":"/x","input-messages":["speak to me"],"last-assistant-message":"ok"}'
 # expect: enabled=True, provider=elevenlabs|say
 ```

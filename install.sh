@@ -122,7 +122,8 @@ install_codex() {
   fi
 
   say "Codex: installing ${SELECTED[*]}"
-  codex plugin marketplace add "$REPO" 2>/dev/null || true
+  codex plugin marketplace remove "$MARKETPLACE" >/dev/null 2>&1 || true
+  codex plugin marketplace add "$REPO"
   for domain in "${SELECTED[@]}"; do
     codex plugin remove "$domain@$MARKETPLACE" >/dev/null 2>&1 || true
     codex plugin add "$domain@$MARKETPLACE"

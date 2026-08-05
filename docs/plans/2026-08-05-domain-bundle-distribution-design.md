@@ -79,8 +79,8 @@ each name to `plugins/<domain>`. Skill content has one canonical location under
 its owning plugin. No generated copies or cross-plugin symlinks are used.
 
 Every plugin is dependency-closed. References to skills in another plugin must
-be optional and include an inline fallback. References to removed skills are
-folded into the surviving workflow that needs the behavior.
+be optional and include an inline fallback. Each workflow contains all behavior
+required for its core path.
 
 ## Installation contract
 
@@ -118,7 +118,7 @@ Automated tests enforce:
 - the absence of skill directories outside the approved inventory;
 - selective, multiple-domain, removal, listing, invalid-input, and `--all`
   installer behavior;
-- existing wiki, hook, proofcast, and validator behavior after relocation.
+- wiki, hook, proofcast, and validator runtime behavior.
 
-The release updates current-state documentation and records the distribution
-change in the changelog.
+Current-state documentation describes the distribution contract, and the
+changelog records release-level changes.
