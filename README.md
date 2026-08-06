@@ -5,10 +5,10 @@ Domain-focused workflow skills for Claude Code and Codex.
 ## What ships
 
 - `plugins/planning/` — project planning, PRDs, issue slicing, triage, and wayfinding.
-- `plugins/engineering/` — implementation, diagnosis, review, Git maintenance, and delivery.
+- `plugins/engineering/` — implementation, diagnosis, review, proof recordings, Git maintenance, and delivery.
 - `plugins/architecture/` — domain modeling and deep-module design.
 - `plugins/knowledge/` — research, handoffs, and cross-project wikis.
-- `plugins/experimental/` — prototypes, proof recordings, and extension authoring.
+- `plugins/experimental/` — prototypes and extension authoring.
 - `rules/` and root `hooks/` — installable repo rules and optional host hooks.
 
 ## Install

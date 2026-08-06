@@ -1,13 +1,13 @@
 {
   "name": "experimental",
-  "description": "Prototypes, proof recordings, and extension authoring experiments.",
+  "description": "Prototypes and extension authoring experiments.",
   "version": "0.5.0",
   "author": { "name": "killallgit", "url": "https://github.com/killallgit" },
   "skills": "./skills/",
   "interface": {
     "displayName": "Experimental",
     "shortDescription": "Prototype ideas and author agent extensions.",
-    "longDescription": "Build throwaway prototypes, record focused proof flows, and author portable skills, rules, or lifecycle hooks.",
+    "longDescription": "Build throwaway prototypes and author portable skills, rules, or lifecycle hooks.",
     "developerName": "killallgit",
     "category": "Developer Tools",
     "capabilities": ["Write"],

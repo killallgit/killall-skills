@@ -22,6 +22,7 @@ DOMAINS = {
         "resolving-merge-conflicts",
         "git-janitor",
         "wait-for-action",
+        "record",
     },
     "architecture": {
         "domain-modeling",
@@ -36,7 +37,6 @@ DOMAINS = {
     },
     "experimental": {
         "prototype",
-        "record",
         "create-extension",
     },
 }

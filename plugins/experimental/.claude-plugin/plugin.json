@@ -1,6 +1,6 @@
 {
   "name": "experimental",
-  "description": "Prototypes, proof recordings, and extension authoring experiments.",
+  "description": "Prototypes and extension authoring experiments.",
   "version": "0.5.0",
   "author": { "name": "killallgit", "url": "https://github.com/killallgit" }
 }
