@@ -1,8 +1,11 @@
 {
   "name": "architecture",
   "description": "Domain modeling, deep-module design, and architecture improvement.",
-  "version": "0.5.0",
-  "author": { "name": "killallgit", "url": "https://github.com/killallgit" },
+  "version": "0.6.0",
+  "author": {
+    "name": "killallgit",
+    "url": "https://github.com/killallgit"
+  },
   "skills": "./skills/",
   "interface": {
     "displayName": "Architecture",
@@ -10,7 +13,11 @@
     "longDescription": "Sharpen domain language, design deep module interfaces, and find architecture improvements grounded in repository decisions.",
     "developerName": "killallgit",
     "category": "Coding",
-    "capabilities": ["Write"],
-    "defaultPrompt": ["Find the best module-deepening opportunity here."]
+    "capabilities": [
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Find the best module-deepening opportunity here."
+    ]
   }
 }

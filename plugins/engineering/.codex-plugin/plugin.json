@@ -1,8 +1,11 @@
 {
   "name": "engineering",
   "description": "Implementation, diagnosis, review, proof recordings, Git maintenance, and delivery workflows.",
-  "version": "0.5.0",
-  "author": { "name": "killallgit", "url": "https://github.com/killallgit" },
+  "version": "0.6.0",
+  "author": {
+    "name": "killallgit",
+    "url": "https://github.com/killallgit"
+  },
   "skills": "./skills/",
   "interface": {
     "displayName": "Engineering",
@@ -10,7 +13,11 @@
     "longDescription": "Implement test-first changes, diagnose failures, review code, record proof of a validated flow, resolve merges, maintain Git worktrees, and wait on delivery checks.",
     "developerName": "killallgit",
     "category": "Coding",
-    "capabilities": ["Write"],
-    "defaultPrompt": ["Diagnose this failure and show me the evidence."]
+    "capabilities": [
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Diagnose this failure and show me the evidence."
+    ]
   }
 }
