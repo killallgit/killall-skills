@@ -1,8 +1,11 @@
 {
   "name": "planning",
   "description": "Project planning, PRDs, issue slicing, triage, and long-range wayfinding.",
-  "version": "0.5.0",
-  "author": { "name": "killallgit", "url": "https://github.com/killallgit" },
+  "version": "0.6.0",
+  "author": {
+    "name": "killallgit",
+    "url": "https://github.com/killallgit"
+  },
   "skills": "./skills/",
   "interface": {
     "displayName": "Planning",
@@ -10,7 +13,11 @@
     "longDescription": "Scope projects, establish planning workflows, write PRDs, slice issues, triage requests, and map long-running decisions.",
     "developerName": "killallgit",
     "category": "Productivity",
-    "capabilities": ["Write"],
-    "defaultPrompt": ["Turn this idea into a concrete project plan."]
+    "capabilities": [
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Turn this idea into a concrete project plan."
+    ]
   }
 }

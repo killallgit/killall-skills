@@ -1,8 +1,11 @@
 {
   "name": "knowledge",
   "description": "Research, handoffs, and durable cross-project knowledge wikis.",
-  "version": "0.5.0",
-  "author": { "name": "killallgit", "url": "https://github.com/killallgit" },
+  "version": "0.6.0",
+  "author": {
+    "name": "killallgit",
+    "url": "https://github.com/killallgit"
+  },
   "skills": "./skills/",
   "interface": {
     "displayName": "Knowledge",
@@ -10,7 +13,11 @@
     "longDescription": "Research primary sources, hand work across sessions, and create or operate durable cross-project knowledge wikis.",
     "developerName": "killallgit",
     "category": "Productivity",
-    "capabilities": ["Write"],
-    "defaultPrompt": ["Research this question and capture the findings."]
+    "capabilities": [
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Research this question and capture the findings."
+    ]
   }
 }

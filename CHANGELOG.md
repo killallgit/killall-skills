@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/killallgit/killall-skills/compare/killall-skills--v0.5.0...killall-skills--v0.6.0) (2026-08-21)
+
+
+### Features
+
+* add commenator comment-audit agent ([4521d99](https://github.com/killallgit/killall-skills/commit/4521d99602c367a0d65802b7c807864d7be33f7a))
+
 ## 0.5.0 (2026-08-05)
 
 ### Features
