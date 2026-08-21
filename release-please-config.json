@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "include-component-in-tag": true,
+  "include-v-in-tag": true,
+  "tag-separator": "--",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "component": "killall-skills",
+      "extra-files": [
+        { "type": "json", "path": "plugins/architecture/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "plugins/architecture/.codex-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "plugins/engineering/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "plugins/engineering/.codex-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "plugins/experimental/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "plugins/experimental/.codex-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "plugins/knowledge/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "plugins/knowledge/.codex-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "plugins/planning/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "plugins/planning/.codex-plugin/plugin.json", "jsonpath": "$.version" }
+      ]
+    }
+  }
+}
