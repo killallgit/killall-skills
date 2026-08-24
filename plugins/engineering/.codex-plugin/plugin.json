@@ -1,7 +1,7 @@
 {
   "name": "engineering",
   "description": "Implementation, diagnosis, review, proof recordings, Git maintenance, and delivery workflows.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "author": {
     "name": "killallgit",
     "url": "https://github.com/killallgit"
