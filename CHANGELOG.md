@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/killallgit/killall-skills/compare/killall-skills--v0.6.0...killall-skills--v0.6.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* keep a failed install from removing a working plugin ([0b3672d](https://github.com/killallgit/killall-skills/commit/0b3672d69b468ebc9f21b2ce8b8e24491e57c695))
+
 ## [0.6.0](https://github.com/killallgit/killall-skills/compare/killall-skills--v0.5.0...killall-skills--v0.6.0) (2026-08-21)
 
 
