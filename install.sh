@@ -8,6 +8,7 @@ DOMAINS=(planning engineering architecture knowledge experimental)
 SELECTED=()
 INSTALL_ALL=false
 LIST_ONLY=false
+FAILED=()
 
 usage() {
   cat <<'EOF'
@@ -87,7 +88,7 @@ have() {
 install_claude() {
   have claude || {
     echo "claude not found — skipping Claude Code."
-    return
+    return 0
   }
 
   if [ "$ACTION" = remove ]; then
@@ -95,22 +96,24 @@ install_claude() {
       say "Claude Code: removing $domain"
       claude plugin uninstall "$domain@$MARKETPLACE" || true
     done
-    return
+    return 0
   fi
 
   say "Claude Code: installing ${SELECTED[*]}"
   claude plugin marketplace add "$REPO" 2>/dev/null \
-    || claude plugin marketplace update "$MARKETPLACE"
+    || claude plugin marketplace update "$MARKETPLACE" \
+    || return 1
   for domain in "${SELECTED[@]}"; do
+    claude plugin install "$domain@$MARKETPLACE" && continue
     claude plugin uninstall "$domain@$MARKETPLACE" >/dev/null 2>&1 || true
-    claude plugin install "$domain@$MARKETPLACE"
+    claude plugin install "$domain@$MARKETPLACE" || return 1
   done
 }
 
 install_codex() {
   have codex || {
     echo "codex not found — skipping Codex."
-    return
+    return 0
   }
 
   if [ "$ACTION" = remove ]; then
@@ -118,20 +121,26 @@ install_codex() {
       say "Codex: removing $domain"
       codex plugin remove "$domain@$MARKETPLACE" || true
     done
-    return
+    return 0
   fi
 
   say "Codex: installing ${SELECTED[*]}"
-  if ! codex plugin marketplace add "$REPO" 2>/dev/null; then
-    codex plugin marketplace upgrade "$MARKETPLACE"
-  fi
+  codex plugin marketplace add "$REPO" 2>/dev/null \
+    || codex plugin marketplace upgrade "$MARKETPLACE" \
+    || return 1
   for domain in "${SELECTED[@]}"; do
+    codex plugin add "$domain@$MARKETPLACE" && continue
     codex plugin remove "$domain@$MARKETPLACE" >/dev/null 2>&1 || true
-    codex plugin add "$domain@$MARKETPLACE"
+    codex plugin add "$domain@$MARKETPLACE" || return 1
   done
 }
 
-install_claude
-install_codex
+install_claude || FAILED+=("Claude Code")
+install_codex || FAILED+=(Codex)
+
+if [ ${#FAILED[@]} -gt 0 ]; then
+  printf '\n%s\n' "Failed ($ACTION) in: ${FAILED[*]}" >&2
+  exit 1
+fi
 
 say "Done ($ACTION). Restart Claude Code and Codex to apply."
