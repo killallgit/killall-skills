@@ -11,7 +11,7 @@ clobber.
 - `plugins/engineering/` — implementation, diagnosis, review, Git maintenance, and delivery.
 - `plugins/architecture/` — domain modeling and deep-module design.
 - `plugins/knowledge/` — research, handoffs, and cross-project wikis.
-- `plugins/experimental/` — prototypes, proof recordings, and extension authoring.
+- `plugins/experimental/` — prototypes and extension authoring.
 - Each plugin has Claude and Codex manifests, a `skills/` directory, and any
   Claude-only agents it needs. Other hosts use the skills' inline fallbacks.
 - `rules/` — installable rules.

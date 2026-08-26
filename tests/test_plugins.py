@@ -22,7 +22,6 @@ DOMAINS = {
         "resolving-merge-conflicts",
         "git-janitor",
         "wait-for-action",
-        "record",
     },
     "architecture": {
         "domain-modeling",

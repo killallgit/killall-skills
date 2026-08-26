@@ -1,6 +1,6 @@
 {
   "name": "engineering",
-  "description": "Implementation, diagnosis, review, proof recordings, Git maintenance, and delivery workflows.",
+  "description": "Implementation, diagnosis, review, Git maintenance, and delivery workflows.",
   "version": "0.6.1",
   "author": {
     "name": "killallgit",

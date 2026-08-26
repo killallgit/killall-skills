@@ -11,7 +11,7 @@
     {
       "name": "engineering",
       "source": "./plugins/engineering",
-      "description": "Implementation, diagnosis, review, proof recordings, Git maintenance, and delivery workflows."
+      "description": "Implementation, diagnosis, review, Git maintenance, and delivery workflows."
     },
     {
       "name": "architecture",

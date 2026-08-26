@@ -5,7 +5,7 @@ Domain-focused workflow skills for Claude Code and Codex.
 ## What ships
 
 - `plugins/planning/` — project planning, PRDs, issue slicing, triage, and wayfinding.
-- `plugins/engineering/` — implementation, diagnosis, review, proof recordings, Git maintenance, and delivery.
+- `plugins/engineering/` — implementation, diagnosis, review, Git maintenance, and delivery.
 - `plugins/architecture/` — domain modeling and deep-module design.
 - `plugins/knowledge/` — research, handoffs, and cross-project wikis.
 - `plugins/experimental/` — prototypes and extension authoring.
@@ -56,26 +56,6 @@ codex plugin add planning@killallgit
 ```bash
 claude --plugin-dir ~/Code/killallgit/killall-skills/plugins/planning
 ```
-
-## Proofcast
-
-Proofcast records one agent command or focused validation flow as an H.264 MP4.
-It requires Bash, [asciinema](https://asciinema.org/),
-[AGG](https://github.com/asciinema/agg), FFmpeg with `libx264`, and
-[Task](https://taskfile.dev/).
-
-```bash
-task install
-proofcast --out smoke-test.mp4 -- python3 smoke_test.py
-```
-
-Without `--out`, Proofcast writes a timestamped MP4 in the current directory.
-It prints the recorded command output and then the absolute video path. A failed
-command is still rendered and Proofcast returns that command's exit status.
-
-Recording is explicitly activated by saying “let's record this.” Proofcast
-captures output verbatim and performs no automatic secret redaction, so never
-record commands that print or contain credentials.
 
 ## Release
 

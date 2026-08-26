@@ -118,7 +118,7 @@ Automated tests enforce:
 - the absence of skill directories outside the approved inventory;
 - selective, multiple-domain, removal, listing, invalid-input, and `--all`
   installer behavior;
-- wiki, hook, proofcast, and validator runtime behavior.
+- wiki, hook, and validator runtime behavior.
 
 Current-state documentation describes the distribution contract, and the
 changelog records release-level changes.
