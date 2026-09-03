@@ -5,3 +5,7 @@
 # Python
 __pycache__/
 *.pyc
+
+# Test / OS noise
+.pytest_cache/
+.DS_Store

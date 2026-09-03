@@ -1,9 +1,0 @@
-{
-  "name": "knowledge",
-  "description": "Research, handoffs, and durable cross-project knowledge wikis.",
-  "version": "0.6.1",
-  "author": {
-    "name": "killallgit",
-    "url": "https://github.com/killallgit"
-  }
-}

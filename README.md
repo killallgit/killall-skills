@@ -1,73 +1,78 @@
 # killall-skills
 
-Domain-focused workflow skills for Claude Code and Codex.
+Domain-focused workflow skills for coding agents.
 
 ## What ships
 
-- `plugins/planning/` — project planning, PRDs, issue slicing, triage, and wayfinding.
-- `plugins/engineering/` — implementation, diagnosis, review, Git maintenance, and delivery.
-- `plugins/architecture/` — domain modeling and deep-module design.
-- `plugins/knowledge/` — research, handoffs, and cross-project wikis.
-- `plugins/experimental/` — prototypes and extension authoring.
-- `rules/` and root `hooks/` — installable repo rules and optional host hooks.
+- `skills/planning/` — project planning, PRDs, issue slicing, triage, and wayfinding.
+- `skills/engineering/` — implementation, diagnosis, review, Git maintenance, and delivery.
+- `skills/architecture/` — domain modeling and deep-module design.
+- `skills/knowledge/` — research, handoffs, and cross-project wikis.
+- `skills/experimental/` — prototypes and extension authoring.
+- `agents/` — Claude Code subagents used by some skills.
+- `hooks/voice-readback/` — optional turn-completion hook, registered only on request.
 
 ## Install
 
+Everything installs through the cross-agent [`skills`](https://github.com/vercel-labs/skills)
+CLI, which reads the `skills/<domain>/<name>/` catalog directly.
+
 ```bash
-git clone https://github.com/killallgit/killall-skills
-cd killall-skills
-./install.sh --list
-./install.sh planning engineering
+npx skills@latest add killallgit/killall-skills --list
 ```
 
-The installer refreshes only the selected domain plugins in every supported
-host found on `PATH`. Select all five explicitly with `./install.sh --all`, or
-remove selected domains with `./install.sh --remove knowledge`. Restart Claude
-Code and Codex after either operation.
-
-Install one skill without its whole domain through the cross-agent skills CLI:
+Install what you want, for the agents you use:
 
 ```bash
 npx skills@latest add killallgit/killall-skills \
   --skill research \
+  --skill diagnose \
   --agent claude-code \
   --agent codex \
   --global \
   --yes
 ```
 
-<details>
-<summary>Manual install</summary>
+Take a whole domain by naming its skills, or take everything with `--skill '*'`:
 
 ```bash
-# Claude Code
-claude plugin marketplace add killallgit/killall-skills
-claude plugin install planning@killallgit
-
-# Codex
-codex plugin marketplace add killallgit/killall-skills
-codex plugin add planning@killallgit
+npx skills@latest add killallgit/killall-skills --skill '*' --agent claude-code -g -y
 ```
 
-</details>
+Skills land in each agent's own directory — `~/.claude/skills/` for Claude Code,
+`~/.codex/skills/` for Codex — so they work without any marketplace or plugin
+host. Drop `--global` to install into the current project instead.
+
+Update or remove them the same way:
+
+```bash
+npx skills@latest update
+npx skills@latest remove research
+```
+
+## Agents
+
+The `skills` CLI installs skills, not subagents. Three skills call subagents that
+live in `agents/`: `git-janitor` uses `git-janitor-investigator`, `project-planner`
+has a matching agent, and `commenator` audits comments on demand. Copy the ones
+you want into your agent directory:
+
+```bash
+cp agents/*.md ~/.claude/agents/
+```
+
+Each skill still works without its agent — it just runs the investigation inline.
 
 ## Local development
 
+Point the CLI at a checkout instead of the GitHub repo:
+
 ```bash
-claude --plugin-dir ~/Code/killallgit/killall-skills/plugins/planning
+npx skills@latest add ~/Code/killallgit/killall-skills --list
 ```
 
-## Release
-
-Releases are intentionally manual. Update the version in every domain's Claude
-and Codex manifests and add the release notes to `CHANGELOG.md`, then commit,
-tag, and publish:
+Run the tests with:
 
 ```bash
-git commit -am "chore: release X.Y.Z"
-git tag "killall-skills--vX.Y.Z"
-git push origin main "killall-skills--vX.Y.Z"
-gh release create "killall-skills--vX.Y.Z" \
-  --title "killall-skills X.Y.Z" \
-  --notes-file /path/to/release-notes.md
+uv run --with pytest pytest tests -q
 ```
