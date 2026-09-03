@@ -58,6 +58,9 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text())
 
 
+RELEASE_VERSION = load_json(REPO / ".release-please-manifest.json")["."]
+
+
 class PluginManifestTests(unittest.TestCase):
     def test_claude_marketplace_lists_each_domain_plugin(self) -> None:
         marketplace = load_json(REPO / ".claude-plugin" / "marketplace.json")
@@ -87,8 +90,8 @@ class PluginManifestTests(unittest.TestCase):
 
             self.assertEqual(claude["name"], domain)
             self.assertEqual(codex["name"], domain)
-            self.assertEqual(claude["version"], "0.5.0")
-            self.assertEqual(codex["version"], "0.5.0")
+            self.assertEqual(claude["version"], RELEASE_VERSION)
+            self.assertEqual(codex["version"], RELEASE_VERSION)
             self.assertEqual(codex["skills"], "./skills/")
             self.assertTrue(codex["interface"]["longDescription"])
             self.assertGreater(len(codex["interface"]["defaultPrompt"]), 0)
