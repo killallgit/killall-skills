@@ -19,11 +19,11 @@ def load_module(name, relative_path):
 
 wiki_setup = load_module(
     "wiki_setup_for_validator",
-    "plugins/knowledge/skills/setup-wiki/scripts/wiki_setup.py",
+    "skills/knowledge/setup-wiki/scripts/wiki_setup.py",
 )
 wiki_check = load_module(
     "wiki_check",
-    "plugins/knowledge/skills/setup-wiki/scripts/wiki_check.py",
+    "skills/knowledge/setup-wiki/scripts/wiki_check.py",
 )
 
 

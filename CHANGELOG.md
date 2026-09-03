@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### ⚠ BREAKING CHANGES
+
+* Plugin distribution is removed. The Claude Code and Codex plugin
+  marketplaces, the per-domain plugin manifests, and `install.sh` are gone, and
+  the release-please version wiring with them. Skills now live in a
+  `skills/<domain>/<name>/` catalog and install through the cross-agent
+  `skills` CLI:
+
+  ```bash
+  npx skills@latest add killallgit/killall-skills --skill '*' -a claude-code -g -y
+  ```
+
+  If you installed a domain as a plugin, uninstall it
+  (`claude plugin uninstall <domain>@killallgit`) before reinstalling.
+
+* Subagents moved from each plugin to a top-level `agents/`. The `skills` CLI
+  does not install subagents; copy them into your host's agent directory.
+
 ## [0.6.1](https://github.com/killallgit/killall-skills/compare/killall-skills--v0.6.0...killall-skills--v0.6.1) (2026-08-24)
 
 

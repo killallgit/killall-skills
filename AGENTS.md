@@ -1,36 +1,30 @@
 # AGENTS.md — distribution and host wiring
 
-Install domain plugins through the native Claude Code and Codex marketplaces,
-or install individual skills with the cross-agent `skills` CLI. **Back up any
-host config before editing, and preserve user-owned config** — merge, never
-clobber.
+Skills install through the cross-agent `skills` CLI. There is no plugin
+marketplace and no bundled installer. **Back up any host config before editing,
+and preserve user-owned config** — merge, never clobber.
 
 ## What ships
 
-- `plugins/planning/` — project planning, PRDs, issue slicing, triage, and wayfinding.
-- `plugins/engineering/` — implementation, diagnosis, review, Git maintenance, and delivery.
-- `plugins/architecture/` — domain modeling and deep-module design.
-- `plugins/knowledge/` — research, handoffs, and cross-project wikis.
-- `plugins/experimental/` — prototypes and extension authoring.
-- Each plugin has Claude and Codex manifests, a `skills/` directory, and any
-  Claude-only agents it needs. Other hosts use the skills' inline fallbacks.
-- `rules/` — installable rules.
-- `hooks/` — hook scripts. Two kinds:
-  - **Advisory phase hooks** (`hooks/<phase>/NN-*.sh`) — Bash, emit
-    `HOOK_INSTRUCTION:`. See `hooks/README.md`.
-  - **Host-registered side-effect hooks** (e.g. `hooks/voice-readback/`) —
-    registered directly with a host's native hook. Registered only on request.
+- `skills/<domain>/<name>/SKILL.md` — the catalog, in five domains: `planning`,
+  `engineering`, `architecture`, `knowledge`, `experimental`. This is the layout
+  the `skills` CLI walks natively; keep every skill at exactly that depth.
+- Companion scripts, templates, and references live inside their skill directory.
+- `agents/` — Claude Code subagents. The CLI does not install these; copy them
+  into the host's agent directory when a user wants them.
+- `hooks/voice-readback/` — a host-registered side-effect hook. Registered only
+  on request.
 
 ## General install steps
 
-1. Inspect the target host and determine which domains or individual skills the
-   user requested.
-2. Check the host tool's latest docs before changing config or hook wiring.
-3. Run `rtk ./install.sh <domain>...` for native plugins, or `rtk npx skills@latest add
-   killallgit/killall-skills --skill <name>` for one portable skill.
-4. Register root hooks only when separately requested; plugin installation does
-   not imply side-effect-hook registration.
-5. Verify discovery and report exactly what was installed, removed, configured,
+1. Inspect the target host and determine which skills the user requested.
+2. Check the CLI's current docs before changing config or hook wiring.
+3. Run `rtk npx skills@latest add killallgit/killall-skills --skill <name> --agent <host>`.
+   Add `--global` for the user directory, omit it for the current project.
+4. Copy subagents from `agents/` only when a skill the user installed needs one.
+5. Register hooks only when separately requested; installing a skill never
+   implies hook registration.
+6. Verify discovery and report exactly what was installed, removed, configured,
    skipped, or left for manual follow-up.
 
 ## Voice readback (`hooks/voice-readback/`) — optional, ask first
@@ -65,7 +59,14 @@ Hooks load at session start; tell the user to start a new session.
 
 ### Codex
 
-Codex permits a **single** `notify` program in `~/.codex/config.toml`:
+Codex exposes a Stop hook that receives the same JSON payload shape on stdin:
+
+```json
+{ "type": "command", "command": "python3 $HOOK --codex-stop", "timeout": 10 }
+```
+
+Older Codex builds only support a **single** `notify` program in
+`~/.codex/config.toml`:
 
 ```toml
 notify = ["python3", "$HOOK", "--codex-notify"]

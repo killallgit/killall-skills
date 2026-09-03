@@ -5,8 +5,8 @@ A *side-effect* hook (it plays audio); it does NOT follow the advisory
 HOOK_INSTRUCTION model used by the phase hooks in this repo. It is registered
 directly with a host's native turn-completion hook:
 
-  Claude Code : Stop hook  -> `voice-readback.py --claude-stop`  (reads stdin JSON)
-  Codex       : notify     -> `voice-readback.py --codex-notify` (JSON as last argv)
+  Claude Code : Stop hook  -> `voice-readback.py --claude-stop` (reads stdin JSON)
+  Codex       : Stop hook  -> `voice-readback.py --codex-stop`  (reads stdin JSON)
 
 Runtime gate is in-chat and per "session":
 
@@ -17,8 +17,8 @@ Off by default. Nothing is spoken until armed.
 
   Claude Code: state is derived from the transcript (scan your messages), so it
                is naturally per-session and needs no extra files to arm.
-  Codex:       notify carries no message history, so enable/disable state is
-               persisted in a small file keyed by the project `cwd`.
+  Codex:       state is derived from the transcript when available, with a small
+               per-cwd state file as a fallback for host payloads without history.
 
 Config (env vars; a .env is also sourced, see resolve_env):
   ELEVENLABS_API_KEY   required for the elevenlabs provider
@@ -107,12 +107,13 @@ def text_blocks(content):
         return content
     if isinstance(content, list):
         return "".join(b.get("text", "") for b in content
-                       if isinstance(b, dict) and b.get("type") == "text")
+                       if isinstance(b, dict)
+                       and b.get("type") in ("text", "input_text", "output_text"))
     return ""
 
 
 def parse_transcript(path):
-    """Return (human_texts_in_order, last_assistant_record) from a Claude Code jsonl."""
+    """Return (human_texts_in_order, last_assistant_record) from host jsonl."""
     humans, last_assistant = [], None
     try:
         with open(path) as f:
@@ -125,6 +126,14 @@ def parse_transcript(path):
                 except json.JSONDecodeError:
                     continue
                 if rec.get("type") not in ("user", "assistant"):
+                    payload = rec.get("payload") or {}
+                    if rec.get("type") != "response_item" or payload.get("type") != "message":
+                        continue
+                    txt = text_blocks(payload.get("content")).strip()
+                    if payload.get("role") == "user":
+                        humans.append(txt)
+                    elif payload.get("role") == "assistant" and txt:
+                        last_assistant = {"uuid": payload.get("id"), "text": txt}
                     continue
                 txt = text_blocks((rec.get("message") or {}).get("content")).strip()
                 if not txt:
@@ -299,6 +308,49 @@ def run_claude_stop(dry_run=False):
     speak_detached(clean_for_speech(last_assistant["text"]))
 
 
+def state_key(value):
+    return hashlib.sha1(str(value).encode()).hexdigest()[:16]
+
+
+def codex_enabled_file(cwd):
+    return os.path.join(STATE_DIR, f"codex-enabled-{state_key(cwd)}")
+
+
+def run_codex_stop(dry_run=False):
+    try:
+        data = json.load(sys.stdin)
+    except (json.JSONDecodeError, ValueError):
+        return
+    cwd = data.get("cwd", os.getcwd())
+    session_id = data.get("session_id", cwd)
+    humans, last_assistant = parse_transcript(data.get("transcript_path", ""))
+    state_file = codex_enabled_file(cwd)
+    prior = _read(state_file) == "1"
+    enabled = scan_state(humans, start=prior)
+    reply = (
+        data.get("last_assistant_message")
+        or data.get("last-assistant-message")
+        or (last_assistant or {}).get("text", "")
+    )
+    message_id = data.get("turn_id") or (last_assistant or {}).get("uuid") or state_key(reply)
+
+    if dry_run:
+        _emit_dry("codex-stop", enabled, {"uuid": message_id, "text": reply})
+        print(f"cwd={cwd} prior_enabled={prior}")
+        return
+
+    os.makedirs(STATE_DIR, exist_ok=True)
+    _write(state_file, "1" if enabled else "0")
+    if not enabled or not reply:
+        return
+
+    spoken_file = os.path.join(STATE_DIR, f"codex-spoken-{state_key(session_id)}")
+    if message_id == _read(spoken_file):
+        return
+    _write(spoken_file, message_id)
+    speak_detached(clean_for_speech(reply))
+
+
 def run_codex_notify(argv, dry_run=False):
     # Codex passes the JSON payload as the LAST argument.
     raw = argv[-1] if argv else ""
@@ -313,8 +365,7 @@ def run_codex_notify(argv, dry_run=False):
     reply = data.get("last-assistant-message") or ""
 
     os.makedirs(STATE_DIR, exist_ok=True)
-    key = hashlib.sha1(cwd.encode()).hexdigest()[:16]
-    state_file = os.path.join(STATE_DIR, f"codex-enabled-{key}")
+    state_file = codex_enabled_file(cwd)
     prior = _read(state_file) == "1"
     enabled = scan_state([str(m) for m in inputs], start=prior)
 
@@ -364,6 +415,8 @@ def main(argv):
     dry = "--dry-run" in argv
     if "--codex-notify" in argv:
         run_codex_notify(argv, dry_run=dry)
+    elif "--codex-stop" in argv:
+        run_codex_stop(dry_run=dry)
     elif "--claude-stop" in argv:
         run_claude_stop(dry_run=dry)
     else:

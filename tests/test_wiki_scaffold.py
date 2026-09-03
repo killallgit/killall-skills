@@ -7,9 +7,8 @@ from pathlib import Path
 
 MODULE_PATH = (
     Path(__file__).parents[1]
-    / "plugins"
-    / "knowledge"
     / "skills"
+    / "knowledge"
     / "setup-wiki"
     / "scripts"
     / "wiki_setup.py"

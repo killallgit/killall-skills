@@ -1,9 +1,0 @@
-{
-  "name": "planning",
-  "description": "Project planning, PRDs, issue slicing, triage, and long-range wayfinding.",
-  "version": "0.6.1",
-  "author": {
-    "name": "killallgit",
-    "url": "https://github.com/killallgit"
-  }
-}

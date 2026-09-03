@@ -1,9 +1,0 @@
-{
-  "name": "experimental",
-  "description": "Prototypes and extension authoring experiments.",
-  "version": "0.6.1",
-  "author": {
-    "name": "killallgit",
-    "url": "https://github.com/killallgit"
-  }
-}
