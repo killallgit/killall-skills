@@ -15,6 +15,7 @@ DOMAINS = {
         "wait-for-action",
     },
     "knowledge": {
+        "catch-up",
         "matt-pocock",
         "setup-wiki",
         "wiki",

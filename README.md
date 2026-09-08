@@ -6,7 +6,7 @@ Domain-focused workflow skills for coding agents.
 
 - `skills/planning/` — pre-spec project scoping.
 - `skills/engineering/` — library-usage review, Git maintenance, and waiting on CI.
-- `skills/knowledge/` — cross-project wikis and upstream skill pointers.
+- `skills/knowledge/` — session catch-up, cross-project wikis, and upstream skill pointers.
 - `skills/experimental/` — extension authoring.
 - `agents/` — Claude Code subagents used by some skills.
 - `hooks/voice-readback/` — optional turn-completion hook, registered only on request.

@@ -11,7 +11,7 @@ trigger conditions, and success criteria before writing files.
 ## Skill
 
 1. Create or update `skills/<domain>/<name>/SKILL.md`. The domain is one of
-   `planning`, `engineering`, `architecture`, `knowledge`, or `experimental`.
+   `planning`, `engineering`, `knowledge`, or `experimental`.
 2. Add YAML frontmatter with a matching `name` and a precise `description`.
 3. Keep the body focused on when to use the skill, what to inspect, the workflow,
    safety constraints, and verification.
