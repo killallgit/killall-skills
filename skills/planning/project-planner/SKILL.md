@@ -1,17 +1,30 @@
 ---
 name: project-planner
-description: Systematic software-project scoping interviewer that turns fuzzy ideas into concise briefs, milestones, and vertical-slice action items. Use when a user wants to plan an app, feature, rewrite, prototype, or backlog before PRD/issue/TDD work begins.
+description: Turn a fuzzy software idea into a project-level brief — milestones, vertical-slice action items, non-goals, and risks. Use when a user wants to plan an app, feature set, rewrite, or backlog, and needs to decide what gets built and in what order before any single feature gets a spec.
 ---
 
 # Project Planner
 
-Use this when the user has a fuzzy software idea and wants a concise,
-actionable plan before implementation. This skill sits before `to-prd` and
-`to-issues`: interview first, then hand off a clear brief or backlog.
+Use when the user has a fuzzy software idea and wants a plan before anything is
+specced. This is **project-level**: what gets built, in what order, and what
+does not get built. Upstream `to-spec` writes the spec for one feature; this
+decides which features earn one.
 
-## Interview Contract
+## Interview with `grilling`
 
-Cover these slots before producing the final plan:
+Do not improvise a question list. Run the interview with the `grilling` skill —
+a design tree worked one frontier round at a time, each round's answers pushing
+the frontier outward. Its two rules matter most here:
+
+- **Facts are yours to find.** Dispatch a sub-agent for anything in the
+  environment. Only decisions go to the user.
+- **Nothing silently assumed.** A gap you paper over becomes a milestone that
+  sequences wrong.
+
+## Coverage
+
+The plan cannot be written until these are settled. They are slots the output
+needs filled, not a script to read out — `grilling` decides the order:
 
 - Intent: what are we building, and why should it exist?
 - Users: who uses it, administers it, buys it, or is affected by it?
@@ -24,31 +37,17 @@ Cover these slots before producing the final plan:
 - Risks: unknown APIs, hard UX, migrations, scale, security, operations.
 - Delivery shape: prototype, MVP, production release, migration, or experiment.
 
-## Process
-
-1. Ask a framing batch of 3-6 questions. Prefer concrete options over abstract
-   prompts. If the user asks for one question at a time, switch to that mode.
-2. Ask a workflow batch: core flows, unhappy paths, and what can be cut.
-3. Ask a system-shape batch: data, interfaces, auth, integrations, import/export,
-   notifications, and operational expectations.
-4. Summarize the current understanding, then ask only gap questions that would
-   materially change the plan.
-5. Produce the final plan using vertical slices: user-visible behavior that cuts
-   across UI, data, logic, integrations, and tests where applicable.
-
-Keep momentum. If an answer is missing but low-risk, state an assumption and
-continue. Challenge ambiguity gently when it would change scope or sequencing.
-
 ## Planning Rules
 
 - Do not jump straight from a vague idea to a backlog.
-- Avoid layer-only tasks like "build backend", "make UI", or "set up database"
-  unless they are genuinely standalone enabling work.
+- Slice vertically: user-visible behavior cutting across UI, data, logic,
+  integrations, and tests. Avoid layer-only tasks like "build backend", "make
+  UI", or "set up database" unless they are genuinely standalone enabling work.
 - Order by learning value and user value, not technical layering.
 - Keep the final plan readable in under five minutes.
 - If the plan feels large, split work into `Now`, `Next`, and `Later`.
-- If the user wants tickets, convert action items into independently grabbable
-  issues with acceptance criteria, or hand off to `to-issues`.
+- Stop at the plan. Each action item that survives goes to the spec-writing
+  skill (upstream `to-spec`) on its own; ticket breakdown is `to-tickets`' job.
 
 ## Final Output
 

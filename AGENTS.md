@@ -6,8 +6,8 @@ and preserve user-owned config** — merge, never clobber.
 
 ## What ships
 
-- `skills/<domain>/<name>/SKILL.md` — the catalog, in five domains: `planning`,
-  `engineering`, `architecture`, `knowledge`, `experimental`. This is the layout
+- `skills/<domain>/<name>/SKILL.md` — the catalog, in four domains: `planning`,
+  `engineering`, `knowledge`, `experimental`. This is the layout
   the `skills` CLI walks natively; keep every skill at exactly that depth.
 - Companion scripts, templates, and references live inside their skill directory.
 - `agents/` — Claude Code subagents. The CLI does not install these; copy them

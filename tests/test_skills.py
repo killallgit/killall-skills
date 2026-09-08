@@ -8,41 +8,43 @@ SKILLS = REPO / "skills"
 DOMAINS = {
     "planning": {
         "project-planner",
-        "setup-planning",
-        "to-prd",
-        "to-issues",
-        "triage",
-        "wayfinder",
     },
     "engineering": {
-        "tdd",
-        "diagnose",
-        "code-review",
         "review-library-usage",
-        "resolving-merge-conflicts",
         "git-janitor",
         "wait-for-action",
     },
-    "architecture": {
-        "domain-modeling",
-        "codebase-design",
-        "improve-codebase-architecture",
-    },
     "knowledge": {
-        "research",
+        "matt-pocock",
         "setup-wiki",
         "wiki",
-        "handoff",
     },
     "experimental": {
-        "prototype",
         "create-extension",
     },
+}
+# Forks of mattpocock/skills, removed in favour of upstream. The `matt-pocock`
+# skill is the only place their names may still appear.
+UPSTREAM_SKILLS = {
+    "code-review",
+    "codebase-design",
+    "diagnose",
+    "domain-modeling",
+    "handoff",
+    "improve-codebase-architecture",
+    "prototype",
+    "research",
+    "resolving-merge-conflicts",
+    "setup-planning",
+    "tdd",
+    "to-issues",
+    "to-prd",
+    "triage",
+    "wayfinder",
 }
 AGENTS = {
     "commenator",
     "git-janitor-investigator",
-    "project-planner",
 }
 RETIRED_SKILLS = {
     "create-hook",
@@ -110,6 +112,15 @@ class SkillContentTests(unittest.TestCase):
                 text = (SKILLS / domain / skill / "SKILL.md").read_text()
                 for foreign_skill in foreign_skills:
                     self.assertNotIn(f"/{foreign_skill}", text, f"{domain}/{skill}")
+
+    def test_upstream_forks_are_gone_and_the_pointer_names_every_one(self) -> None:
+        installed = {path.parent.name for path in skill_files()}
+        self.assertTrue(UPSTREAM_SKILLS.isdisjoint(installed))
+
+        pointer = (SKILLS / "knowledge" / "matt-pocock" / "SKILL.md").read_text()
+        for skill in UPSTREAM_SKILLS:
+            self.assertIn(skill, pointer, skill)
+        self.assertIn("mattpocock/skills", pointer)
 
     def test_retired_skills_and_invocations_are_absent(self) -> None:
         installed = {path.parent.name for path in skill_files()}
