@@ -4,11 +4,10 @@ Domain-focused workflow skills for coding agents.
 
 ## What ships
 
-- `skills/planning/` — project planning, PRDs, issue slicing, triage, and wayfinding.
-- `skills/engineering/` — implementation, diagnosis, review, Git maintenance, and delivery.
-- `skills/architecture/` — domain modeling and deep-module design.
-- `skills/knowledge/` — research, handoffs, and cross-project wikis.
-- `skills/experimental/` — prototypes and extension authoring.
+- `skills/planning/` — pre-spec project scoping.
+- `skills/engineering/` — library-usage review, Git maintenance, and waiting on CI.
+- `skills/knowledge/` — cross-project wikis and upstream skill pointers.
+- `skills/experimental/` — extension authoring.
 - `agents/` — Claude Code subagents used by some skills.
 - `hooks/voice-readback/` — optional turn-completion hook, registered only on request.
 
@@ -25,8 +24,8 @@ Install what you want, for the agents you use:
 
 ```bash
 npx skills@latest add killallgit/killall-skills \
-  --skill research \
-  --skill diagnose \
+  --skill git-janitor \
+  --skill wiki \
   --agent claude-code \
   --agent codex \
   --global \
@@ -47,15 +46,32 @@ Update or remove them the same way:
 
 ```bash
 npx skills@latest update
-npx skills@latest remove research
+npx skills@latest remove git-janitor
 ```
+
+## Skills that moved upstream
+
+The plan → implement → review → architect workflow lives in
+[mattpocock/skills](https://github.com/mattpocock/skills), which this repo used
+to fork. Fifteen forks were removed: `setup-planning`, `to-prd`, `to-issues`,
+`triage`, `wayfinder`, `tdd`, `code-review`, `diagnose`,
+`resolving-merge-conflicts`, `prototype`, `research`, `handoff`,
+`codebase-design`, `domain-modeling`, and `improve-codebase-architecture`.
+
+Install the upstream set instead:
+
+```bash
+claude plugins install mattpocock-skills   # or: npx skills@latest add mattpocock/skills
+```
+
+The `matt-pocock` skill holds the old-name → upstream-name map and what changes
+in a repo that the removed `setup-planning` had already configured.
 
 ## Agents
 
-The `skills` CLI installs skills, not subagents. Three skills call subagents that
-live in `agents/`: `git-janitor` uses `git-janitor-investigator`, `project-planner`
-has a matching agent, and `commenator` audits comments on demand. Copy the ones
-you want into your agent directory:
+The `skills` CLI installs skills, not subagents. Two live in `agents/`:
+`git-janitor` uses `git-janitor-investigator`, and `commenator` audits comments
+on demand. Copy the ones you want into your agent directory:
 
 ```bash
 cp agents/*.md ~/.claude/agents/
