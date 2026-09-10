@@ -10,7 +10,7 @@ trigger conditions, and success criteria before writing files.
 
 ## Skill
 
-1. Create or update `skills/<domain>/<name>/SKILL.md`. The domain is one of
+1. Create or update `plugins/<domain>/skills/<name>/SKILL.md`. The domain is one of
    `planning`, `engineering`, `knowledge`, or `experimental`.
 2. Add YAML frontmatter with a matching `name` and a precise `description`.
 3. Keep the body focused on when to use the skill, what to inspect, the workflow,
@@ -21,7 +21,7 @@ trigger conditions, and success criteria before writing files.
 The description is the routing surface. State what the skill does and the
 concrete situations that should activate it. Keep it under 1024 characters.
 
-Skills must sit at exactly `skills/<domain>/<name>/SKILL.md`. That is the depth
+Skills must sit at exactly `plugins/<domain>/skills/<name>/SKILL.md`. That is the depth
 the cross-agent `skills` CLI walks; a skill nested deeper is not discovered.
 
 ## Hook

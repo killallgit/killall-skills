@@ -1,0 +1,25 @@
+{
+  "name": "planning",
+  "version": "0.7.0",
+  "description": "Project scoping and milestone planning for software work.",
+  "author": {
+    "name": "killallgit",
+    "url": "https://github.com/killallgit"
+  },
+  "homepage": "https://github.com/killallgit/killall-skills",
+  "repository": "https://github.com/killallgit/killall-skills",
+  "keywords": ["planning", "software", "projects"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Planning",
+    "shortDescription": "Turn software ideas into focused project plans.",
+    "longDescription": "Scope software projects, define non-goals, identify core workflows, and organize delivery into outcome-driven milestones.",
+    "developerName": "killallgit",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/killallgit/killall-skills",
+    "defaultPrompt": [
+      "Turn this software idea into a concrete project plan."
+    ]
+  }
+}

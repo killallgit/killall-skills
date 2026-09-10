@@ -1,0 +1,26 @@
+{
+  "name": "engineering",
+  "version": "0.7.0",
+  "description": "Evidence-driven code review, Git maintenance, and delivery workflows.",
+  "author": {
+    "name": "killallgit",
+    "url": "https://github.com/killallgit"
+  },
+  "homepage": "https://github.com/killallgit/killall-skills",
+  "repository": "https://github.com/killallgit/killall-skills",
+  "keywords": ["engineering", "git", "code-review", "ci"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Engineering",
+    "shortDescription": "Review dependencies, clean Git, and monitor delivery.",
+    "longDescription": "Verify external library usage against current documentation, maintain branches and worktrees safely, and wait efficiently for CI or review actions.",
+    "developerName": "killallgit",
+    "category": "Coding",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/killallgit/killall-skills",
+    "defaultPrompt": [
+      "Review this library usage against the current documentation.",
+      "Clean up this Git repository safely."
+    ]
+  }
+}

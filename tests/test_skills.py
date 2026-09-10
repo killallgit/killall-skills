@@ -1,10 +1,12 @@
+import json
 from pathlib import Path
 import re
 import unittest
 
 
 REPO = Path(__file__).resolve().parents[1]
-SKILLS = REPO / "skills"
+PLUGINS = REPO / "plugins"
+MARKETPLACE = REPO / ".agents" / "plugins" / "marketplace.json"
 DOMAINS = {
     "planning": {
         "project-planner",
@@ -24,8 +26,6 @@ DOMAINS = {
         "create-extension",
     },
 }
-# Forks of mattpocock/skills, removed in favour of upstream. The `matt-pocock`
-# skill is the only place their names may still appear.
 UPSTREAM_SKILLS = {
     "code-review",
     "codebase-design",
@@ -62,32 +62,70 @@ RETIRED_SKILLS = {
 }
 
 
+def load_json(path: Path) -> dict:
+    return json.loads(path.read_text())
+
+
 def skill_files() -> list[Path]:
-    return sorted(SKILLS.glob("*/*/SKILL.md"))
+    return sorted(PLUGINS.glob("*/skills/*/SKILL.md"))
 
 
 class CatalogLayoutTests(unittest.TestCase):
-    """The skills CLI discovers `skills/<category>/<name>/SKILL.md` natively."""
-
-    def test_catalog_holds_exactly_the_expected_domains(self) -> None:
-        actual = {path.name for path in SKILLS.iterdir() if path.is_dir()}
+    def test_catalog_holds_exactly_the_expected_domain_plugins(self) -> None:
+        actual = {path.name for path in PLUGINS.iterdir() if path.is_dir()}
         self.assertEqual(actual, set(DOMAINS))
 
     def test_each_domain_contains_its_exact_skill_inventory(self) -> None:
         for domain, expected in DOMAINS.items():
-            actual = {path.name for path in (SKILLS / domain).iterdir() if path.is_dir()}
+            skills = PLUGINS / domain / "skills"
+            actual = {path.name for path in skills.iterdir() if path.is_dir()}
             self.assertEqual(actual, expected, domain)
 
-    def test_every_skill_sits_at_the_depth_the_cli_walks(self) -> None:
+    def test_every_skill_sits_at_the_plugin_discovery_depth(self) -> None:
         for path in skill_files():
             self.assertEqual(
-                path.relative_to(SKILLS).parts[:-1],
-                (path.parent.parent.name, path.parent.name),
+                path.relative_to(PLUGINS).parts[:-1],
+                (path.parents[2].name, "skills", path.parent.name),
             )
 
     def test_agents_ship_alongside_the_catalog(self) -> None:
         actual = {path.stem for path in (REPO / "agents").glob("*.md")}
         self.assertEqual(actual, AGENTS)
+
+
+class PluginManifestTests(unittest.TestCase):
+    def test_marketplace_lists_each_domain_plugin(self) -> None:
+        marketplace = load_json(MARKETPLACE)
+        entries = {entry["name"]: entry for entry in marketplace["plugins"]}
+
+        self.assertEqual(marketplace["name"], "killallgit")
+        self.assertEqual(set(entries), set(DOMAINS))
+        for domain, entry in entries.items():
+            self.assertEqual(
+                entry["source"],
+                {"source": "local", "path": f"./plugins/{domain}"},
+            )
+            self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
+            self.assertEqual(entry["policy"]["authentication"], "ON_INSTALL")
+            self.assertTrue(entry["category"])
+
+    def test_each_domain_has_portable_and_codex_manifests(self) -> None:
+        for domain in DOMAINS:
+            plugin = PLUGINS / domain
+            portable = load_json(plugin / "plugin.json")
+            codex = load_json(plugin / ".codex-plugin" / "plugin.json")
+
+            self.assertEqual(
+                portable["$schema"],
+                "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+            )
+            self.assertEqual(portable["name"], domain)
+            self.assertEqual(codex["name"], domain)
+            self.assertEqual(codex["version"], portable["version"])
+            self.assertEqual(codex["description"], portable["description"])
+            self.assertEqual(codex["skills"], "./skills/")
+            self.assertTrue(codex["interface"]["longDescription"])
+            self.assertTrue(codex["interface"]["defaultPrompt"])
 
 
 class SkillFrontmatterTests(unittest.TestCase):
@@ -110,18 +148,19 @@ class SkillContentTests(unittest.TestCase):
                 *(names for owner, names in DOMAINS.items() if owner != domain)
             )
             for skill in skills:
-                text = (SKILLS / domain / skill / "SKILL.md").read_text()
+                text = (PLUGINS / domain / "skills" / skill / "SKILL.md").read_text()
                 for foreign_skill in foreign_skills:
                     self.assertNotIn(f"/{foreign_skill}", text, f"{domain}/{skill}")
 
-    def test_upstream_forks_are_gone_and_the_pointer_names_every_one(self) -> None:
+    def test_upstream_forks_are_absent_and_the_pointer_names_every_one(self) -> None:
         installed = {path.parent.name for path in skill_files()}
         self.assertTrue(UPSTREAM_SKILLS.isdisjoint(installed))
 
-        pointer = (SKILLS / "knowledge" / "matt-pocock" / "SKILL.md").read_text()
+        pointer = PLUGINS / "knowledge" / "skills" / "matt-pocock" / "SKILL.md"
+        text = pointer.read_text()
         for skill in UPSTREAM_SKILLS:
-            self.assertIn(skill, pointer, skill)
-        self.assertIn("mattpocock/skills", pointer)
+            self.assertIn(skill, text, skill)
+        self.assertIn("mattpocock/skills", text)
 
     def test_retired_skills_and_invocations_are_absent(self) -> None:
         installed = {path.parent.name for path in skill_files()}
@@ -139,48 +178,23 @@ class SkillContentTests(unittest.TestCase):
             self.assertNotIn(invocation, active_text)
 
 
-class DistributionTests(unittest.TestCase):
-    """Nothing may point back at the plugin-marketplace era."""
+class DistributionDocumentationTests(unittest.TestCase):
+    def test_readme_documents_both_installation_paths(self) -> None:
+        readme = (REPO / "README.md").read_text()
 
-    RETIRED_PATHS = (
-        ".claude-plugin",
-        ".codex-plugin",
-        ".agents/plugins",
-        "install.sh",
-        "release-please",
-        "rules/",
-        "hooks/README.md",
-    )
+        for domain in DOMAINS:
+            self.assertIn(f"{domain}@killallgit", readme)
+        self.assertIn("codex plugin marketplace add", readme)
+        self.assertIn("npx skills", readme)
+        self.assertIn("--skill", readme)
 
-    def test_repository_ships_no_plugin_or_release_machinery(self) -> None:
+    def test_removed_installer_and_release_files_stay_absent(self) -> None:
         for name in (
-            ".claude-plugin",
-            ".agents",
-            "plugins",
-            "rules",
             "install.sh",
             "release-please-config.json",
             ".release-please-manifest.json",
         ):
             self.assertFalse((REPO / name).exists(), name)
-
-    def test_prose_does_not_reference_retired_distribution_paths(self) -> None:
-        for doc in (REPO / "README.md", REPO / "AGENTS.md"):
-            text = doc.read_text()
-            for retired in self.RETIRED_PATHS:
-                self.assertNotIn(retired, text, f"{doc.name} -> {retired}")
-
-    def test_skills_do_not_reference_the_deleted_rules_directory(self) -> None:
-        for path in skill_files():
-            self.assertNotIn("rules/", path.read_text(), path)
-
-    def test_readme_documents_the_skills_cli_install(self) -> None:
-        readme = (REPO / "README.md").read_text()
-
-        for domain in DOMAINS:
-            self.assertIn(domain, readme)
-        self.assertIn("npx skills", readme)
-        self.assertIn("--skill", readme)
 
 
 if __name__ == "__main__":

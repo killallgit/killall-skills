@@ -1,7 +1,6 @@
 ---
 name: catch-up
 description: Rebuild a human's lost context on the work in flight — a short state of play, the decisions that stuck and why, live issues/PRs/tickets, plain-language explanations of whatever is load-bearing, and the single clear next step. Use when the user says "catch me up", "where were we", "what's the state of this", or invokes `/catch-up` after time away.
-disable-model-invocation: true
 ---
 
 # Catch Up

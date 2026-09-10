@@ -1,30 +1,42 @@
 # AGENTS.md — distribution and host wiring
 
-Skills install through the cross-agent `skills` CLI. There is no plugin
-marketplace and no bundled installer. **Back up any host config before editing,
-and preserve user-owned config** — merge, never clobber.
+The repository distributes four domain bundles through the Codex marketplace
+and individual skills through the cross-agent `skills` CLI. There is no bundled
+installer. **Back up host config before editing it, preserve user-owned config,
+and prefer host CLI commands over manual config changes.**
 
 ## What ships
 
-- `skills/<domain>/<name>/SKILL.md` — the catalog, in four domains: `planning`,
-  `engineering`, `knowledge`, `experimental`. This is the layout
-  the `skills` CLI walks natively; keep every skill at exactly that depth.
-- Companion scripts, templates, and references live inside their skill directory.
-- `agents/` — Claude Code subagents. The CLI does not install these; copy them
-  into the host's agent directory when a user wants them.
-- `hooks/voice-readback/` — a host-registered side-effect hook. Registered only
+- `GLOBAL_AGENT.md` — reusable baseline programming rules for global agent
+  configuration.
+- `.agents/plugins/marketplace.json` — the repo marketplace catalog.
+- `plugins/<domain>/plugin.json` — the portable Agent Plugins manifest.
+- `plugins/<domain>/.codex-plugin/plugin.json` — the Codex compatibility
+  manifest and install-surface metadata.
+- `plugins/<domain>/skills/<name>/SKILL.md` — the skill catalog, grouped into
+  `planning`, `engineering`, `knowledge`, and `experimental` plugins.
+- Companion scripts, templates, and references inside each skill directory.
+- `agents/` — optional Claude Code subagents. Plugin and skill installation do
+  not copy them.
+- `hooks/voice-readback/` — a host-registered side-effect hook. Register it only
   on request.
 
 ## General install steps
 
-1. Inspect the target host and determine which skills the user requested.
+1. Inspect the target host and determine whether the user requested a domain
+   plugin or individual skills.
 2. Check the CLI's current docs before changing config or hook wiring.
-3. Run `rtk npx skills@latest add killallgit/killall-skills --skill <name> --agent <host>`.
-   Add `--global` for the user directory, omit it for the current project.
-4. Copy subagents from `agents/` only when a skill the user installed needs one.
-5. Register hooks only when separately requested; installing a skill never
-   implies hook registration.
-6. Verify discovery and report exactly what was installed, removed, configured,
+3. For Codex domain plugins, run
+   `rtk codex plugin marketplace add killallgit/killall-skills` when the
+   marketplace is not configured, then
+   `rtk codex plugin add <domain>@killallgit`.
+4. For individual skills, run
+   `rtk npx skills@latest add killallgit/killall-skills --skill <name> --agent <host>`.
+   Add `--global` for the user directory; omit it for the current project.
+5. Copy subagents from `agents/` only when the user requests them.
+6. Register hooks only when separately requested; installing a plugin or skill
+   never implies hook registration.
+7. Verify discovery and report exactly what was installed, removed, configured,
    skipped, or left for manual follow-up.
 
 ## Voice readback (`hooks/voice-readback/`) — optional, ask first
@@ -88,5 +100,5 @@ rtk python3 "$HOOK" --codex-notify --dry-run \
 ### Uninstall
 
 Remove the appended `Stop` entry from `settings.json` (leave other Stop hooks),
-and remove/restore the `notify` line in `config.toml`. Optionally delete
+and remove or restore the `notify` line in `config.toml`. Optionally delete
 `~/.cache/talk-to-me-goose/`.

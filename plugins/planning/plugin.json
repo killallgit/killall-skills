@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "planning",
+  "version": "0.7.0",
+  "description": "Project scoping and milestone planning for software work.",
+  "author": {
+    "name": "killallgit",
+    "url": "https://github.com/killallgit"
+  },
+  "homepage": "https://github.com/killallgit/killall-skills",
+  "repository": "https://github.com/killallgit/killall-skills",
+  "keywords": ["planning", "software", "projects"]
+}
