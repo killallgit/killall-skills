@@ -68,9 +68,12 @@ signal, not noise: it tells the user their review budget is being consumed and
 lets them decide when to spend the next one.
 
 Exit 4 is terminal. Do not loop on it — re-running against the same commit hits
-the same notice. Either wait out the stated window and re-trigger with
-`@coderabbitai review`, or let the user decide. Re-triggering posts a public
-comment on someone's repo, so ask before doing it on their behalf.
+the same notice. Report the state to the user and stop.
+
+**Never request a CodeRabbit review.** Waiting for one is this skill's whole
+job; starting one is not. Do not comment to CodeRabbit, add a label, or change
+any setting to make a review happen, and do not offer to. Only the user
+requests reviews.
 
 ## Foreground vs background
 

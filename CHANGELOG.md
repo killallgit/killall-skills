@@ -10,6 +10,11 @@
 * preserve one-skill-at-a-time installation through the cross-agent `skills`
   CLI
 
+### Bug Fixes
+
+* stop `wait-for-action` from telling agents to request a CodeRabbit review;
+  waiting for a review is its job, starting one is only ever the user's
+
 ## [0.6.1](https://github.com/killallgit/killall-skills/compare/killall-skills--v0.6.0...killall-skills--v0.6.1) (2026-08-24)
 
 
