@@ -7,19 +7,6 @@
 Example:
 
 
-```python
-
-# monkey_builder.py
-"""
-A module for building monkeys that jump on any bed provided as a configuration.
-"""
-
-# This function builds a monkey and takes a string, "foo", and a int, "bar" as arguments
-def build_monkey(foo: str, bar: int):
-
-    # hold the count of monkies
-    count_monkie = 0
-```
 
 Every comment in this file is completely useless. Why comment the name of the file? The file name explains what it does: "self documenting code", the function is well typed and does not need to repeat what is clearly visible and why on earth would you add a comment that only wastes bytes, makes the code harder to read, and the second someone decides to rename the variable: `dead_parrots` when the business requirements change, you now have a comment that simply confuses the code.
 
@@ -42,16 +29,7 @@ Example of a good test function comment:
 
 ```python
 
-def test_fall_on_soft_bed():
-    """
-    It falls on a soft bed when at a low height
-    """
-    
-    mock_monkey = build_monkey().set_height(9).set_name("safe-monkey").build()
 
-    fallen_monkey = trigger_fall(mock_monkey)
-
-    expect(fallen_monkey.get_bed()).to_be(MonkeyBeds.SOFT)
 
 ```
 
