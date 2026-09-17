@@ -1,107 +1,114 @@
 ---
 name: git-janitor
 description: >
-  Systematically clean and report on a git repo. Auto-prunes worktrees and dead
-  refs, removes merged worktrees, inventories local branches, delegates per-branch
-  investigation to a fast read-only subagent, prints a compact keep/delete table,
-  then interactively reviews each branch and deletes only what you confirm. Use
-  when the user wants to clean up branches/worktrees, "prune the repo", garbage-
-  collect stale branches, or audit what unmerged branches contain.
+  Clean up local Git when the user says "clean up our local git", prune the
+  repo, or review stale branches and worktrees. Inspect uncommitted and
+  unpublished work in every worktree first, discard work that is superseded
+  or over 60 days old when justified, then remove merged and stale local
+  worktrees and branches. Record what was discarded and why.
 ---
 
-# git-janitor
+# Git janitor
 
-Interactive repo hygiene, run from the main thread (it must prompt you, so it
-cannot run as a pure subagent). The heavy per-branch investigation is delegated
-to the fast `git-janitor-investigator` agent (haiku); decisions and deletions
-stay here, behind your confirmation.
+`/git-janitor` runs full local cleanup in the current repository. Command
+arguments can name another repository or narrow the request to an audit. The
+same workflow applies when the user asks in plain language or delegates to
+the `git-janitor` agent. "Clean up local git" authorizes the local cleanup
+policy below. The invoking agent owns cleanup decisions and checks any
+read-only findings from `git-janitor-investigator`. Follow any more specific
+instruction in the user's request.
 
-## Safety rules (always)
+## 1. Set the scope
 
-- **Local only.** Never `push`, `fetch`, or delete remote branches without a
-  separate explicit confirmation.
-- Never delete the **default** or **currently checked-out** branch.
-- `git branch -d` (safe, merged-only) may run after confirmation. `git branch -D`
-  (force) and `git worktree remove --force` run **only** on explicit per-item
-  confirmation — never in bulk, never unprompted.
+Confirm the repository root and resolve the default branch to a local commit.
+Use a default named by the user; otherwise try `origin/HEAD`, then
+`gh repo view --json defaultBranchRef` if available. Use `main` or `master`
+only when one is the sole plausible local default. Ask only if the reference
+remains ambiguous. Record the current checkout, all local branch tip OIDs,
+and `git worktree list --porcelain`.
 
-## Phase 0 — Preflight
+Cleanup is local: never push, delete remote branches, or rewrite remote refs.
+Keep the default branch and the checkout running this task. Their disposable
+working changes may still be cleaned path by path after inspection.
 
-```bash
-git rev-parse --is-inside-work-tree            # abort if not a repo
-git branch --show-current                      # current branch — never delete
-git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null  # -> default
-```
+## 2. Inspect work at risk first
 
-Default branch = origin/HEAD target; else `main`, else `master`; else ask. Call
-it `<default>`.
+Visit **every** worktree before removing any of them, including the current
+checkout and detached worktrees. Record its HEAD, branch, lock state,
+`git status --porcelain --untracked-files=all`, staged and unstaged diffs,
+untracked paths, and any ignored files that a removal would erase. Inspect
+enough of the content to understand the work. Record the newest relevant
+file modification time when available; a worktree with recent edits needs
+judgment even when its branch tip is old.
 
-## Phase 1 — Worktrees (auto)
+For each branch, separately count commits not reachable from the default and
+commits ahead of its configured upstream. If no upstream exists, say
+"unpublished status unknown" and inspect the branch history rather than
+assuming zero unpushed commits. A local remote-tracking ref may be stale; do
+not claim it proves the live remote state. Show the branch's last commit date,
+ahead/behind counts, and the commit subjects or files that explain its work.
 
-```bash
-git worktree prune -v                           # drop dead references
-git worktree list --porcelain
-```
+Compare dirty files and branch commits with the current default and other
+retained work. `git cherry`, a tree comparison, and file content can show
+that a patch or result already landed through a squash, cherry-pick, or later
+implementation. A three-dot diff lists files touched since divergence, not
+necessarily content still absent from default. Being behind default alone
+does not make changes disposable. Classify local work as **landed or clearly
+superseded**, **disposable after inspecting its purpose**, or **valuable /
+uncertain**; note the evidence for each classification.
 
-For each non-main worktree:
-- Dirty (`git -C <path> status --porcelain` non-empty) → **candidate** (list, don't remove).
-- Detached HEAD → **candidate** with reason `detached HEAD`.
-- Clean with a merged PR (`gh pr list --head <branch> --json number,state,mergedAt --limit 1`) → auto `git worktree remove <path>`, then safe-delete its branch with `git branch -d`.
-- Clean AND branch merged (`git merge-base --is-ancestor <branch> <default>`) → auto `git worktree remove <path>`, then `git branch -d <branch>`.
-- Closed-unmerged PR, unmerged commits, missing PR, or failed inspection → **candidate** with the exact reason (list, don't force-delete).
+Delegate read-only investigation of unmerged branches to
+`git-janitor-investigator` in bounded parallel calls when available. Give it
+the expected tip OID, default ref, upstream, and linked worktree path. If it
+is unavailable, inspect those signals inline and query PRs with
+`gh pr list --state all --head "$short_branch"`. A failed PR lookup is
+unknown, not no PR. Recheck pivotal agent findings yourself.
 
-Print every automatic removal as it happens. For candidates, retain the path,
-branch, and reason for the Phase 4 report. Never infer that a clean worktree is
-safe merely because it has no uncommitted files.
+## 3. Decide and clean without repeated prompts
 
-## Phase 2 — Branch inventory
+- **Merged:** Once its worktree data has been assessed, remove a clean linked
+  worktree and delete its merged local branch automatically. If the worktree
+  is dirty, discard it automatically when its local changes are landed,
+  superseded, or clearly disposable. Otherwise keep it and explain why.
+- **Older than 60 days:** A local branch whose latest commit is older than
+  60 days may be force deleted even with unpublished or unmerged commits.
+  Remove its linked worktree first. For a dirty worktree, judge its actual
+  files case by case, including recent edits; do not use the old branch tip
+  alone to discard recent or unclear working data. Record any open PR or
+  unpublished commits in the removal note.
+- **Younger than 60 days:** Discard a local branch or dirty worktree without
+  asking when its work is landed, clearly superseded, or clearly disposable
+  after inspection. Preserve valuable or uncertain work and say what needs
+  a human decision.
+- **Detached, locked, or missing:** Inspect detached commits and working
+  changes under the same rules. Preserve a locked worktree or one whose
+  contents cannot be inspected; report the obstacle instead of escalating
+  force.
 
-```bash
-git branch --merged <default>    # safe-delete bucket (minus <default> & current)
-git branch --no-merged <default> # investigation bucket
-```
+The age rule is permission, not a substitute for understanding dirty data.
+The user's standing cleanup request authorizes these local actions. Do not
+stop after the inventory to ask for each branch or worktree.
 
-Merged branches → bulk safe-delete bucket. Unmerged → investigate in Phase 3.
+## 4. Apply and leave a receipt
 
-## Phase 3 — Investigate unmerged (delegate, parallel, fast)
+Before each discard, record the path, branch, tip OID, unpublished commit
+count, dirty paths, and the evidence that the work can go. Recheck the tip,
+status, worktree mapping, and relevant content immediately before acting.
+If anything changed, skip that item and report it.
 
-For each unmerged branch, spawn **`git-janitor-investigator`** via the Agent tool
-— all in one message so they run in parallel. Pass the branch and `<default>`.
-Each returns one table row.
+Use `git worktree remove "$path"` for clean linked worktrees and
+`git worktree remove --force "$path"` for dirty ones classified disposable.
+Never force-remove the running checkout or a locked worktree. For disposable
+changes in the running checkout, use targeted restore/clean operations on
+the reviewed paths instead of a blanket reset or clean. Delete merged
+branches with `git branch -d -- "$branch"`; use
+`git branch -D -- "$branch"` for authorized old or superseded unmerged
+branches after their worktrees are gone. A failed command is a skipped item,
+not a reason to silently widen the force.
 
-If that agent is unavailable (non-Claude host), run its read-only protocol inline
-instead, or spawn a read-only `Explore`/general-purpose agent with `model: haiku`
-and the same instructions. Same rows either way.
-
-## Phase 4 — Report
-
-Render one compact table (rows from Phase 3 under this header):
-
-```
-| Branch | Age | Ahead | Files | PR | Rec | Summary |
-|--------|-----|-------|-------|----|-----|---------|
-```
-
-Then list separately:
-- **Merged (safe-delete):** the Phase 2 merged branches.
-- **Worktree candidates:** dirty/unmerged worktrees from Phase 1 (manual).
-
-## Phase 5 — Interactive review
-
-1. Merged branches: offer **bulk safe-delete** (`git branch -d <b>` each — fails
-   harmlessly if not actually merged). One confirmation covers the batch.
-2. Unmerged branches: ask whether to review each. For each, use AskUserQuestion
-   (default = its `Rec`): **Keep** / **Delete**. On Delete, confirm, then
-   `git branch -D <b>`.
-3. Worktree candidates: print the `git worktree remove --force <path>` commands
-   for the user to run; do not execute them.
-
-Skip current/default branches entirely.
-
-## Phase 6 — Summary
-
-```
-git-janitor complete.
-  Worktrees:  pruned N · removed N · candidates N
-  Branches:   merged-deleted N · force-deleted N · kept N
-```
+Run `git worktree prune --dry-run -v`, then prune stale metadata that is
+clearly abandoned; preserve entries that may represent temporarily missing
+worktrees. Report dirty and unpublished work first: what was discarded,
+what was kept, and the evidence. Then list worktrees, branches, and stale
+metadata removed, with exact names and paths. State any remaining decisions
+or failures plainly.

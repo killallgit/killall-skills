@@ -1,0 +1,51 @@
+{
+  "skill_name": "git-janitor",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Audit the disposable repo at {{repo}} using trunk as default. Focus first on uncommitted and unpublished work across every worktree. Do not delete anything yet. Its GitHub fixture is {{gh_shim}}/gh; put that directory first on PATH for gh checks.",
+      "expected_output": "A read-only audit that identifies dirty and unpublished work before routine merged branches and preserves every ref and worktree.",
+      "files": [
+        "evals/fixtures/make_cleanup_repo.py"
+      ],
+      "expectations": [
+        "Reports dirty and unpublished work before routine merged branch cleanup.",
+        "Identifies superseded-tree dirty files as matching content already on trunk.",
+        "Identifies active/unpushed and old/unpushed as each one commit ahead of their upstream.",
+        "Distinguishes the old/recent-dirty branch tip from its recently edited unique note.",
+        "Makes no local or remote changes."
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Let's clean up our local git in the disposable repo at {{repo}}. Use trunk as default. Include uncommitted and unpublished changes in every worktree. The GitHub fixture is {{gh_shim}}/gh; put that directory first on PATH for gh checks. Do not delete remote branches.",
+      "expected_output": "Automatically remove merged, old, and clearly superseded local work; preserve recent valuable changes; report exact discards without per-item approval requests.",
+      "files": [
+        "evals/fixtures/make_cleanup_repo.py"
+      ],
+      "expectations": [
+        "Automatically removes the clean merged/cleanup worktree and branch.",
+        "Force deletes old/spike and old/unpushed locally despite unique and unpublished commits, while leaving remote branches intact.",
+        "Discards superseded-tree dirty changes and deletes superseded/work without asking.",
+        "Preserves old/recent-dirty and its recent unique untracked note despite the old branch tip.",
+        "Preserves active/unpushed and recognizes its unpublished commit.",
+        "Reports dirty and unpublished work first, with exact discarded paths and reasons.",
+        "Does not ask for per-item permission for actions covered by the cleanup policy."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Investigate refs/heads/old/unpushed in the disposable repo at {{repo}} against refs/heads/trunk. Its expected tip is {{old_tip}}, upstream is refs/remotes/origin/old/unpushed, and its linked worktree is {{old_tree}}. Use the gh shim at {{gh_shim}}/gh. Return the investigator finding without changing the repo.",
+      "expected_output": "A read-only finding that sees the old unpublished commit and open PR and recommends local 60-day cleanup.",
+      "files": [
+        "evals/fixtures/make_cleanup_repo.py"
+      ],
+      "expectations": [
+        "Reports one unpublished commit relative to the configured upstream.",
+        "Reports open PR #42 but still recommends OLD_DELETE for the local branch older than 60 days.",
+        "Reports the linked worktree as clean and keeps the remote branch intact.",
+        "Makes no local or remote changes."
+      ]
+    }
+  ]
+}
