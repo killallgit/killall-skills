@@ -1,5 +1,12 @@
 # killall-skills
 
+Claude Code plugin. Install it with:
+
+```
+/plugin marketplace add killallgit/killall-skills
+/plugin install killall-skills@killallgit
+```
+
 ## Git janitor
 
 In Claude Code, `/git-janitor` cleans the current repository. Pass a path to
@@ -22,4 +29,5 @@ entrypoints, scripts with their doc lines — so the pass needs at most three
 capped reads, no subagents, and adds well under fifty thousand tokens. It ends
 at the map, and it switches to the `caveman` skill first when that is
 installed, so the map and everything said around it stay terse. User-invoked
-only, so it costs no context until you run it.
+only, so it never fires on its own and costs nothing but its one-line
+description until you run it.
