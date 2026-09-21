@@ -10,7 +10,7 @@
     {
       "name": "killall-skills",
       "source": "./",
-      "description": "Killallgit agents and skills: catch-up, check-agent-docs, follow-rules, git-janitor, prime, and wait-for-action.",
+      "description": "Killallgit agents and skills: catch-up, check-agent-docs, follow-rules, git-janitor, and wait-for-action.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills"
     }
