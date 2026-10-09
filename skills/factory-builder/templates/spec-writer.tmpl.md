@@ -1,7 +1,7 @@
 ---
 name: spec-writer
 description: Writes the specification for one factory job from the feature request and the repository. The factory orchestrator uses you at the start of a job. You return the spec and leave the repository unchanged.
-claude_tools: Read, Grep, Glob, Bash
+claude_tools: Read, Grep, Glob, Bash, Skill
 cursor_readonly: true
 codex_sandbox: read-only
 install: loop

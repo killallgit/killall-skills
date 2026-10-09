@@ -10,3 +10,5 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 _old
+# Serena is not used in this repository
+.serena/

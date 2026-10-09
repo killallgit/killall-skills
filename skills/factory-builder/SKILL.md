@@ -1,6 +1,6 @@
 ---
 name: factory-builder
-description: Install factory rails into a repository so its work runs as parallel sub-agents in isolated worktrees, on top of whatever structure tool the repository uses, with that tool's skills set up for every host.
+description: Install factory rails into a repository so its work runs as parallel sub-agents in isolated worktrees, following whatever structure tool the repository already uses, or remove them again.
 disable-model-invocation: true
 argument-hint: "[uninstall|remove] [path]"
 ---
@@ -49,39 +49,35 @@ git rev-parse --show-toplevel
 
 Done when that path is the repository you will write into.
 
-## 2. Find the structure owner
+## 2. Note the structure owner
 
-A structure owner decides how work is shaped here: where specs, plans, issues, and docs live, and which skills write and review them. The factory follows the owner. It adds nothing the owner already does.
+A structure owner is whatever already decides how work is shaped here: where specs, plans, issues, and docs live, and which skills write, implement, and review them. The factory follows an owner when there is one. It installs nothing for structure, and it does not ask the user to pick one.
 
 List every skill, hook, agent, and plugin that reaches this repository:
 
 - Loaded in this session: the skills and agents in your context, and the plugins they come from.
-- Project config: `.claude/settings.json` and `.claude/settings.local.json` (`hooks`, `enabledPlugins`, `skillOverrides`), `.claude/agents/`, `.claude/skills/`, `.agents/skills/`, `.cursor/`, `.codex/config.toml`, `.specify/`.
+- Project config: `.claude/settings.json` and `.claude/settings.local.json` (`hooks`, `enabledPlugins`, `skillOverrides`), `.claude/agents/`, `.claude/skills/`, `.agents/skills/`, `.cursor/`, `.codex/config.toml`.
 - Process instructions in `AGENTS.md`, `CLAUDE.md`, and the files they import: spec-driven development, ADRs, and where docs, specs, and issues are stored.
 
-Match what you found against [references/structure-tools.md](references/structure-tools.md).
+An owner covers specs and at least one of implement or review. The evidence is skills whose descriptions say they write specs, plans, or tickets, implement a spec, or review a diff; per-repo files those skills wrote, such as a spec directory, an issue-tracker doc, or domain docs; or a process written into the instruction files.
 
-- **One clear owner**: name it, show the evidence, and ask the user to confirm it.
-- **Several, or none**: ask the user to choose. Offer each tool you found, then gstack, mattpocock/skills, and agent-skills, then the factory's own loop. The factory's own loop is the spec-writer, builder, reviewers, and approver this skill ships.
+- **One obvious owner**: record its name and, for each of spec, implement, and review, the skill that fills it and where its artifacts live.
+- **Several candidates**: the one with per-repo files in this repository is the owner. When none or several have them, treat it as no owner.
+- **No owner**: record `factory` and what you found. The factory's own loop shapes the work.
 
-In the same message, list the other tools you found and ask which stay out of this project. A second structure tool whose skills fire on their own competes with the owner; name it as a candidate to disable.
+When the user has said a tool or plugin stays out of this project, disable it for each host the user names. Follow [references/disable-plugins-and-skills.md](references/disable-plugins-and-skills.md) and write to that host's local, uncommitted settings unless the user asks for a team-wide change. Record each one as a `change` and the `revert` that undoes it, including the value the setting had before. These go into the `setup` field in step 7.
 
-Done when the user has named the owner and every tool to exclude.
+Done when the owner, or `factory`, is recorded with its evidence, and every exclusion the user named is disabled and recorded.
 
-## 3. Set up the skills
+## 3. Check the owner's skills
 
-The factory only names skills it has seen on disk for every host this repository supports.
+Skip this step when the owner is `factory`.
 
-1. Install the owner when it is missing, using its install line in the reference. Ask before an install that writes outside this repository.
-2. Run the owner's per-repo setup from the reference. When the owner has a setup skill, follow that skill; it asks its own questions.
-3. Disable each excluded tool for each host. Follow [references/disable-plugins-and-skills.md](references/disable-plugins-and-skills.md) and write to that host's local, uncommitted settings unless the user asks for a team-wide change.
-4. Resolve the owner's spec, implement, and review skills on each host: Claude Code reads `.claude/skills/` and `~/.claude/skills/` plus enabled plugins, Codex reads `.agents/skills/` and `~/.agents/skills/` plus enabled plugins, and Cursor reads `.cursor/skills/`, `.agents/skills/`, `.claude/skills/`, and `.codex/skills/`, plus the same folders under `~`. Each `SKILL.md` has frontmatter whose `name` matches its folder.
+Resolve each skill recorded in step 2 on each host: Claude Code reads `.claude/skills/` and `~/.claude/skills/` plus enabled plugins, Codex reads `.agents/skills/` and `~/.agents/skills/` plus enabled plugins, and Cursor reads `.cursor/skills/`, `.agents/skills/`, `.claude/skills/`, and `.codex/skills/`, plus the same folders under `~`. Each `SKILL.md` has frontmatter whose `name` matches its folder.
 
-Record every change this step makes, as a `change` and the `revert` that undoes it, including the value a setting had before. Installs, setup-skill output, and settings edits all count. These go into the `setup` field in step 7.
+A skill that does not resolve on a host stays out of that slot; the slot takes its fallback sentence in step 5. When the owner expects per-repo setup that is missing, note it for the report. Install nothing and run no setup.
 
-Skip this step when the owner is the factory's own loop, apart from the exclusions.
-
-Done when every stage skill the factory will name resolves to a `SKILL.md` on every host, and every excluded tool is disabled.
+Done when each slot names a skill that resolves on every host, or is marked for its fallback.
 
 ## 4. Read git and worktree rules
 
@@ -92,7 +88,9 @@ Read the instruction files, the git hooks (`.husky/`, `.pre-commit-config.yaml`,
 
 Compare them with the factory defaults: branches named `factory/<id>`, a fast-forward merge onto the default branch, push only on request, and a one-sentence plain commit message. When a rule conflicts with a default, ask the user which side wins.
 
-Done when every rule is recorded and every conflict has an answer.
+When a host runs a `serena` MCP server, or `.serena/project.yml` exists, follow [references/serena.md](references/serena.md).
+
+Done when every rule is recorded, every conflict has an answer, and the Serena check is recorded when it applies.
 
 ## 5. Inspect
 
@@ -103,23 +101,24 @@ Record these, from the repo rather than from memory:
 | `project` | One sentence: what this repo is |
 | `structure` | The owner's name from step 2, or `factory` for the factory's own loop |
 | `default_branch` | `origin/HEAD`, else the branch the user names |
-| `conventions` | `` `AGENTS.md` `` when that file exists, otherwise `the patterns already in the code` |
+| `conventions` | The instruction file that holds this repo's rules, such as `` `AGENTS.md` `` or `` `CLAUDE.md` ``; otherwise `the patterns already in the code` |
 | `gate` | The one command that must pass before work lands |
+| `gate_scopes` | Optional. One sentence naming a smaller check per area when the repo defines one, such as a per-package test command; empty otherwise |
 | `spec_tool` | The spec paragraph below |
 | `implement_tool` | The implement paragraph below |
 | `review_tool` | The review paragraph below |
-| `isolation_note` | The git and worktree note below, plus the Serena paragraph when Serena is configured |
+| `isolation_note` | The git and worktree note below, plus the Serena sentence when step 4 found Serena |
 | `lenses` | Own loop only: `code` and `security`, plus `ux` and `design` when the repo has a user interface |
 
 Gate, in order: the check a pull-request workflow actually runs; otherwise one of `task check`, `make check`, `just check`, `npm test`, `pnpm test`, `cargo test`, `go test ./...`, `pytest`. Ask when two of these are equally plausible. Done for this field when one command is chosen.
 
 ### Tool paragraphs
 
-Each paragraph names a skill that resolved in step 3, and where its artifact lives.
+Each paragraph names a skill that resolved in step 3, and where its artifact lives. A slot marked for its fallback in step 3 uses the fallback sentence.
 
 With a structure tool as owner:
 
-- `spec_tool`: "Shape the work with `<skill>`. It writes the spec to `<place>`. Read the spec from there and leave it there."
+- `spec_tool`: "Shape the work with `<skill>`. It writes the spec to `<place>`. Read the spec from there and leave it there." When the spec skill did not resolve: "Write the spec from the feature request and the code, and store it where the owner keeps specs."
 - `implement_tool`: "Implement with `<skill>`." When the owner has no implement skill: "Make the change yourself against the spec."
 - `review_tool`: "Review with `<skill>`." When the owner has no review skill: "Review the diff against the spec's acceptance checks."
 
@@ -129,17 +128,17 @@ With the factory's own loop, the factory's Output shapes are the contract and th
 - `implement_tool`: "Make the change yourself against the spec."
 - `review_tool`: "Review the diff against the spec."
 
-A tool the user kept that fills one slot, such as `tdd` for implementation, adds one sentence naming it to that paragraph.
+Another installed skill that fills one slot, such as a test-first skill for implementation, adds one sentence naming it to that paragraph.
 
 ### Git and worktree note
 
 `isolation_note` is the rules from step 4, as instructions to a builder:
 
-1. The worktree: "Create the worktree for the branch the brief names with `<command>`, at `<location>`. Before the first edit, confirm you are on that branch in that checkout." When step 4 found no pattern, use "Use this repository's existing worktree pattern for the branch the brief names." for the first sentence.
+1. The worktree: "Worktrees are created with `<command>` at `<location>`. Before the first edit, confirm you are on the branch the brief names, in the worktree it names." When step 4 found no pattern, use "Worktrees follow this repository's existing pattern." for the first sentence.
 2. The commit format: the confirmed rule, or "Each commit message is one plain sentence."
 3. Each other confirmed git rule, one sentence each, including any repository rule the user chose over a factory default.
 
-When `.serena/project.yml` exists, append: "Serena binds its project root when its process starts. If your process started in the primary checkout, Serena reads and writes that checkout even while your other tools point at the worktree. Use the worktree's files through the editor tools, and leave Serena unused."
+When step 4 found Serena, append the sentence from [references/serena.md](references/serena.md).
 
 ### Lenses
 
@@ -157,7 +156,7 @@ Factory already present: summarize what a refresh will overwrite and wait for a 
 
 ## 7. Render
 
-Write the fields to a temporary JSON file. `lenses` is an array of strings, and only the own loop needs it. `setup` is the array of `{"change", "revert"}` objects from step 3. Do not put that file in the repository.
+Write the fields to a temporary JSON file. `lenses` is an array of strings, and only the own loop needs it. `setup` is the array of `{"change", "revert"}` objects from step 2. Do not put that file in the repository.
 
 From this skill's directory:
 
@@ -177,9 +176,12 @@ Tell the user:
 
 - The git root, the owner, and the gate.
 - Each stage skill the factory names, and the hosts it resolved on.
+- The owner and the evidence for it, or that there was none.
+- Any slot left on its fallback, and any per-repo setup the owner expects that is missing.
 - Every tool disabled in step 2, and the settings file it went into.
 - Where specs, docs, and issues are stored.
 - The git rules in `isolation_note`.
+- The Serena findings, when step 4 found Serena.
 - The first command: `/factory` plus a spec, plan, ticket list, or feature (`$factory` in Codex). With the own loop, also `/factory next`.
 - Codex loads the agents in `.codex/agents/` only when this project is trusted in `~/.codex/config.toml`.
 - `python3 -m http.server` run from `.factory/` serves the board.

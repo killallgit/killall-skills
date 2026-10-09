@@ -1,6 +1,6 @@
 # Uninstall
 
-Take out everything factory-builder added to a repository. The install recorded what it added in `.factory/manifest.json`: generated files, host symlinks, `.gitignore` and `.worktreeinclude` lines, and the setup changes made in step 3 of the install. `scripts/uninstall_factory.py` removes the files, links, and lines. Setup changes and in-flight work need the user's call, item by item.
+Take out everything factory-builder added to a repository. The install recorded what it added in `.factory/manifest.json`: generated files, host symlinks, `.gitignore` and `.worktreeinclude` lines, and the settings changes made for tools the user excluded. `scripts/uninstall_factory.py` removes the files, links, and lines. Setup changes and in-flight work need the user's call, item by item.
 
 ## 1. Name the repository
 
@@ -16,7 +16,7 @@ python3 scripts/uninstall_factory.py --dest <git-root> --dry-run
 
 Then find work the uninstall would strand:
 
-- Board entries in `.factory/board.json` whose stage is not `ready` or already integrated.
+- Board entries in `.factory/board.json`. An integrated job or lane leaves the board, so every entry left is unfinished work.
 - `factory/` branches not merged into the default branch: `git branch --no-merged <default-branch> --list 'factory/*'`.
 - Worktrees on `factory/` branches, and any uncommitted changes in them.
 
@@ -28,7 +28,7 @@ Show the user, in one message:
 
 - The files, links, and lines the script will remove, including tracked files such as `.gitignore`, which will show in `git diff`.
 - That `.factory/` goes too, with its board and job history. Offer `--keep-state` to keep it.
-- Each setup change with its revert, and ask which to revert. An owner tool installed outside this repository may serve other repositories; name that when you ask.
+- Each setup change with its revert, and ask which to revert.
 - Each unmerged branch, worktree, and open job, and ask which to keep. Deleting an unmerged branch loses its commits.
 
 Done when the user has answered for every setup change and every piece of in-flight work, and said to go ahead.

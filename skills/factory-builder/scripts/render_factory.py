@@ -135,12 +135,14 @@ def claude_agent(meta: dict[str, object], body: str) -> str:
     tools = meta.get("claude_tools")
     if not isinstance(tools, str) or not tools:
         raise SystemExit(f"{meta.get('name')} is missing claude_tools")
+    disallowed = meta.get("claude_disallowed_tools")
     return (
         "---\n"
         f"name: {meta['name']}\n"
         f"description: {yaml_string(str(meta['description']))}\n"
         f"tools: {yaml_string(tools)}\n"
-        "---\n\n"
+        + (f"disallowedTools: {yaml_string(disallowed)}\n" if isinstance(disallowed, str) and disallowed else "")
+        + "---\n\n"
         f"{body}"
     )
 
@@ -252,6 +254,7 @@ def load_vars(path: Path) -> dict[str, str]:
     ):
         raise SystemExit("setup must be an array of {change, revert} objects")
     values = {key: str(data[key]) for key in REQUIRED}
+    values["gate_scopes"] = str(data.get("gate_scopes", ""))
     if values["structure"] != OWN_LOOP:
         values["lenses"] = ""
         values["lenses_agents"] = ""

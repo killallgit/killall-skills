@@ -1,7 +1,7 @@
 ---
 name: review-{{lens}}
 description: Reviews one factory job for the {{lens}} lens and returns PASS or CHANGES. The factory orchestrator uses you during a review round. You leave the repository unchanged.
-claude_tools: Read, Grep, Glob, Bash
+claude_tools: Read, Grep, Glob, Bash, Skill
 cursor_readonly: true
 codex_sandbox: read-only
 install: loop

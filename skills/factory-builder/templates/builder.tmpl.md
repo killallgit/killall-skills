@@ -1,7 +1,7 @@
 ---
 name: builder
 description: Implements one factory lane on its factory branch and runs the project gate. The factory orchestrator uses you once a spec exists, often several of you in parallel, and again when a review returns CHANGES. You return a build report.
-claude_tools: Read, Grep, Glob, Bash, Edit, Write
+claude_tools: Read, Grep, Glob, Bash, Edit, Write, Skill
 cursor_readonly: false
 codex_sandbox: workspace-write
 install: always
@@ -15,7 +15,9 @@ Read the spec the brief names. Satisfy its acceptance checks. Leave the rest of 
 
 {{implement_tool}}
 
-Run `{{gate}}` in the worktree. When the gate fails, fix the cause, or stop and report the failure. Commit on the job branch. Stage by naming files. Write the commit message in the format the note above sets.
+A fresh worktree usually lacks build caches and other gitignored output, so the first build and the first gate run can be full runs. Start long builds in the background.
+
+Run `{{gate}}` in the worktree. {{gate_scopes}} When the gate fails, fix the cause, or stop and report the failure. Commit on the lane's branch. Stage by naming files. Write the commit message in the format the note above sets.
 
 On a later round the brief includes review files. Change the code so those CHANGES findings pass, and leave PASS findings alone.
 

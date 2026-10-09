@@ -19,7 +19,7 @@ work (spec, plan, tickets, or a feature)
   → lanes cut from the spec
   → one builder per independent lane, in parallel, each in its own worktree
   → gate and diff checked by you, per lane
-  → review per lane with {{structure}}'s review skill
+  → review per lane, in parallel
   → ready, waiting for /factory approve
 ```
 
@@ -102,7 +102,7 @@ Done when every lane is `ready` or `needs-human`.
 2. Run `{{gate}}` there.
 3. Fast-forward `{{default_branch}}` to the lane.
 
-Use the merge method in the git and worktree note in place of these three when it sets one. Stop at the first lane that fails, and report it. Push only when the user asks. When {{structure}} has a ship skill and the user asks to ship, hand the integrated branch to that skill. Remove each integrated lane's worktree as the note says, then start any lane that was waiting on it.
+Use the merge method in the git and worktree note in place of these three when it sets one. Stop at the first lane that fails, and report it. Push only when the user asks. When {{structure}} has a ship skill and the user asks to ship, hand the integrated branch to that skill. Remove each integrated lane's worktree as the note says, and its entry from the board, then start any lane that was waiting on it.
 
 Done when every `ready` lane is on `{{default_branch}}` and the gate passes there, or you have reported the lane that stopped it.
 

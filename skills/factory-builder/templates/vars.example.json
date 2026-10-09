@@ -7,7 +7,7 @@
   "spec_tool": "Write the spec from the feature request and the code. Ground every acceptance check in a file or behavior you found.",
   "implement_tool": "Make the change yourself against the spec.",
   "review_tool": "Review the diff against the spec.",
-  "isolation_note": "Use this repository's existing worktree pattern for the branch the brief names. Before the first edit, confirm you are on that branch in that checkout. Each commit message is one plain sentence.",
+  "isolation_note": "Worktrees follow this repository's existing pattern. Before the first edit, confirm you are on the branch the brief names, in the worktree it names. Each commit message is one plain sentence.",
   "lenses": [
     "code",
     "security"

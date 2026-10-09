@@ -113,7 +113,7 @@ git checkout {{default_branch}}
 git merge --ff-only factory/<job-id>
 ```
 
-When fast-forward fails, stop and report. Leave the branch in place. Push only when the user asks. Remove the job worktree the same way this repository usually removes one.
+When fast-forward fails, stop and report. Leave the branch in place. Push only when the user asks. Remove the job worktree the same way this repository usually removes one, and the job's entry from the board.
 
 Done when `{{default_branch}}` contains the job commit, or you have reported why the merge did not happen.
 
