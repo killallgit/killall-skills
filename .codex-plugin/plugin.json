@@ -11,7 +11,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Killall Skills",
-    "shortDescription": "Catch-up, agent-doc checks, factory rails, git cleanup, and CI waits.",
+    "shortDescription": "Agent setup, catch-up, agent-doc checks, git cleanup, and CI waits.",
     "developerName": "archae0pteryx",
     "category": "Productivity"
   }

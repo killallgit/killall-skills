@@ -39,19 +39,18 @@ Claude Code runs a skill as `/name`; Codex runs it as `$name`.
 | Cursor | All | None yet. The agents use Claude Code frontmatter |
 | Skills CLI | All | None |
 
-## Factory builder
+## Agent setup
 
-`/factory-builder` (`$factory-builder` in Codex) sets a repository up to run
-work as parallel sub-agent lanes, each in its own git worktree, with the
-orchestrator checking every lane's gate and diff before it lands. It follows
-what the repository already uses: a structure tool such as gstack,
-mattpocock/skills, agent-skills, or Spec Kit owns specs and reviews when one is
-installed, and the factory's own spec, review, and approve loop fills in when
-none is. It installs no structure tool. It records the repository's git and
-worktree rules, and when Serena is configured it keeps lanes off Serena, which
-stays bound to the main checkout. Agents are generated for Claude Code, Codex,
-and Cursor. `/factory-builder uninstall` removes everything it added.
-User-invoked only.
+`/agent-setup` (`$agent-setup` in Codex) gives a repository an `orchestrate`
+skill and three agents for Claude Code, Codex, and Cursor, filled with its own
+gate, conventions, and worktree rules. The main session runs `orchestrate`,
+which cuts a spec into lanes and starts a `builder` per lane, working in
+parallel in its own git worktree, then for every lane an independent `reviewer`
+plus a `hall-monitor` that checks the `follow-the-rules` skill is followed. A
+short block in each instruction file the hosts read tells whatever development
+framework is in use, such as gstack, mattpocock/skills, or Spec Kit, to hand
+parallel work to `orchestrate`. It installs nothing else.
+`/agent-setup remove` takes it out again. User-invoked only.
 
 ## Git janitor
 

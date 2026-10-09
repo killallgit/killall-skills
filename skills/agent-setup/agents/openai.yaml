@@ -1,0 +1,5 @@
+interface:
+  display_name: "Agent setup"
+  short_description: "Set up or remove the orchestrate skill and lane agents for parallel worktree work."
+policy:
+  allow_implicit_invocation: false
