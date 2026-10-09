@@ -1,0 +1,18 @@
+{
+  "name": "killall-skills",
+  "version": "1.0.0",
+  "description": "Killallgit agents and skills",
+  "author": {
+    "name": "archae0pteryx",
+    "url": "https://github.com/killallgit"
+  },
+  "homepage": "https://github.com/killallgit/killall-skills",
+  "repository": "https://github.com/killallgit/killall-skills",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Killall Skills",
+    "shortDescription": "Catch-up, agent-doc checks, factory rails, git cleanup, and CI waits.",
+    "developerName": "archae0pteryx",
+    "category": "Productivity"
+  }
+}

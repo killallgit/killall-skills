@@ -1,11 +1,54 @@
 # killall-skills
 
-Claude Code plugin. Install it with:
+Skills and agents for Claude Code, Codex, and Cursor (beta).
+
+## Install
+
+Claude Code:
 
 ```
 /plugin marketplace add killallgit/killall-skills
 /plugin install killall-skills@killallgit
 ```
+
+Codex:
+
+```
+codex plugin marketplace add killallgit/killall-skills
+codex plugin add killall-skills@killallgit
+```
+
+Cursor: in **Customize**, install from the repository URL
+`https://github.com/killallgit/killall-skills`. Cursor reads
+`.cursor-plugin/plugin.json`.
+
+Any host, skills only, through the skills CLI:
+
+```
+npx skills add killallgit/killall-skills
+```
+
+Claude Code runs a skill as `/name`; Codex runs it as `$name`.
+
+### What each host gets
+
+| Host | Skills | Agents in `agents/` |
+| --- | --- | --- |
+| Claude Code | All | All, from the plugin |
+| Codex | All | None. Codex plugins do not carry agents |
+| Cursor | All | None yet. The agents use Claude Code frontmatter |
+| Skills CLI | All | None |
+
+## Factory builder
+
+`/factory-builder` installs rails for running a repository's work as parallel
+sub-agents, each lane in its own worktree and verified before it lands. It
+defers to the structure tool the repo already uses (gstack, mattpocock/skills,
+agent-skills, Spec Kit) for specs, plans, and reviews, and makes sure that
+tool's skills are installed and visible to Claude, Codex, and Cursor. Without
+one, it asks, or installs the factory's own spec, review, and approve loop.
+`/factory-builder uninstall` (or `remove`) takes out everything it added.
+User-invoked only.
 
 ## Git janitor
 

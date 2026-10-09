@@ -6,8 +6,6 @@
 
 Example:
 
-
-
 Every comment in this file is completely useless. Why comment the name of the file? The file name explains what it does: "self documenting code", the function is well typed and does not need to repeat what is clearly visible and why on earth would you add a comment that only wastes bytes, makes the code harder to read, and the second someone decides to rename the variable: `dead_parrots` when the business requirements change, you now have a comment that simply confuses the code.
 
 4. Never, under any circumstances take agent information at face value. ALWAYS validate, verify, and test. When working with other agents, assume they are intern developers with zero experience or knowlege of company requirements. Double check their work.

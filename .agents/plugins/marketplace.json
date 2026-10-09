@@ -1,0 +1,21 @@
+{
+  "name": "killallgit",
+  "interface": {
+    "displayName": "Killallgit"
+  },
+  "plugins": [
+    {
+      "name": "killall-skills",
+      "description": "Killallgit agents and skills: catch-up, check-agent-docs, factory-builder, follow-the-rules, git-janitor, and wait-for-action.",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

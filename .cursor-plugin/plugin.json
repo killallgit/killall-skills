@@ -1,0 +1,12 @@
+{
+  "name": "killall-skills",
+  "displayName": "Killall Skills",
+  "version": "1.0.0",
+  "description": "Killallgit agents and skills",
+  "author": {
+    "name": "archae0pteryx"
+  },
+  "homepage": "https://github.com/killallgit/killall-skills",
+  "repository": "https://github.com/killallgit/killall-skills",
+  "skills": "./skills/"
+}
