@@ -1,0 +1,5 @@
+interface:
+  display_name: "End session"
+  short_description: "Sync the session branch, land or discard its work, and archive the session."
+policy:
+  allow_implicit_invocation: false

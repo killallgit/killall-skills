@@ -1,6 +1,6 @@
 {
   "name": "killall-skills",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Killallgit agents and skills",
   "author": {
     "name": "archae0pteryx",
@@ -11,7 +11,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Killall Skills",
-    "shortDescription": "Agent setup, catch-up, agent-doc checks, git cleanup, and CI waits.",
+    "shortDescription": "Agent setup, catch-up, agent-doc checks, git cleanup, session wrap-up, and CI waits.",
     "developerName": "archae0pteryx",
     "category": "Productivity"
   }
