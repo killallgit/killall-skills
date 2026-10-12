@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "killall-skills",
-      "description": "Killallgit agents and skills: agent-setup, catch-up, check-agent-docs, follow-the-rules, git-janitor, and wait-for-action.",
+      "description": "Killallgit agents and skills: agent-setup, catch-up, check-agent-docs, end-session, follow-the-rules, git-janitor, and wait-for-action.",
       "source": {
         "source": "local",
         "path": "./"
