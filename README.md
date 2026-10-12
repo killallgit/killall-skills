@@ -62,3 +62,11 @@ For a separate conversation context, ask Claude Code to use the
 `killall-skills:git-janitor` agent and include the repository path and any
 scope limits. The agent uses the same skill and returns a cleanup receipt.
 Its context is separate; it operates on the repository's actual worktrees.
+
+## End session
+
+`/end-session` closes out a session. It fetches, fast-forwards local branches,
+and rebases the session branch onto the default branch. Work that already
+landed or was superseded is discarded with its worktree. Otherwise it asks
+once whether a PR is required, opens one if so, and archives the session.
+User-invoked only.
