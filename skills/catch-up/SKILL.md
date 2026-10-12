@@ -1,12 +1,13 @@
 ---
 name: catch-up
-description: Rebuild a human's lost context on the work in flight — a short state of play, the decisions that stuck and why, live issues/PRs/tickets, plain-language explanations of whatever is load-bearing, and the single clear next step. Use when the user says "catch me up", "where were we", "what's the state of this", or invokes `/catch-up` after time away.
+description: Rebuild a human's lost context on the work in flight after reconciling the current checkout's dangling changes — commit what belongs to an open PR, discard what already landed, sync the branch — then summarize the state of play, decisions, live PRs and tickets, and the single next step. Use when the user says "catch me up", "where were we", "what's the state of this", "get back on track", or invokes `/catch-up` after time away.
 ---
 
 # Catch Up
 
 Time has passed and the user has lost the thread — an interrupted session, a
-weekend, a compaction. Rebuild it for them.
+weekend, a compaction. Reconcile the dangling work, then rebuild the context
+for them.
 
 They are asking precisely because re-reading the whole chain is expensive. Do
 that reading yourself and hand back the conclusion. A summary that requires
@@ -40,24 +41,50 @@ Read before writing. Cheap, and wrong summaries come from skipping it.
    Never invent a ticket, a number, or a status. Silence is correct when nothing
    is wired up.
 
+## Reconcile
+
+When the working tree is dirty, the branch has unpushed commits, or the branch
+is behind the default branch, follow [references/reconcile.md](references/reconcile.md).
+It commits and pushes changes that belong to an open PR, discards changes that
+already landed or are scratch, syncs the branch, and leaves everything else
+untouched. Then gather the working tree again, since reconcile changed it.
+
 ## Write
+
+The user reads this at a **glance**: eyes jump from heading to heading, take the
+first line under each, and stop at the end. Shape every section for that read:
+
+- A `###` heading, then one **bold line** that summarizes the section on its own.
+- Detail below it as bullets or a table, one line per item, each item opening
+  with its bolded key word.
+- No paragraph longer than two lines.
 
 Use these sections in this order. **Drop any section that is empty** — never
 emit a heading with "none" or "n/a" under it.
 
 ### Where we are
 
-Two to four sentences. What is being built, and what state it is in right now.
-Written so it makes sense cold, without the sections below.
+The bold line says what is being built and its state right now, so it reads
+cold without the rest. Up to three bullets underneath for branch, version, and
+what landed or shipped.
+
+### Reconciled
+
+Only when reconcile acted or left changes unclaimed. The bold line counts what
+happened (committed, discarded, left). One bullet per change group: the paths,
+the action, the evidence. Unclaimed changes appear here too, so the user sees
+them before picking the next step.
 
 ### Decisions
 
-The ones that constrain what happens next, each with its reason in the same
-line. Omit decisions that no longer bind anything.
+The bold line names how many still bind. One bullet per decision that
+constrains what happens next, its reason on the same line. Omit decisions that
+no longer bind anything.
 
 ### Open items
 
-Only if issues, PRs, or tickets exist. One line each, with live status:
+Only if issues, PRs, or tickets exist. The bold line names the one that matters
+most. Then a table, one row each, with live status:
 
 | Ref | What | Status |
 | --- | --- | --- |
@@ -74,11 +101,17 @@ something the user already understands is noise, and reads as padding.
 
 ### Next
 
-**One clear next step**, stated as an action. Anything else queued goes
-underneath it, ordered, so the single next thing stays unambiguous.
+The bold line is **one clear next step**, stated as an action. Anything else
+queued goes underneath it as a numbered list, so the single next thing stays
+unambiguous. If the next step is blocked, say on what and who can unblock it — a
+failing test, an unanswered question, someone else's review.
 
-If the next step is blocked, say what it is blocked on and who can unblock it —
-a failing test, an unanswered question, someone else's review.
+### Important
+
+Always last. One to three bullets: the pieces the user must not miss even if
+they read nothing else. Discarded work, a red check, a blocker, an unanswered
+question, a push to a shared PR. Each bullet names the section that holds the
+detail. When nothing rises to that level, drop the section.
 
 ## Rules
 
@@ -87,5 +120,5 @@ a failing test, an unanswered question, someone else's review.
   If you cannot check it, say so plainly rather than smoothing it over.
 - **Do not re-litigate.** Settled decisions are reported, not reopened, even
   where you would have chosen differently.
-- **Do not start work.** This skill ends at the summary. Wait for the user to
-  pick the next step, even when it is obvious.
+- **Reconcile is the only work.** This skill ends at the summary. Wait for the
+  user to pick the next step, even when it is obvious.
