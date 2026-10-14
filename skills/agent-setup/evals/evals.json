@@ -671,6 +671,79 @@
       "expect_output": [
         "gate"
       ]
+    },
+    {
+      "id": "fenced-markers-untouched",
+      "files": {
+        "docs/howto.md": "# Howto\n\n```\n<!-- agent-setup:start -->\nexample\n<!-- agent-setup:end -->\n```\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_unchanged": [
+        "docs/howto.md"
+      ]
+    },
+    {
+      "id": "codex-profile-instructions-kept",
+      "files": {
+        ".codex/config.toml": "model = \"o3\"\n\n[profiles.fast]\ndeveloper_instructions = \"be quick\"\n"
+      },
+      "setup": [
+        [
+          "--vars",
+          "{vars}",
+          "--hosts",
+          "codex"
+        ]
+      ],
+      "args": [
+        "--remove"
+      ],
+      "expect_content": {
+        ".codex/config.toml": "model = \"o3\"\n\n[profiles.fast]\ndeveloper_instructions = \"be quick\"\n"
+      }
+    },
+    {
+      "id": "claude-settings-non-ascii",
+      "files": {
+        ".claude/settings.json": "{\"statusLine\": \"→ x\"}\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}",
+        "--hosts",
+        "claude"
+      ],
+      "expect_no_match": [
+        "\\\\u2192"
+      ]
+    },
+    {
+      "id": "legacy-block-custom-file",
+      "files": {
+        "docs/rules.md": "# Rules\n\nKeep it short.\n\n<!-- agent-setup:start -->\n## Agents\n\nOnce a spec or plan exists, run the `orchestrate` skill in the main session.\n<!-- agent-setup:end -->\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_content": {
+        "docs/rules.md": "# Rules\n\nKeep it short.\n"
+      }
+    },
+    {
+      "id": "remove-legacy-block-custom-file",
+      "files": {
+        "docs/rules.md": "# Rules\n\nKeep it short.\n\n<!-- agent-setup:start -->\n## Agents\n\nOnce a spec or plan exists, run the `orchestrate` skill in the main session.\n<!-- agent-setup:end -->\n"
+      },
+      "args": [
+        "--remove"
+      ],
+      "expect_content": {
+        "docs/rules.md": "# Rules\n\nKeep it short.\n"
+      }
     }
   ]
 }
