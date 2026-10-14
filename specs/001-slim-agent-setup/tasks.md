@@ -268,3 +268,9 @@ Task: "Spike S3 Cursor always-apply rule start-up (T004)"
 ## Phase 9: Convergence
 
 - [X] T043 In `SKILL_DIR/scripts/render_agents.py`, also strip legacy instruction blocks from files other than `AGENTS.md` and `CLAUDE.md` (written by the old `--instructions` flag), but only when the block body is the old block (it names the `orchestrate` skill), so a doc that quotes the markers stays untouched. Add an eval case with a legacy block in `docs/rules.md` that install and `--remove` both delete, keep `fenced-markers-untouched` passing, and stay within 251 renderer lines per US4/AC2 (partial)
+
+---
+
+## Phase 10: Convergence
+
+- [X] T044 In `SKILL_DIR/scripts/render_agents.py` `clear_legacy`, always check `AGENTS.md` and `CLAUDE.md` in addition to the files `git grep --untracked` finds, because `git grep` skips gitignored files and earlier versions wrote the block to those two whether or not they were ignored. Add an eval case where a gitignored `CLAUDE.md` holds an old block that install and `--remove` both delete, and stay within 251 renderer lines per US4/AC1 and FR-007 (partial)
