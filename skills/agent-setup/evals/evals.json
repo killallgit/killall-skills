@@ -744,6 +744,33 @@
       "expect_content": {
         "docs/rules.md": "# Rules\n\nKeep it short.\n"
       }
+    },
+    {
+      "id": "legacy-block-ignored-file",
+      "files": {
+        ".gitignore": "CLAUDE.md\n",
+        "CLAUDE.md": "# Mine\n\n<!-- agent-setup:start -->\n## Agents\n\nOnce a spec or plan exists, run the `orchestrate` skill in the main session.\n<!-- agent-setup:end -->\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_content": {
+        "CLAUDE.md": "# Mine\n"
+      }
+    },
+    {
+      "id": "remove-legacy-block-ignored-file",
+      "files": {
+        ".gitignore": "CLAUDE.md\n",
+        "CLAUDE.md": "# Mine\n\n<!-- agent-setup:start -->\n## Agents\n\nOnce a spec or plan exists, run the `orchestrate` skill in the main session.\n<!-- agent-setup:end -->\n"
+      },
+      "args": [
+        "--remove"
+      ],
+      "expect_content": {
+        "CLAUDE.md": "# Mine\n"
+      }
     }
   ]
 }
