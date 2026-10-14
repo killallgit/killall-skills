@@ -1,6 +1,6 @@
 ---
 name: hall-monitor
-description: Lane agent for the orchestrate skill, started only from its loop. Checks one lane's changed files against the follow-the-rules skill and the patterns this codebase already established, following each change out to its callers, callees, and tests. Read-only; it enforces the written standard and the established pattern, not correctness.
+description: Lane agent started only by the orchestrator. Checks one lane's changed files against the follow-the-rules skill and the patterns this codebase already established, following each change out to its callers, callees, and tests. Read-only; it enforces the written standard and the established pattern, not correctness.
 claude_tools: Read, Grep, Glob, Bash, Skill
 claude_skills: follow-the-rules
 cursor_readonly: true

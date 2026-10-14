@@ -57,7 +57,7 @@ first in each story and must fail before the matching implementation.
 
 ### Evals for User Story 1
 
-- [ ] T010 [US1] Add these cases to `SKILL_DIR/evals/evals.json`. Run them and confirm they fail:
+- [X] T010 [US1] Add these cases to `SKILL_DIR/evals/evals.json`. Run them and confirm they fail:
   - `all-hosts`, `claude-only`, `codex-cursor`: exact agent file sets per contracts/render-cli.md.
   - `instruction-files-untouched`: `AGENTS.md` and `CLAUDE.md` byte-identical after install.
   - `agent-metadata`: Claude `tools` "Read, Grep, Glob, Bash, Edit, Write, Skill" for builder and "Read, Grep, Glob, Bash, Skill" for reviewer and hall-monitor; Claude `skills` "follow-the-rules" for builder and hall-monitor only; Cursor `readonly` false, false, true; Codex `sandbox_mode` "workspace-write", "workspace-write", "read-only".
@@ -69,13 +69,13 @@ first in each story and must fail before the matching implementation.
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] In `SKILL_DIR/scripts/render_agents.py`, delete `BLOCK_TEMPLATE`, `write_block`, `instruction_files`, `IMPORTS_AGENTS`, and the `--instructions` flag. Set `REQUIRED = ("project", "conventions", "gate", "default_branch", "worktree_note")` and `OPTIONAL = ("gate_scopes",)`. Keep the `TOKEN` rule that drops the leading space of an empty value. Keep block *removal* (`BLOCK`, `files_with_block`) for US4
-- [ ] T012 [P] [US1] Delete `SKILL_DIR/templates/instructions-block.tmpl.md` and `SKILL_DIR/references/serena.md`, and the empty `SKILL_DIR/references/` folder
-- [ ] T013 [P] [US1] In `SKILL_DIR/templates/builder.tmpl.md`, remove `{{implement_note}}`. Change the description to say it is started only by the orchestrator, not "the orchestrate skill". Keep the frontmatter permission keys unchanged
-- [ ] T014 [P] [US1] In `SKILL_DIR/templates/reviewer.tmpl.md`, remove `{{review_note}}` and change the description the same way. Keep the frontmatter permission keys unchanged
-- [ ] T015 [P] [US1] In `SKILL_DIR/templates/hall-monitor.tmpl.md`, change the description the same way. Keep the frontmatter permission keys unchanged
-- [ ] T016 [US1] In `SKILL_DIR/SKILL.md`, remove the Framework section (rules S6–S8), the `framework_note`, `implement_note`, and `review_note` rows, the Serena paragraph (S13), the instruction-block check (S18), the instruction-block sentences in step 2, and the `npx` install line in step 3 (S17 keeps the per-host report only). Per data-model.md, keep S1–S5, S9–S12, S14–S17, and S19–S21
-- [ ] T017 [US1] Run `python3 SKILL_DIR/evals/run.py` and make every US1 case pass
+- [X] T011 [US1] In `SKILL_DIR/scripts/render_agents.py`, delete `BLOCK_TEMPLATE`, `write_block`, `instruction_files`, `IMPORTS_AGENTS`, and the `--instructions` flag. Set `REQUIRED = ("project", "conventions", "gate", "default_branch", "worktree_note")` and `OPTIONAL = ("gate_scopes",)`. Keep the `TOKEN` rule that drops the leading space of an empty value. Keep block *removal* (`BLOCK`, `files_with_block`) for US4
+- [X] T012 [P] [US1] Delete `SKILL_DIR/templates/instructions-block.tmpl.md` and `SKILL_DIR/references/serena.md`, and the empty `SKILL_DIR/references/` folder
+- [X] T013 [P] [US1] In `SKILL_DIR/templates/builder.tmpl.md`, remove `{{implement_note}}`. Change the description to say it is started only by the orchestrator, not "the orchestrate skill". Keep the frontmatter permission keys unchanged
+- [X] T014 [P] [US1] In `SKILL_DIR/templates/reviewer.tmpl.md`, remove `{{review_note}}` and change the description the same way. Keep the frontmatter permission keys unchanged
+- [X] T015 [P] [US1] In `SKILL_DIR/templates/hall-monitor.tmpl.md`, change the description the same way. Keep the frontmatter permission keys unchanged
+- [X] T016 [US1] In `SKILL_DIR/SKILL.md`, remove the Framework section (rules S6–S8), the `framework_note`, `implement_note`, and `review_note` rows, the Serena paragraph (S13), the instruction-block check (S18), the instruction-block sentences in step 2, and the `npx` install line in step 3 (S17 keeps the per-host report only). Per data-model.md, keep S1–S5, S9–S12, S14–S17, and S19–S21
+- [X] T017 [US1] Run `python3 SKILL_DIR/evals/run.py` and make every US1 case pass
 
 **Checkpoint**: US1 complete. agent-setup writes only the three agents, with no outside references
 

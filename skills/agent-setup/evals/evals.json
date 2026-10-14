@@ -1,4 +1,242 @@
 {
   "skill_name": "agent-setup",
-  "cases": []
+  "cases": [
+    {
+      "id": "all-hosts",
+      "files": {
+        "AGENTS.md": "# Rules\n\nKeep functions small.\n",
+        "CLAUDE.md": "# Claude\n\nPrefer short answers.\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_files": [
+        ".claude/agents/builder.md",
+        ".claude/agents/reviewer.md",
+        ".claude/agents/hall-monitor.md",
+        ".codex/agents/builder.toml",
+        ".codex/agents/reviewer.toml",
+        ".codex/agents/hall-monitor.toml",
+        ".cursor/agents/builder.md",
+        ".cursor/agents/reviewer.md",
+        ".cursor/agents/hall-monitor.md"
+      ],
+      "expect_absent": [
+        ".claude/skills/orchestrate/SKILL.md",
+        ".agents/skills/orchestrate/SKILL.md",
+        ".cursor/skills/orchestrate/SKILL.md"
+      ]
+    },
+    {
+      "id": "claude-only",
+      "args": [
+        "--vars",
+        "{vars}",
+        "--hosts",
+        "claude"
+      ],
+      "expect_files": [
+        ".claude/agents/builder.md",
+        ".claude/agents/reviewer.md",
+        ".claude/agents/hall-monitor.md"
+      ],
+      "expect_absent": [
+        ".codex/agents/builder.toml",
+        ".codex/agents/reviewer.toml",
+        ".codex/agents/hall-monitor.toml",
+        ".cursor/agents/builder.md",
+        ".cursor/agents/reviewer.md",
+        ".cursor/agents/hall-monitor.md",
+        ".codex/config.toml",
+        ".cursor/rules/orchestrator.mdc"
+      ]
+    },
+    {
+      "id": "codex-cursor",
+      "args": [
+        "--vars",
+        "{vars}",
+        "--hosts",
+        "codex,cursor"
+      ],
+      "expect_files": [
+        ".codex/agents/builder.toml",
+        ".codex/agents/reviewer.toml",
+        ".codex/agents/hall-monitor.toml",
+        ".cursor/agents/builder.md",
+        ".cursor/agents/reviewer.md",
+        ".cursor/agents/hall-monitor.md"
+      ],
+      "expect_absent": [
+        ".claude/agents/builder.md",
+        ".claude/agents/reviewer.md",
+        ".claude/agents/hall-monitor.md",
+        ".claude/settings.json"
+      ]
+    },
+    {
+      "id": "instruction-files-untouched",
+      "files": {
+        "AGENTS.md": "# Rules\n\nKeep functions small.\n",
+        "CLAUDE.md": "# Claude\n\nPrefer short answers.\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_unchanged": [
+        "AGENTS.md",
+        "CLAUDE.md"
+      ]
+    },
+    {
+      "id": "agent-metadata",
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_metadata": {
+        ".claude/agents/builder.md": {
+          "name": "builder",
+          "tools": "Read, Grep, Glob, Bash, Edit, Write, Skill",
+          "skills": "follow-the-rules"
+        },
+        ".claude/agents/reviewer.md": {
+          "name": "reviewer",
+          "tools": "Read, Grep, Glob, Bash, Skill",
+          "skills": null
+        },
+        ".claude/agents/hall-monitor.md": {
+          "name": "hall-monitor",
+          "tools": "Read, Grep, Glob, Bash, Skill",
+          "skills": "follow-the-rules"
+        },
+        ".cursor/agents/builder.md": {
+          "name": "builder",
+          "model": "inherit",
+          "readonly": "false"
+        },
+        ".cursor/agents/reviewer.md": {
+          "name": "reviewer",
+          "model": "inherit",
+          "readonly": "false"
+        },
+        ".cursor/agents/hall-monitor.md": {
+          "name": "hall-monitor",
+          "model": "inherit",
+          "readonly": "true"
+        },
+        ".codex/agents/builder.toml": {
+          "name": "builder",
+          "sandbox_mode": "workspace-write"
+        },
+        ".codex/agents/reviewer.toml": {
+          "name": "reviewer",
+          "sandbox_mode": "workspace-write"
+        },
+        ".codex/agents/hall-monitor.toml": {
+          "name": "hall-monitor",
+          "sandbox_mode": "read-only"
+        }
+      }
+    },
+    {
+      "id": "no-outside-tools",
+      "files": {
+        "AGENTS.md": "# Rules\n\nKeep functions small.\n",
+        "CLAUDE.md": "# Claude\n\nPrefer short answers.\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_no_match": [
+        "serena|gstack|mattpocock|spec kit|\\bnpx\\b"
+      ]
+    },
+    {
+      "id": "missing-required",
+      "vars": {
+        "gate": ""
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_exit": "nonzero",
+      "expect_changes": {
+        "added": [],
+        "removed": [],
+        "modified": []
+      },
+      "expect_output": [
+        "gate"
+      ]
+    },
+    {
+      "id": "toml-quote",
+      "vars": {
+        "project": "demo ''' calc"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_exit": "nonzero",
+      "expect_changes": {
+        "added": [],
+        "removed": [],
+        "modified": []
+      }
+    },
+    {
+      "id": "empty-optional",
+      "vars": {
+        "gate_scopes": ""
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_no_match": [
+        "\\S  +\\S"
+      ]
+    },
+    {
+      "id": "foreign-agent",
+      "files": {
+        ".claude/agents/builder.md": "# my own builder\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_exit": "nonzero",
+      "expect_changes": {
+        "added": [],
+        "removed": [],
+        "modified": []
+      },
+      "expect_output": [
+        ".claude/agents/builder.md"
+      ]
+    },
+    {
+      "id": "foreign-agent-force",
+      "files": {
+        ".claude/agents/builder.md": "# my own builder\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}",
+        "--force"
+      ],
+      "expect_metadata": {
+        ".claude/agents/builder.md": {
+          "name": "builder"
+        }
+      }
+    }
+  ]
 }
