@@ -77,3 +77,14 @@ and rebases the session branch onto the default branch. Work that already
 landed or was superseded is discarded with its worktree. Otherwise it asks
 once whether a PR is required, opens one if so, and archives the session.
 User-invoked only.
+
+## Session eject
+
+`/session-eject` saves the session's work before usage runs out. It tells
+running subagents to wrap up and waits for their reports, then commits and
+pushes every changed worktree. An open PR gets a comment on what landed and
+what is left; a branch without one gets a draft PR titled
+`[ejected session]: <short desc>`. `/session-eject now` skips the wait and
+commits, pushes, and opens the draft PR at once. Work on the default branch
+moves to an `eject/` branch first. It ends by printing a handoff paragraph to
+paste into a fresh agent so it can resume. User-invoked only.
