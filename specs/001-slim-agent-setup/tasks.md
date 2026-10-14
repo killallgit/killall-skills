@@ -89,7 +89,7 @@ first in each story and must fail before the matching implementation.
 
 ### Evals for User Story 2
 
-- [ ] T018 [US2] Add these cases to `SKILL_DIR/evals/evals.json`, limited to hosts whose spike passed (T005). Run them and confirm they fail:
+- [X] T018 [US2] Add these cases to `SKILL_DIR/evals/evals.json`, limited to hosts whose spike passed (T005). Run them and confirm they fail:
   - `claude-entry`: `.claude/agents/orchestrator.md` exists with the marker and no `tools` key, and `.claude/settings.json` has `"agent": "orchestrator"`.
   - `claude-settings-preserved`: other keys in an existing `.claude/settings.json` are kept.
   - `claude-settings-foreign`: an existing `"agent": "other"` blocks install without `--force`, and nothing is written.
@@ -100,18 +100,18 @@ first in each story and must fail before the matching implementation.
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] `git mv SKILL_DIR/templates/orchestrate.tmpl.md SKILL_DIR/templates/orchestrator.tmpl.md`. Then rewrite it:
+- [X] T019 [US2] `git mv SKILL_DIR/templates/orchestrate.tmpl.md SKILL_DIR/templates/orchestrator.tmpl.md`. Then rewrite it:
   - Frontmatter `name: orchestrator`, with a description saying it is the session's own role.
   - Replace "This loop stays in the main session because a subagent cannot start further subagents" with a statement that it *is* the main session (rule T19).
   - Add rule R4: when the work has no independent parts, make the single small change yourself; run lanes only for parallel work.
   - Remove `{{framework_note}}` (T20), the `npx` install line (T22 keeps the ask-the-user part), the project-root tool paragraph (T23), and the loop diagram, since the numbered steps already state it (T21).
-- [ ] T020 [US2] In `SKILL_DIR/scripts/render_agents.py`, render `orchestrator.tmpl.md` per host. Claude Code: an agent file at `.claude/agents/orchestrator.md` with `name` and `description` only, so it inherits all tools including `Agent`. Codex: the body as a TOML literal for `developer_instructions`. Cursor: `.cursor/rules/orchestrator.mdc` with frontmatter `description` and `alwaysApply: true`. Remove `SKILL_TEMPLATE` and `skill_path`
-- [ ] T021 [US2] In `SKILL_DIR/scripts/render_agents.py`, add start-up setting writes per research.md R2:
+- [X] T020 [US2] In `SKILL_DIR/scripts/render_agents.py`, render `orchestrator.tmpl.md` per host. Claude Code: an agent file at `.claude/agents/orchestrator.md` with `name` and `description` only, so it inherits all tools including `Agent`. Codex: the body as a TOML literal for `developer_instructions`. Cursor: `.cursor/rules/orchestrator.mdc` with frontmatter `description` and `alwaysApply: true`. Remove `SKILL_TEMPLATE` and `skill_path`
+- [X] T021 [US2] In `SKILL_DIR/scripts/render_agents.py`, add start-up setting writes per research.md R2:
   - `.claude/settings.json`: load the JSON, set only `agent`, and write it back with 2-space indent.
   - `.codex/config.toml`: prepend a block between `# agent-setup:start` and `# agent-setup:end` comment lines. Replace that block on rerun.
-- [ ] T022 [US2] In `SKILL_DIR/scripts/render_agents.py`, move every refusal into one preflight that runs before the first write: foreign agent files, a foreign `agent` setting, unmarked `developer_instructions`, and a foreign `.mdc` rule. `--force` overrides all of them (contracts/render-cli.md, Exit behavior)
-- [ ] T023 [US2] In `SKILL_DIR/SKILL.md`, add rule S22 to the Report step: per host, how a session starts as the orchestrator (`claude`, or `claude --agent orchestrator` to override; Codex in a trusted project; Cursor through the always-apply rule), and, for a report-only host, the closest supported way. Update step 2's list of written files
-- [ ] T024 [US2] Run `python3 SKILL_DIR/evals/run.py` and make every US1 and US2 case pass
+- [X] T022 [US2] In `SKILL_DIR/scripts/render_agents.py`, move every refusal into one preflight that runs before the first write: foreign agent files, a foreign `agent` setting, unmarked `developer_instructions`, and a foreign `.mdc` rule. `--force` overrides all of them (contracts/render-cli.md, Exit behavior)
+- [X] T023 [US2] In `SKILL_DIR/SKILL.md`, add rule S22 to the Report step: per host, how a session starts as the orchestrator (`claude`, or `claude --agent orchestrator` to override; Codex in a trusted project; Cursor through the always-apply rule), and, for a report-only host, the closest supported way. Update step 2's list of written files
+- [X] T024 [US2] Run `python3 SKILL_DIR/evals/run.py` and make every US1 and US2 case pass
 
 **Checkpoint**: US1 and US2 complete. This is the shippable core
 
