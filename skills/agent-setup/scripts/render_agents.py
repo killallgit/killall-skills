@@ -16,9 +16,9 @@ TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 AGENT_TEMPLATES = ("builder", "reviewer", "hall-monitor")
 ORCHESTRATOR = "orchestrator"
 HOSTS = {
-    "claude": (Path(".claude/agents"), ".md"),
-    "cursor": (Path(".cursor/agents"), ".md"),
-    "codex": (Path(".codex/agents"), ".toml"),
+    "claude": ".claude/agents/{}.md",
+    "cursor": ".cursor/agents/{}.md",
+    "codex": ".codex/agents/{}.toml",
 }
 CLAUDE_SETTINGS = Path(".claude/settings.json")
 CODEX_CONFIG = Path(".codex/config.toml")
@@ -82,8 +82,7 @@ def agent_file(host: str, meta: dict[str, str], body: str) -> str:
 
 
 def agent_path(host: str, name: str) -> Path:
-    folder, suffix = HOSTS[host]
-    return folder / f"{name}{suffix}"
+    return Path(HOSTS[host].format(name))
 
 
 def whole_file(path: Path, content: str) -> Output:
@@ -103,10 +102,9 @@ def with_agent(text: str | None) -> str:
 
 def without_agent(text: str) -> str:
     settings = load_settings(text)
-    if settings.get("agent") != ORCHESTRATOR:
+    if settings.pop("agent", None) != ORCHESTRATOR:
         return text
-    kept = {key: value for key, value in settings.items() if key != "agent"}
-    return json.dumps(kept, indent=2, ensure_ascii=False) + "\n" if kept else ""
+    return json.dumps(settings, indent=2, ensure_ascii=False) + "\n" if settings else ""
 
 
 def without_instructions(text: str) -> str:
@@ -190,7 +188,9 @@ def clear_legacy(dest: Path) -> None:
     for path in LEGACY_FILES:
         delete_ours(dest / path, dest)
     grep = ["git", "-C", str(dest), "grep", "-l", "-F", "--untracked", "-e", "<!-- agent-setup:start -->"]
-    for name in subprocess.run(grep, check=False, capture_output=True, text=True).stdout.splitlines():
+    found = subprocess.run(grep, check=False, capture_output=True, text=True).stdout.splitlines()
+    # git grep skips ignored files, and earlier versions wrote these two whether git ignored them or not.
+    for name in dict.fromkeys(["AGENTS.md", "CLAUDE.md", *found]):
         strip_file(dest / name, without_instruction_block, dest)
 
 
