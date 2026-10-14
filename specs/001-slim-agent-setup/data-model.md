@@ -74,65 +74,69 @@ marker at a target path blocks setup unless forced, and is never removed.
 
 ## Rule inventory
 
-Each distinct instruction in the current text, marked kept or cut (FR-008). "Where" is the file
-the rule lives in after the refactor.
+Each distinct instruction in the pre-refactor text, marked kept or cut (FR-008). "Where" names the
+file and section that now holds a kept rule.
 
 ### SKILL.md
 
 | # | Rule | Verdict | Where / reason |
 | --- | --- | --- | --- |
-| S1 | Work in the given path, else the git root | kept | SKILL.md |
-| S2 | Record values from the repo, not memory; install and ask nothing unless a step says so | kept | SKILL.md |
-| S3 | Hosts: each host whose folder exists in repo or home, else all three | kept | SKILL.md |
-| S4 | Value table: project, conventions, gate, gate_scopes, default_branch, worktree_note | kept | SKILL.md |
-| S5 | Ask when two gates are equally plausible | kept | SKILL.md |
+| S1 | Work in the given path, else the git root | kept | SKILL.md, 1. Look |
+| S2 | Record values from the repo, not memory; install and ask nothing unless a step says so | kept | SKILL.md, 1. Look |
+| S3 | Hosts: each host whose folder exists in repo or home, else all three | kept | SKILL.md, value table |
+| S4 | Value table: project, conventions, gate, gate_scopes, default_branch, worktree_note | kept | SKILL.md, value table |
+| S5 | Ask when two gates are equally plausible | kept | SKILL.md, value table `gate` row |
 | S6 | Framework detection and `framework_note` | cut | FR-002: outside tooling |
 | S7 | `implement_note`, `review_note` from framework skills | cut | FR-002 |
-| S8 | Report when framework keeps no spec location | cut | FR-002 |
-| S9 | Worktree note: command and location, confirm branch and worktree before first edit | kept | SKILL.md |
-| S10 | Worktree fallback: `.worktrees/<lane>` plus `.git/info/exclude` | kept | SKILL.md |
-| S11 | Branch, commit, merge rules or their fallbacks | kept | SKILL.md |
-| S12 | Codex sandbox blocks writes outside git root; report both ways out | kept | SKILL.md, report-only |
+| S8 | Report when framework keeps no spec location | cut | FR-002; the orchestrator now asks the user for a spec and acceptance checks |
+| S9 | Worktree note: command and location, confirm branch and worktree before first edit | kept | SKILL.md, worktree note item 1 |
+| S10 | Worktree fallback: `.worktrees/<lane>` plus `.git/info/exclude` | kept | SKILL.md, worktree note item 1 |
+| S11 | Branch, commit, merge rules or their fallbacks | kept | SKILL.md, worktree note items 2 and 3 |
+| S12 | Codex sandbox blocks writes outside git root; report the way out | kept | SKILL.md, 3. Check, Codex bullet |
 | S13 | Serena detection and `references/serena.md` | cut | FR-002; file deleted |
-| S14 | Run the renderer with vars and hosts | kept | SKILL.md |
-| S15 | Refuse to overwrite foreign files; ask before `--force` | kept | SKILL.md |
-| S16 | Check: each file exists, no `{{` left | kept | SKILL.md |
-| S17 | Check: `follow-the-rules` resolves per host | kept | SKILL.md, without the `npx` line |
+| S14 | Run the renderer with vars and hosts | kept | SKILL.md, 2. Write |
+| S15 | Refuse to overwrite foreign files; ask before `--force` | kept | SKILL.md, 2. Write |
+| S16 | Check: each file exists, no `{{` left | cut | no-op: the renderer exits on any unfilled token and prints each path it writes |
+| S17 | Check: `follow-the-rules` resolves per host | kept | SKILL.md, 3. Check, without the install line |
 | S18 | Check: each host reads the instruction block | cut | FR-003: block removed |
-| S19 | Check: Codex loads `.codex/agents/` only for a trusted project | kept | SKILL.md, report-only |
-| S20 | Report: hosts, gate, worktree note, gaps, files written; committing is the user's call | kept | SKILL.md |
-| S21 | `remove` runs the renderer with `--remove` | kept | SKILL.md |
-| S22 | Report how to start an orchestrator session per host | **new** | SKILL.md (FR-004) |
+| S19 | Check: Codex loads `.codex/agents/` only for a trusted project | kept | SKILL.md, 3. Check, Codex bullet |
+| S20 | Report: hosts, gate, worktree note, gaps, files written; committing is the user's call | kept | SKILL.md, 4. Report |
+| S21 | `remove` runs the renderer with `--remove` | kept | SKILL.md, intro |
+| S22 | Report how to start an orchestrator session per host | **new** | SKILL.md, 4. Report (FR-004) |
+| S23 | Codex builders inherit the session sandbox; they write only under `workspace-write` | **new** | SKILL.md, 3. Check, Codex bullet (spike S2) |
+| S24 | Intro list restating what each agent does, and the loop summary | cut | duplicated the agent descriptions and the orchestrator's loop (FR-009) |
+| S25 | Per-host table of written paths | cut | the renderer prints every path it writes; the table was a cache of it |
 
 ### Templates
 
 | # | Rule | Verdict | Where / reason |
 | --- | --- | --- | --- |
-| T1 | Builder touches only its brief's files | kept | builder |
-| T2 | Absolute worktree paths for every command and file tool (builder, reviewer, hall-monitor) | kept | each agent; stated once per agent, since each reads only its own file |
-| T3 | Builder invokes `follow-the-rules` first | kept | builder (also preloaded on Claude) |
+| T1 | Builder touches only its brief's files | kept | builder, opening |
+| T2 | Absolute worktree paths for every command and file tool | kept | builder, reviewer, hall-monitor: once each, since each reads only its own file (research R3) |
+| T3 | Builder invokes `follow-the-rules` first | kept | builder; "hall-monitor checks the lane against them" cut as a no-op |
 | T4 | Builder satisfies the lane's acceptance checks, follows conventions | kept | builder |
 | T5 | `implement_note` | cut | FR-002 |
 | T6 | First gate run can be slow in a fresh worktree | cut | narration; no action follows from it |
 | T7 | Run the gate; fix or report failures; commit staging files by name | kept | builder |
 | T8 | Later rounds: fix each finding or say why not | kept | builder |
-| T9 | Builder report format | kept | builder |
+| T9 | Builder report format | kept | builder, Output |
 | T10 | Reviewer: builder report is a claim; diff then whole files | kept | reviewer |
 | T11 | `review_note` | cut | FR-002 |
 | T12 | Reviewer checklist: acceptance checks, tests, callers, trust boundaries | kept | reviewer |
 | T13 | Reviewer leaves rules and patterns to hall-monitor | kept | reviewer |
-| T14 | Reviewer changes no code; read-only git commands | kept | reviewer |
-| T15 | Reviewer verdict format | kept | reviewer |
-| T16 | Hall-monitor: invoke `follow-the-rules` first; `rules unavailable` when it fails | kept | hall-monitor |
-| T17 | Hall-monitor scope, read-only, execution tree, pattern, verify, severity, output | kept | hall-monitor; trimmed wording only |
-| T18 | Orchestrator writes no product code; shell for git, gate, reading | kept | orchestrator |
-| T19 | "Stays in the main session because a subagent cannot start subagents" | kept, reworded | orchestrator: it *is* the main session now |
-| T20 | `framework_note` in orchestrate | cut | FR-002 |
-| T21 | Loop diagram and steps 1–9 | kept | orchestrator; diagram and numbered steps state the same loop, keep the steps only |
-| T22 | `rules unavailable` handling | kept | orchestrator, without the `npx` line |
+| T14 | Reviewer changes no code; read-only git commands; leaves gate caches | kept | reviewer, merged into one sentence |
+| T15 | Reviewer verdict format | kept | reviewer, Output |
+| T16 | Hall-monitor: invoke `follow-the-rules` first; `rules unavailable` when it fails | kept | hall-monitor, opening |
+| T17 | Hall-monitor scope, read-only, execution tree, pattern, verify, severity, output | kept | hall-monitor, same sections; wording trimmed |
+| T18 | Orchestrator writes no product code for lanes | kept | orchestrator, opening |
+| T19 | "Stays in the main session because a subagent cannot start subagents" | kept, reworded | orchestrator, opening: it *is* the main session |
+| T20 | `framework_note` in orchestrate | cut | FR-002; replaced by "a spec or plan is whatever the user names" |
+| T21 | Loop diagram and steps 1–9 | kept | orchestrator, Loop: steps only; the diagram restated them |
+| T22 | `rules unavailable` handling | kept | orchestrator, after Loop, without the install line |
 | T23 | Tool that bound a project root points at the primary checkout | cut | outside-tool concern (Serena) |
-| T24 | Brief contents | kept | orchestrator |
-| T25 | Verification of builder claims | kept | orchestrator |
-| T26 | Report format; stop and ask on decisions only the user can make | kept | orchestrator |
-| T27 | Instruction block: when to run orchestrate; single small change stays in main session | cut | FR-003; the second half moves to the orchestrator |
+| T24 | Brief contents | kept | orchestrator, A brief contains; the report details live in the builder's Output |
+| T25 | Verification of builder claims | kept | orchestrator, Verification |
+| T26 | Report format; stop and ask on decisions only the user can make | kept | orchestrator, Report |
+| T27 | Instruction block: when to run orchestrate; single small change stays in main session | moved | orchestrator, opening (research R4) |
 | T28 | Instruction block: every agent follows `follow-the-rules` | cut | already in builder and hall-monitor (FR-009) |
+| T29 | Guard: subagents ignore the orchestrator's instructions | **new** | orchestrator, first line (spike S3) |
