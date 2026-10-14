@@ -637,6 +637,40 @@
         "max_renderer_lines": 251,
         "forbidden": "serena|gstack|mattpocock|spec kit|\\bnpx\\b"
       }
+    },
+    {
+      "id": "quoted-markers-untouched",
+      "files": {
+        "docs/notes.md": "# Notes\n\nThe block sits between `<!-- agent-setup:start -->` and `<!-- agent-setup:end -->` lines.\n\n\nKeep these blank lines.\n",
+        "AGENTS.md": "# Notes\n\nThe block sits between `<!-- agent-setup:start -->` and `<!-- agent-setup:end -->` lines.\n\n\nKeep these blank lines.\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_unchanged": [
+        "docs/notes.md",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "id": "null-required-value",
+      "vars": {
+        "gate": null
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_exit": "nonzero",
+      "expect_changes": {
+        "added": [],
+        "removed": [],
+        "modified": []
+      },
+      "expect_output": [
+        "gate"
+      ]
     }
   ]
 }

@@ -10,9 +10,8 @@ with `args`, and checks the result. Fields:
 | --- | --- |
 | `id` | Case name, printed as `PASS <id>` or `FAIL <id>` |
 | `files` | Files committed into the fixture before anything runs |
-| `previous` | `{"ref": "<git-ref>", "hosts": "..."}`: set the fixture up with agent-setup as it was at that ref |
+| `previous` | `{"ref": "<git-ref>"}`: set the fixture up, all hosts, with agent-setup as it was at that ref |
 | `setup` | Renderer argument lists run before the snapshot, such as an earlier install |
-| `files_after_setup` | Files written after `setup` and before the snapshot |
 | `vars` | Overrides merged onto `fixtures/vars.json`; `{vars}` in `args` and `setup` expands to the result |
 | `args` | Renderer arguments under test; `{fixtures}` expands to `evals/fixtures` |
 | `expect_exit` | Exit code, or `"nonzero"`; default 0 |
