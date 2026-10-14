@@ -19,7 +19,7 @@ with `args`, and checks the result. Fields:
 | `expect_changes` | Exact `added`, `removed`, or `modified` path lists, relative to the snapshot |
 | `expect_files`, `expect_absent`, `expect_unchanged` | Paths that must exist, must not exist, or must keep their content |
 | `expect_metadata` | `{path: {key: value}}` from frontmatter, single-line TOML keys, or JSON; `null` means the key must be absent |
-| `expect_startswith`, `expect_endswith` | `{path: text}` |
+| `expect_content`, `expect_startswith`, `expect_endswith` | `{path: text}`: whole file, prefix, or suffix |
 | `expect_toml` | Paths that must parse as TOML (checked on Python 3.11+) |
 | `expect_no_match` | Regexes no added or modified file may match |
 | `expect_output` | Strings the renderer's output must contain, such as a refused path or a missing field name |

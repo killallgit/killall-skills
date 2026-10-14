@@ -147,16 +147,16 @@ first in each story and must fail before the matching implementation.
 
 ### Evals for User Story 4
 
-- [ ] T031 [US4] Add these cases to `SKILL_DIR/evals/evals.json`. Run them and confirm they fail:
+- [X] T031 [US4] Add these cases to `SKILL_DIR/evals/evals.json`. Run them and confirm they fail:
   - `upgrade-from-previous`: a fixture set up by `d92095b` with all hosts. The new install removes every `<!-- agent-setup:start -->` block, the `orchestrate` skill at `.claude/skills/orchestrate/`, `.agents/skills/orchestrate/`, and `.cursor/skills/orchestrate/`, and any `orchestrator` agent in `.codex/agents/` or `.cursor/agents/`. An instruction file left empty is deleted, and other content in instruction files is kept with blank lines collapsed.
   - `remove-all`: after install, `--remove` leaves no marked file, no `agent` key written by agent-setup, and no marker block in `.codex/config.toml`. A settings file left as `{}` or empty is deleted, and foreign files are untouched.
   - `remove-keeps-foreign`: a foreign `"agent"` value and unmarked TOML survive `--remove`.
 
 ### Implementation for User Story 4
 
-- [ ] T032 [US4] In `SKILL_DIR/scripts/render_agents.py`, replace `LEGACY_AGENTS` with a legacy list that names exact paths per host: the `orchestrate` skill folders, and `orchestrator` agents in `.codex/agents/` and `.cursor/agents/` only. `.claude/agents/orchestrator.md` is now the live entry point and must not be in the legacy list. Install and remove both clear legacy paths that carry the marker
-- [ ] T033 [US4] In `SKILL_DIR/scripts/render_agents.py`, run legacy block removal on install as well as remove, reusing `files_with_block`. In remove, delete the `agent` key only when its value is `orchestrator` and agent-setup wrote it, and delete the `.codex/config.toml` marker block. Delete a settings or config file left empty
-- [ ] T034 [US4] Run `python3 SKILL_DIR/evals/run.py` and make every case pass
+- [X] T032 [US4] In `SKILL_DIR/scripts/render_agents.py`, replace `LEGACY_AGENTS` with a legacy list that names exact paths per host: the `orchestrate` skill folders, and `orchestrator` agents in `.codex/agents/` and `.cursor/agents/` only. `.claude/agents/orchestrator.md` is now the live entry point and must not be in the legacy list. Install and remove both clear legacy paths that carry the marker
+- [X] T033 [US4] In `SKILL_DIR/scripts/render_agents.py`, run legacy block removal on install as well as remove, reusing `files_with_block`. In remove, delete the `agent` key only when its value is `orchestrator` and agent-setup wrote it, and delete the `.codex/config.toml` marker block. Delete a settings or config file left empty
+- [X] T034 [US4] Run `python3 SKILL_DIR/evals/run.py` and make every case pass
 
 **Checkpoint**: Upgrades and removal are safe on repositories set up by earlier versions
 
