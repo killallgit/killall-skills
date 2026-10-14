@@ -182,7 +182,7 @@ first in each story and must fail before the matching implementation.
 - [X] T039 Run quickstart.md steps 1–3 and the outside-tool grep across `SKILL_DIR`, `README.md`, and generated fixture output
 - [X] T040 Run the `hall-monitor` and `comment-janitor` agents on the branch diff and fix the findings
 - [X] T041 Bump the version to `3.0.0` in `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, and `.cursor-plugin/plugin.json` (research.md R6), as its own commit `chore: bump plugin version to 3.0.0`
-- [ ] T042 Open a PR to `main`. In the body, include the spike results from `specs/001-slim-agent-setup/spikes.md`, the eval output, the before and after word and line counts, and the rule-inventory verdicts with each cut and its reason (FR-008)
+- [X] T042 Open a PR to `main`. In the body, include the spike results from `specs/001-slim-agent-setup/spikes.md`, the eval output, the before and after word and line counts, and the rule-inventory verdicts with each cut and its reason (FR-008)
 
 ---
 
