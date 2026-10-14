@@ -1,70 +1,65 @@
 ---
 name: agent-setup
-description: Set up an orchestrate skill plus builder, reviewer, and hall-monitor agents in a repository for Claude Code, Codex, and Cursor, and wire them into its instruction files so its development framework hands parallel work to them, or remove them again.
+description: Set up, or remove, an orchestrator session role plus builder, reviewer, and hall-monitor agents in a repository for Claude Code, Codex, and Cursor.
 disable-model-invocation: true
 argument-hint: "[remove] [path]"
 ---
 
 # Agent setup
 
-Give a repository one skill and three agents:
+Give a repository an orchestrator that every session starts as, and the three lane agents it runs: `builder`, `reviewer`, and `hall-monitor`. Everything comes from `templates/`, filled with what this repository actually uses.
 
-- `orchestrate` is a skill the main session runs. It cuts a spec or plan into lanes, runs one `builder` per lane in parallel, each in its own git worktree, has every lane checked, and verifies it before it lands. It writes no product code. It is a skill, not an agent, because a subagent cannot start further subagents.
-- `builder` implements one lane in its worktree, following the `follow-the-rules` skill, and runs the gate.
-- `reviewer` independently checks a lane against its spec: acceptance checks, tests, callers, and trust boundaries. It may run the gate and tests, and changes no code.
-- `hall-monitor` checks a lane against the `follow-the-rules` skill and the codebase's established patterns. Read-only.
-
-The loop: spec or plan, lanes, builders in parallel, the main session's own gate and diff check, then a reviewer and a hall-monitor per lane in parallel, findings back to the same builder for at most two rounds, and integration only when the user asks.
-
-Everything comes from `templates/`, filled with what this repository actually uses. `agents/openai.yaml` next to this file keeps Codex from invoking this skill on its own.
-
-When the first argument is `remove`, run `python3 scripts/render_agents.py --dest <git-root> --remove` from this skill's directory and report what it removed. It deletes only files and instruction blocks that carry the agent-setup marker, including the `orchestrator` agent earlier versions wrote. An instruction file left empty is deleted.
+When the first argument is `remove`, run `python3 scripts/render_agents.py --dest <git-root> --remove` from this skill's directory and report what it removed. It deletes only what carries the agent-setup marker, including what earlier versions wrote.
 
 ## 1. Look
 
-Work in the path the user gave, otherwise `git rev-parse --show-toplevel`. Record these from the repository, not from memory. Install nothing and ask nothing, except where a step says so.
+Work in the path the user gave, otherwise `git rev-parse --show-toplevel`. Record each value from the repository, not from memory. Install nothing, and ask only where a row says so.
 
 | Value | Where it comes from |
 | --- | --- |
-| hosts | `claude`, `codex`, `cursor`: each host whose folder (`.claude/`, `.codex/`, `.cursor/`) exists in the repository or the home directory, or all three when none does |
+| hosts | Each of `claude`, `codex`, `cursor` whose folder (`.claude/`, `.codex/`, `.cursor/`) exists in the repository or the home directory; all three when none does |
 | `project` | One sentence from the README or package manifest: what the repo is and its main parts |
-| `conventions` | The instruction file that holds the repo's rules, such as `` `AGENTS.md` ``; otherwise `the patterns already in the code` |
+| `conventions` | The instruction file holding the repo's rules, such as `` `AGENTS.md` ``; otherwise `the patterns already in the code` |
 | `gate` | The check a pull-request workflow runs; otherwise one of `task check`, `make check`, `just check`, `npm test`, `pnpm test`, `cargo test`, `go test ./...`, `pytest`. Ask when two are equally plausible |
-| `gate_scopes` | Optional. One sentence naming a smaller check per area when the repo defines one |
+| `gate_scopes` | Optional. One sentence naming a smaller check per area, when the repo defines one |
 | `default_branch` | `origin/HEAD`, else the branch the user names |
-| `worktree_note` | The worktree note below |
+| `worktree_note` | The three sentences below |
 
-### Worktree note
+The worktree note, from `AGENTS.md`, `CLAUDE.md`, the git hooks, and `git worktree list`:
 
-Read `AGENTS.md`, `CLAUDE.md`, the git hooks, and `git worktree list`. The note is instructions to the main session and every builder:
+1. "Worktrees are created with `<command>` at `<location>`. Before the first edit, confirm you are on the branch the brief names, in the worktree it names." With no pattern found: "Create each worktree with `git worktree add <git-root>/.worktrees/<lane> -b lane/<lane> <default_branch>`, after adding `.worktrees/` to `.git/info/exclude` once.", with the real git root and default branch.
+2. The repo's branch and commit message rules, or "Branches are named `lane/<name>`. Each commit message is one plain sentence."
+3. The repo's merge rule, or "Integrate by rebasing the lane onto the default branch, running the gate, and fast-forwarding."
 
-1. "Worktrees are created with `<command>` at `<location>`. Before the first edit, confirm you are on the branch the brief names, in the worktree it names." With no pattern found, the first sentence is "Create each worktree with `git worktree add <git-root>/.worktrees/<lane> -b lane/<lane> <default_branch>`, after adding `.worktrees/` to `.git/info/exclude` once.", with the real git root and default branch filled in.
-2. The branch naming and commit message rules the repo states, one sentence each, or "Branches are named `lane/<name>`. Each commit message is one plain sentence."
-3. The merge rule the repo states, or "Integrate by rebasing the lane onto the default branch, running the gate, and fast-forwarding."
-
-When the hosts include `codex` and the repo's worktrees live outside the git root, Codex's `workspace-write` sandbox blocks a builder's writes there. Report it with both ways out: the `.worktrees/` location above, or the worktree folder added to `sandbox_workspace_write.writable_roots` in `~/.codex/config.toml`.
-
-
-Done when every value has an entry and each names something you found, or its stated fallback.
+Done when every value names something you found, or its stated fallback.
 
 ## 2. Write
 
-Write the values to a temporary JSON file outside the repository. From this skill's directory:
+Write the values to a temporary JSON file outside the repository, then from this skill's directory:
 
 ```bash
 python3 scripts/render_agents.py --dest <git-root> --vars <temp.json> --hosts <hosts>
 ```
 
-For each host given, the script writes the three agents into `.claude/agents/`, `.codex/agents/`, or `.cursor/agents/`, and the `orchestrate` skill into `.claude/skills/`, `.agents/skills/`, or `.cursor/skills/`. It deletes an `orchestrator` agent an earlier version wrote. Rerunning replaces what it wrote before. It refuses to overwrite an agent or skill file it did not write; ask the user before rerunning with `--force`.
+Per host it writes the three agents, plus the orchestrator and the setting that makes a session start as it:
+
+| Host | Agents | Orchestrator |
+| --- | --- | --- |
+| Claude Code | `.claude/agents/*.md` | `.claude/agents/orchestrator.md`, and `"agent": "orchestrator"` in `.claude/settings.json` |
+| Codex | `.codex/agents/*.toml` | A marked `developer_instructions` block at the top of `.codex/config.toml` |
+| Cursor | `.cursor/agents/*.md` | `.cursor/rules/orchestrator.mdc`, always applied |
+
+A rerun replaces what it wrote and clears what earlier versions wrote, including old instruction blocks. It refuses to touch a file, `agent` setting, or `developer_instructions` key it did not write, and writes nothing; ask the user before rerunning with `--force`.
 
 Done when the script exits 0.
 
 ## 3. Check
 
-- Each agent and skill file exists for each host and has no `{{` left.
-- `follow-the-rules` resolves on each host: a `follow-the-rules/SKILL.md` under `.claude/skills/`, `.agents/skills/`, or `.cursor/skills/`, the same folders under `~`, or an enabled plugin that ships it. The builder and hall-monitor depend on it, and hall-monitor returns `rules unavailable` without it. When it is missing on a host, report that host.
-- Codex loads `.codex/agents/` only for a trusted project; say so when this project is not trusted in `~/.codex/config.toml`.
+- Every written file exists and has no `{{` left.
+- `follow-the-rules` resolves on each host: a `follow-the-rules/SKILL.md` under `.claude/skills/`, `.agents/skills/`, or `.cursor/skills/`, the same folders under `~`, or an enabled plugin that ships it. Builder and hall-monitor depend on it.
+- Codex loads project config and `.codex/agents/` only for a trusted project: check `~/.codex/config.toml`.
+- Codex builders inherit the main session's sandbox, so they write only when the session runs `workspace-write`. When worktrees live outside the git root, that sandbox blocks them too; the ways out are the `.worktrees/` location or the worktree folder added to `sandbox_workspace_write.writable_roots` in `~/.codex/config.toml`.
 
 ## 4. Report
 
-Tell the user the hosts, the gate, the worktree note, any Codex sandbox gap, where `follow-the-rules` resolved and where it did not, and the files written. The files are ordinary tracked files; committing them is the user's call. `/agent-setup remove` takes them out again.
+Tell the user: the hosts, the gate, the worktree note, the files written, and how a session starts as the orchestrator on each host: `claude` (or `claude --agent orchestrator`), `codex` in the trusted project, and Cursor's agent in the repository. Name each host where `follow-the-rules` did not resolve, and any Codex trust or sandbox gap. The files are ordinary tracked files; committing them is the user's call, and `/agent-setup remove` takes them out again.
