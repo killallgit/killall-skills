@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Compare lane-agent metadata rendered by this checkout with agent-setup at an earlier git ref."""
 
 from __future__ import annotations
