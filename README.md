@@ -41,16 +41,23 @@ Claude Code runs a skill as `/name`; Codex runs it as `$name`.
 
 ## Agent setup
 
-`/agent-setup` (`$agent-setup` in Codex) gives a repository an `orchestrate`
-skill and three agents for Claude Code, Codex, and Cursor, filled with its own
-gate, conventions, and worktree rules. The main session runs `orchestrate`,
-which cuts a spec into lanes and starts a `builder` per lane, working in
-parallel in its own git worktree, then for every lane an independent `reviewer`
-plus a `hall-monitor` that checks the `follow-the-rules` skill is followed. A
-short block in each instruction file the hosts read tells whatever development
-framework is in use, such as gstack, mattpocock/skills, or Spec Kit, to hand
-parallel work to `orchestrate`. It installs nothing else.
-`/agent-setup remove` takes it out again. User-invoked only.
+`/agent-setup` (`$agent-setup` in Codex) gives a repository an orchestrator and
+three lane agents for Claude Code, Codex, and Cursor, filled with its own gate,
+conventions, and worktree rules. Every session in the repository starts as the
+orchestrator: it cuts a spec into lanes, starts a `builder` per lane in its own
+git worktree, then has an independent `reviewer` and a `hall-monitor` check
+each lane against the spec and the `follow-the-rules` skill. A small change with
+no independent parts, it makes itself.
+
+| Host | How a session starts as the orchestrator |
+| --- | --- |
+| Claude Code | `"agent": "orchestrator"` in `.claude/settings.json`; `claude --agent` overrides it |
+| Codex | A `developer_instructions` block in `.codex/config.toml`; the project must be trusted |
+| Cursor | An always-applied rule, `.cursor/rules/orchestrator.mdc` |
+
+It writes only those files and the agent definitions, and edits no instruction
+file. `/agent-setup remove` takes it all out again, including what earlier
+versions wrote. User-invoked only.
 
 ## Git janitor
 
