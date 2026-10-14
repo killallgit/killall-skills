@@ -180,8 +180,8 @@ first in each story and must fail before the matching implementation.
 - [X] T037 [P] Update the frontmatter `description` in `SKILL_DIR/SKILL.md` to name the orchestrator and the three agents and drop "wire them into its instruction files". Update `short_description` in `SKILL_DIR/agents/openai.yaml` to match. Keep `disable-model-invocation: true` and `allow_implicit_invocation: false` (FR-010)
 - [X] T038 [P] Rewrite the "Agent setup" section of `README.md`: an orchestrator that the session starts as, three lane agents, no framework block, and how to start on each host. Update the host matrix if what a host receives changed
 - [X] T039 Run quickstart.md steps 1–3 and the outside-tool grep across `SKILL_DIR`, `README.md`, and generated fixture output
-- [ ] T040 Run the `hall-monitor` and `comment-janitor` agents on the branch diff and fix the findings
-- [ ] T041 Bump the version to `3.0.0` in `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, and `.cursor-plugin/plugin.json` (research.md R6), as its own commit `chore: bump plugin version to 3.0.0`
+- [X] T040 Run the `hall-monitor` and `comment-janitor` agents on the branch diff and fix the findings
+- [X] T041 Bump the version to `3.0.0` in `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, and `.cursor-plugin/plugin.json` (research.md R6), as its own commit `chore: bump plugin version to 3.0.0`
 - [ ] T042 Open a PR to `main`. In the body, include the spike results from `specs/001-slim-agent-setup/spikes.md`, the eval output, the before and after word and line counts, and the rule-inventory verdicts with each cut and its reason (FR-008)
 
 ---
