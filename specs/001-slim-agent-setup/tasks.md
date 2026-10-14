@@ -262,3 +262,9 @@ Task: "Spike S3 Cursor always-apply rule start-up (T004)"
 - Every eval asserts on files, metadata, exit codes, or stdout lines, never on prose (constitution Principle II)
 - Fixture values are synthetic (constitution Principle I)
 - Commit after each task or logical group, using Conventional Commits
+
+---
+
+## Phase 9: Convergence
+
+- [X] T043 In `SKILL_DIR/scripts/render_agents.py`, also strip legacy instruction blocks from files other than `AGENTS.md` and `CLAUDE.md` (written by the old `--instructions` flag), but only when the block body is the old block (it names the `orchestrate` skill), so a doc that quotes the markers stays untouched. Add an eval case with a legacy block in `docs/rules.md` that install and `--remove` both delete, keep `fenced-markers-untouched` passing, and stay within 251 renderer lines per US4/AC2 (partial)
