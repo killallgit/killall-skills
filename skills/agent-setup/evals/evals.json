@@ -629,6 +629,14 @@
         "AGENTS.md": "# Rules\n\nKeep functions small.\n",
         "CLAUDE.md": "# Claude\n\nPrefer short answers.\n"
       }
+    },
+    {
+      "id": "text-budget",
+      "text_budget": {
+        "max_words": 2146,
+        "max_renderer_lines": 251,
+        "forbidden": "serena|gstack|mattpocock|spec kit|\\bnpx\\b"
+      }
     }
   ]
 }

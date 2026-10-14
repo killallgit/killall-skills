@@ -125,15 +125,15 @@ first in each story and must fail before the matching implementation.
 
 ### Evals for User Story 3
 
-- [ ] T025 [US3] Add a `text-budget` case to `SKILL_DIR/evals/evals.json`, and support for it in `SKILL_DIR/evals/run.py`. It asserts total `wc -w` of `SKILL_DIR/SKILL.md` and `SKILL_DIR/templates/*.tmpl.md` is ≤ 2146, `SKILL_DIR/scripts/render_agents.py` is ≤ 251 lines, and the outside-tool grep of `SKILL_DIR` (excluding `evals/`) finds nothing. Run it and record the current numbers
+- [X] T025 [US3] Add a `text-budget` case to `SKILL_DIR/evals/evals.json`, and support for it in `SKILL_DIR/evals/run.py`. It asserts total `wc -w` of `SKILL_DIR/SKILL.md` and `SKILL_DIR/templates/*.tmpl.md` is ≤ 2146, `SKILL_DIR/scripts/render_agents.py` is ≤ 251 lines, and the outside-tool grep of `SKILL_DIR` (excluding `evals/`) finds nothing. Run it and record the current numbers
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Tighten `SKILL_DIR/templates/builder.tmpl.md`, `SKILL_DIR/templates/reviewer.tmpl.md`, and `SKILL_DIR/templates/hall-monitor.tmpl.md` per the `writing-for-agents` skill. Keep rules T1–T4, T7–T10, and T12–T17; cut T6. State the absolute-worktree-path rule once per agent (research.md R3)
-- [ ] T027 [P] [US3] Tighten `SKILL_DIR/templates/orchestrator.tmpl.md`. Keep rules T18, T19, T21, T22, and T24–T26. Drop the "worktree path is absolute" explanation from the brief list, because each lane agent states it (R3)
-- [ ] T028 [P] [US3] Tighten `SKILL_DIR/SKILL.md`: one sentence per rule, no restated intro list of what each agent does (the agent descriptions carry that), and a value table with six rows
-- [ ] T029 [US3] Simplify `SKILL_DIR/scripts/render_agents.py` per the `follow-the-rules` skill: remove the module docstring that restates the code, fold `ours`/`foreign` and any single-use helpers, keep pure functions. Re-run all evals
-- [ ] T030 [US3] Fill the "Where" column of every kept row in `specs/001-slim-agent-setup/data-model.md` with the file and section that now holds it. Confirm every cut row has a reason (SC-005). Make the `text-budget` case pass
+- [X] T026 [P] [US3] Tighten `SKILL_DIR/templates/builder.tmpl.md`, `SKILL_DIR/templates/reviewer.tmpl.md`, and `SKILL_DIR/templates/hall-monitor.tmpl.md` per the `writing-for-agents` skill. Keep rules T1–T4, T7–T10, and T12–T17; cut T6. State the absolute-worktree-path rule once per agent (research.md R3)
+- [X] T027 [P] [US3] Tighten `SKILL_DIR/templates/orchestrator.tmpl.md`. Keep rules T18, T19, T21, T22, and T24–T26. Drop the "worktree path is absolute" explanation from the brief list, because each lane agent states it (R3)
+- [X] T028 [P] [US3] Tighten `SKILL_DIR/SKILL.md`: one sentence per rule, no restated intro list of what each agent does (the agent descriptions carry that), and a value table with six rows
+- [X] T029 [US3] Simplify `SKILL_DIR/scripts/render_agents.py` per the `follow-the-rules` skill: remove the module docstring that restates the code, fold `ours`/`foreign` and any single-use helpers, keep pure functions. Re-run all evals
+- [X] T030 [US3] Fill the "Where" column of every kept row in `specs/001-slim-agent-setup/data-model.md` with the file and section that now holds it. Confirm every cut row has a reason (SC-005). Make the `text-budget` case pass
 
 **Checkpoint**: Text within budget and rule inventory reconciled
 

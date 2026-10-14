@@ -16,7 +16,7 @@ FIXTURES = EVALS / "fixtures"
 RENDERER = SKILL / "scripts" / "render_agents.py"
 sys.path.insert(0, str(FIXTURES))
 
-from make_repo import build  # noqa: E402
+from make_repo import build
 
 Tree = dict[str, str]
 
@@ -38,7 +38,7 @@ def write_vars(folder: Path, overrides: dict[str, str]) -> Path:
 
 def render(repo: Path, args: list[str], vars_path: Path) -> subprocess.CompletedProcess[str]:
     expanded = (arg.replace("{vars}", str(vars_path)).replace("{fixtures}", str(FIXTURES)) for arg in args)
-    return subprocess.run([sys.executable, str(RENDERER), "--dest", str(repo), *expanded], capture_output=True, text=True)
+    return subprocess.run([sys.executable, str(RENDERER), "--dest", str(repo), *expanded], check=False, capture_output=True, text=True)
 
 
 def frontmatter(text: str) -> dict[str, str]:
@@ -74,13 +74,17 @@ def changes(before: Tree, after: Tree) -> dict[str, list[str]]:
     }
 
 
-def toml_parses(text: str) -> bool:
+def toml_error(text: str) -> str | None:
+    """The parse error, or None when the text parses or this Python has no TOML parser (before 3.11)."""
     try:
         import tomllib
     except ImportError:
-        return True
-    tomllib.loads(text)
-    return True
+        return None
+    try:
+        tomllib.loads(text)
+    except tomllib.TOMLDecodeError as error:
+        return str(error)
+    return None
 
 
 def word_count(paths: list[Path]) -> int:
@@ -96,11 +100,11 @@ def check_budget(budget: dict) -> list[str]:
         failures.append(f"{words} words > {budget['max_words']}")
     if lines > budget["max_renderer_lines"]:
         failures.append(f"renderer {lines} lines > {budget['max_renderer_lines']}")
-    pattern = re.compile(budget["forbidden"], re.I)
+    pattern = re.compile(budget["forbidden"], re.IGNORECASE)
     for path in sorted(SKILL.rglob("*")):
-        if path.is_file() and "evals" not in path.relative_to(SKILL).parts and path.suffix in {".md", ".py", ".yaml"}:
-            if pattern.search(path.read_text(encoding="utf-8")):
-                failures.append(f"forbidden name in {path.relative_to(SKILL)}")
+        checked = path.is_file() and "evals" not in path.relative_to(SKILL).parts and path.suffix in {".md", ".py", ".yaml"}
+        if checked and pattern.search(path.read_text(encoding="utf-8")):
+            failures.append(f"forbidden name in {path.relative_to(SKILL)}")
     return failures
 
 
@@ -139,13 +143,12 @@ def assertions(case: dict, result: subprocess.CompletedProcess[str], before: Tre
         if not after.get(path, "").endswith(suffix):
             failures.append(f"{path} does not end with {suffix!r}")
     for path in case.get("expect_toml", []):
-        try:
-            toml_parses(after[path])
-        except Exception as error:  # tomllib.TOMLDecodeError, only importable on 3.11+
+        error = toml_error(after[path])
+        if error:
             failures.append(f"{path} is not valid TOML: {error}")
     written = [path for path in actual["added"] + actual["modified"]]
     for pattern in case.get("expect_no_match", []):
-        regex = re.compile(pattern, re.I | re.M)
+        regex = re.compile(pattern, re.IGNORECASE | re.MULTILINE)
         failures += [f"{path} matches {pattern!r}" for path in written if regex.search(after[path])]
     for needle in case.get("expect_output", []):
         if needle not in result.stdout + result.stderr:
