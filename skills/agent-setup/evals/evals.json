@@ -468,6 +468,167 @@
       "expect_toml": [
         ".codex/config.toml"
       ]
+    },
+    {
+      "id": "upgrade-from-previous",
+      "files": {
+        "AGENTS.md": "# Rules\n\nKeep functions small.\n",
+        "CLAUDE.md": "# Claude\n\nPrefer short answers.\n"
+      },
+      "previous": {
+        "ref": "d92095b"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_absent": [
+        ".claude/skills/orchestrate/SKILL.md",
+        ".agents/skills/orchestrate/SKILL.md",
+        ".cursor/skills/orchestrate/SKILL.md",
+        ".codex/agents/orchestrator.toml",
+        ".cursor/agents/orchestrator.md"
+      ],
+      "expect_content": {
+        "AGENTS.md": "# Rules\n\nKeep functions small.\n",
+        "CLAUDE.md": "# Claude\n\nPrefer short answers.\n"
+      },
+      "expect_files": [
+        ".claude/agents/builder.md",
+        ".claude/agents/reviewer.md",
+        ".claude/agents/hall-monitor.md",
+        ".claude/agents/orchestrator.md",
+        ".codex/agents/builder.toml",
+        ".codex/agents/reviewer.toml",
+        ".codex/agents/hall-monitor.toml",
+        ".cursor/agents/builder.md",
+        ".cursor/agents/reviewer.md",
+        ".cursor/agents/hall-monitor.md",
+        ".cursor/rules/orchestrator.mdc"
+      ]
+    },
+    {
+      "id": "upgrade-deletes-block-only-files",
+      "previous": {
+        "ref": "d92095b"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_absent": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".claude/skills/orchestrate/SKILL.md",
+        ".agents/skills/orchestrate/SKILL.md",
+        ".cursor/skills/orchestrate/SKILL.md"
+      ]
+    },
+    {
+      "id": "remove-all",
+      "files": {
+        "AGENTS.md": "# Rules\n\nKeep functions small.\n",
+        "CLAUDE.md": "# Claude\n\nPrefer short answers.\n",
+        ".claude/settings.json": "{\n  \"permissions\": {\n    \"allow\": [\n      \"Bash(git status)\"\n    ]\n  }\n}\n",
+        ".codex/config.toml": "[model_providers.local]\nname = \"local\"\n"
+      },
+      "setup": [
+        [
+          "--vars",
+          "{vars}"
+        ]
+      ],
+      "args": [
+        "--remove"
+      ],
+      "expect_absent": [
+        ".claude/agents/builder.md",
+        ".claude/agents/reviewer.md",
+        ".claude/agents/hall-monitor.md",
+        ".claude/agents/orchestrator.md",
+        ".codex/agents/builder.toml",
+        ".codex/agents/reviewer.toml",
+        ".codex/agents/hall-monitor.toml",
+        ".cursor/agents/builder.md",
+        ".cursor/agents/reviewer.md",
+        ".cursor/agents/hall-monitor.md",
+        ".cursor/rules/orchestrator.mdc"
+      ],
+      "expect_content": {
+        "AGENTS.md": "# Rules\n\nKeep functions small.\n",
+        "CLAUDE.md": "# Claude\n\nPrefer short answers.\n",
+        ".claude/settings.json": "{\n  \"permissions\": {\n    \"allow\": [\n      \"Bash(git status)\"\n    ]\n  }\n}\n",
+        ".codex/config.toml": "[model_providers.local]\nname = \"local\"\n"
+      }
+    },
+    {
+      "id": "remove-deletes-emptied-files",
+      "setup": [
+        [
+          "--vars",
+          "{vars}"
+        ]
+      ],
+      "args": [
+        "--remove"
+      ],
+      "expect_absent": [
+        ".claude/agents/builder.md",
+        ".claude/agents/reviewer.md",
+        ".claude/agents/hall-monitor.md",
+        ".claude/agents/orchestrator.md",
+        ".codex/agents/builder.toml",
+        ".codex/agents/reviewer.toml",
+        ".codex/agents/hall-monitor.toml",
+        ".cursor/agents/builder.md",
+        ".cursor/agents/reviewer.md",
+        ".cursor/agents/hall-monitor.md",
+        ".cursor/rules/orchestrator.mdc",
+        ".claude/settings.json",
+        ".codex/config.toml"
+      ]
+    },
+    {
+      "id": "remove-keeps-foreign",
+      "files": {
+        ".claude/settings.json": "{\"agent\": \"reviewer-bot\"}\n",
+        ".codex/config.toml": "developer_instructions = 'mine'\n",
+        ".cursor/rules/orchestrator.mdc": "Mine.\n",
+        ".claude/agents/builder.md": "# my own builder\n"
+      },
+      "args": [
+        "--remove"
+      ],
+      "expect_changes": {
+        "added": [],
+        "removed": [],
+        "modified": []
+      }
+    },
+    {
+      "id": "remove-after-previous",
+      "files": {
+        "AGENTS.md": "# Rules\n\nKeep functions small.\n",
+        "CLAUDE.md": "# Claude\n\nPrefer short answers.\n"
+      },
+      "previous": {
+        "ref": "d92095b"
+      },
+      "args": [
+        "--remove"
+      ],
+      "expect_absent": [
+        ".claude/skills/orchestrate/SKILL.md",
+        ".agents/skills/orchestrate/SKILL.md",
+        ".cursor/skills/orchestrate/SKILL.md",
+        ".claude/agents/builder.md",
+        ".claude/agents/reviewer.md",
+        ".claude/agents/hall-monitor.md"
+      ],
+      "expect_content": {
+        "AGENTS.md": "# Rules\n\nKeep functions small.\n",
+        "CLAUDE.md": "# Claude\n\nPrefer short answers.\n"
+      }
     }
   ]
 }

@@ -27,6 +27,9 @@ CURSOR_RULE = Path(".cursor/rules/orchestrator.mdc")
 LEGACY_FILES = (
     Path(".codex/agents/orchestrator.toml"),
     Path(".cursor/agents/orchestrator.md"),
+    Path(".claude/skills/orchestrate/SKILL.md"),
+    Path(".agents/skills/orchestrate/SKILL.md"),
+    Path(".cursor/skills/orchestrate/SKILL.md"),
 )
 REQUIRED = ("project", "conventions", "gate", "default_branch", "worktree_note")
 OPTIONAL = ("gate_scopes",)
@@ -192,8 +195,7 @@ def install(dest: Path, values: dict[str, str], hosts: list[str], force: bool) -
         content = output.update(current)
         if content != current:
             write(path, content)
-    for path in LEGACY_FILES:
-        delete_ours(dest / path, dest)
+    clear_legacy(dest)
 
 
 def files_with_block(dest: Path) -> list[Path]:
@@ -214,12 +216,21 @@ def rewrite_or_unlink(path: Path, text: str, dest: Path) -> None:
         unlink(path, dest)
 
 
+def clear_legacy(dest: Path) -> None:
+    for path in LEGACY_FILES:
+        delete_ours(dest / path, dest)
+    for path in files_with_block(dest):
+        text = path.read_text(encoding="utf-8")
+        if BLOCK.search(text):
+            rest = re.sub(r"\n{3,}", "\n\n", BLOCK.sub("", text)).strip()
+            rewrite_or_unlink(path, rest + "\n" if rest else "", dest)
+
+
 def remove(dest: Path) -> None:
     for host in HOSTS:
         for name in AGENT_TEMPLATES + (ORCHESTRATOR,):
             delete_ours(dest / agent_path(host, name), dest)
-    for path in (CURSOR_RULE, *LEGACY_FILES):
-        delete_ours(dest / path, dest)
+    delete_ours(dest / CURSOR_RULE, dest)
     settings = read(dest / CLAUDE_SETTINGS)
     if settings is not None and load_settings(settings).get("agent") == ORCHESTRATOR:
         kept = {key: value for key, value in load_settings(settings).items() if key != "agent"}
@@ -227,11 +238,7 @@ def remove(dest: Path) -> None:
     config = read(dest / CODEX_CONFIG)
     if config is not None and TOML_BLOCK.search(config):
         rewrite_or_unlink(dest / CODEX_CONFIG, TOML_BLOCK.sub("", config), dest)
-    for path in files_with_block(dest):
-        text = path.read_text(encoding="utf-8")
-        if BLOCK.search(text):
-            rest = re.sub(r"\n{3,}", "\n\n", BLOCK.sub("", text)).strip()
-            rewrite_or_unlink(path, rest + "\n" if rest else "", dest)
+    clear_legacy(dest)
 
 
 def load_vars(path: Path) -> dict[str, str]:

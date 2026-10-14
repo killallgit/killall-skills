@@ -129,6 +129,9 @@ def assertions(case: dict, result: subprocess.CompletedProcess[str], before: Tre
                 failures.append(f"{path}: unexpected {key}")
             elif value is not None and unquote(found.get(key)) != value:
                 failures.append(f"{path}: {key}={found.get(key)!r}, expected {value!r}")
+    for path, text in case.get("expect_content", {}).items():
+        if after.get(path) != text:
+            failures.append(f"{path} content {after.get(path)!r} != {text!r}")
     for path, prefix in case.get("expect_startswith", {}).items():
         if not after.get(path, "").startswith(prefix):
             failures.append(f"{path} does not start with {prefix!r}")
