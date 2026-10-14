@@ -168,8 +168,8 @@ first in each story and must fail before the matching implementation.
 
 **Independent Test**: `compare_previous.py d92095b` passes on the finished branch. Changing one template's `codex_sandbox` makes it fail and name the field
 
-- [ ] T035 [US5] Create `SKILL_DIR/evals/compare_previous.py <ref>`. It extracts `SKILL_DIR` at `<ref>` with `git archive` into a temp dir, renders both versions into fresh fixtures with all hosts (passing `vars-legacy.json` to the old one), parses builder, reviewer, and hall-monitor metadata on each host, and prints each difference as `<host>/<agent>.<field>: <old> -> <new>`. It exits non-zero on any difference and reports file-set differences without failing on them
-- [ ] T036 [US5] Run `python3 SKILL_DIR/evals/compare_previous.py d92095b` and confirm it exits 0. Break `codex_sandbox` in `SKILL_DIR/templates/reviewer.tmpl.md`, confirm it fails naming `codex/reviewer.sandbox_mode`, then revert. Time `python3 SKILL_DIR/evals/run.py` and confirm it is under 60 seconds
+- [X] T035 [US5] Create `SKILL_DIR/evals/compare_previous.py <ref>`. It extracts `SKILL_DIR` at `<ref>` with `git archive` into a temp dir, renders both versions into fresh fixtures with all hosts (passing `vars-legacy.json` to the old one), parses builder, reviewer, and hall-monitor metadata on each host, and prints each difference as `<host>/<agent>.<field>: <old> -> <new>`. It exits non-zero on any difference and reports file-set differences without failing on them
+- [X] T036 [US5] Run `python3 SKILL_DIR/evals/compare_previous.py d92095b` and confirm it exits 0. Break `codex_sandbox` in `SKILL_DIR/templates/reviewer.tmpl.md`, confirm it fails naming `codex/reviewer.sandbox_mode`, then revert. Time `python3 SKILL_DIR/evals/run.py` and confirm it is under 60 seconds
 
 **Checkpoint**: All stories complete
 
