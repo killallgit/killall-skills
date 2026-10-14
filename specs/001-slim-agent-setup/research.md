@@ -46,6 +46,14 @@
 - **Fallback if S3 shows leakage**: report-only, as for Codex.
 - **Alternatives rejected**: Custom Modes (manual pin, no file); `--mode` (built-in modes only).
 
+### Spike results (spikes.md)
+
+- S1, S2, and S3 all pass; no host is report-only.
+- Cursor's always-apply rule reached a spawned builder until the orchestrator body opened with a
+  guard sentence telling subagents to ignore it. The template carries that sentence on every host.
+- Codex builders inherit a stricter parent sandbox; the report tells the user builders need the
+  main session in workspace-write.
+
 ### Source quality
 
 The Claude Code findings come from the official docs and the local CLI. The Codex and Cursor

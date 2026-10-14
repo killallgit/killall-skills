@@ -1,0 +1,8 @@
+{
+  "project": "demo-calc, a tiny calculator library with a command-line interface",
+  "conventions": "the patterns already in the code",
+  "gate": "python3 -m unittest",
+  "gate_scopes": "",
+  "default_branch": "main",
+  "worktree_note": "Create each worktree with `git worktree add <git-root>/.worktrees/<lane> -b lane/<lane> main`. Branches are named `lane/<name>`. Each commit message is one plain sentence. Integrate by rebasing the lane onto main, running the gate, and fast-forwarding."
+}
