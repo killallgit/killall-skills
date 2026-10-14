@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Fake gh for session-eject evals. Logs every call; serves PR state from pr.json.
+root="$(cd "$(dirname "$0")/.." && pwd)"
+# One call per record: args split by US (0x1f), records by RS (0x1e); survives multi-line bodies.
+{ printf '%s\x1f' "$@"; printf '\x1e'; } >>"$root/gh.log"
+
+args=("$@")
+for i in "${!args[@]}"; do
+  case "${args[$i]}" in
+    --body-file|-F) cat "${args[$((i + 1))]}" >>"$root/gh-bodies.log" 2>/dev/null ;;
+  esac
+done
+
+url_base="https://github.com/example/fixture/pull"
+case "$1 $2" in
+  "auth status") echo "Logged in to github.com as fixture" ;;
+  "repo view")
+    if [[ "$*" == *defaultBranchRef* && ( "$*" == *--jq* || "$*" == *" -q "* ) ]]; then echo main
+    else echo '{"defaultBranchRef":{"name":"main"},"nameWithOwner":"example/fixture","url":"https://github.com/example/fixture"}'; fi ;;
+  "pr view")
+    branch="$(git branch --show-current 2>/dev/null)"
+    if [[ -f "$root/pr.json" ]] && grep -q "\"headRefName\": *\"$branch\"" "$root/pr.json"; then
+      if [[ "$*" == *--json* ]]; then cat "$root/pr.json"; else grep -o '"url": *"[^"]*"' "$root/pr.json"; fi
+    else
+      echo "no pull requests found for branch \"$branch\"" >&2; exit 1
+    fi ;;
+  "pr list")
+    if [[ -f "$root/pr.json" ]]; then echo "[$(cat "$root/pr.json")]"; else echo "[]"; fi ;;
+  "pr create")
+    branch="$(git branch --show-current 2>/dev/null)"
+    printf '{"number": 101, "url": "%s/101", "state": "OPEN", "isDraft": true, "headRefName": "%s"}\n' "$url_base" "$branch" >"$root/pr.json"
+    echo "$url_base/101" ;;
+  "pr comment"|"pr edit")
+    num="$(grep -o '"number": *[0-9]*' "$root/pr.json" 2>/dev/null | grep -o '[0-9]*$')"
+    echo "$url_base/${num:-7}" ;;
+  *) ;;
+esac

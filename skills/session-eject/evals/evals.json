@@ -1,0 +1,58 @@
+{
+  "skill_name": "session-eject",
+  "setup": "Build each case with `uv run --python 3.12 evals/fixtures/make_repo.py <fixture> <case>`; grade with `uv run --python 3.12 evals/check_state.py <fixture> <outputs>/final_message.txt`. Every prompt gets this suffix: This is a disposable eval fixture. The session's work is in {{repo}}; touch no other repository. GitHub is faked by the shim in {{bin}}: run every gh command with PATH=\"{{bin}}:$PATH\". When done, save the exact final message you would print to the user to {{outputs}}/final_message.txt.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "now-feature-branch-no-pr",
+      "case": "feature-no-pr",
+      "prompt": "usage is about to run out, eject now. commit and push everything, and if there's no PR yet open a draft one titled `[ejected session]: <short desc>`.",
+      "expected_output": "Dirty and untracked work on feature/login committed as WIP and pushed, one draft PR with the eject title, then a standalone handoff paragraph.",
+      "files": ["evals/fixtures/make_repo.py", "evals/fixtures/gh"],
+      "expectations": [
+        "working_tree_committed", "branch_pushed_to_origin", "origin_main_untouched", "latest_commit_marked_wip",
+        "one_draft_pr_created", "pr_title_has_eject_prefix",
+        "handoff_under_120_words", "handoff_names_repo_path", "handoff_names_branch", "handoff_names_pr_url", "handoff_plain_text"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "now-dirty-default-branch",
+      "case": "on-main",
+      "prompt": "running out of usage — eject the session now. commit, push, draft PR `[ejected session]: <short desc>` if there isn't one.",
+      "expected_output": "Changes on main move to an eject/ branch that is pushed with a draft PR; origin main is untouched.",
+      "files": ["evals/fixtures/make_repo.py", "evals/fixtures/gh"],
+      "expectations": [
+        "working_tree_committed", "branch_pushed_to_origin", "origin_main_untouched", "latest_commit_marked_wip",
+        "work_moved_to_eject_branch", "eject_branch_has_change", "one_draft_pr_created", "pr_title_has_eject_prefix",
+        "handoff_under_120_words", "handoff_names_repo_path", "handoff_names_branch", "handoff_names_pr_url", "handoff_plain_text"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "soft-open-pr-in-flight",
+      "case": "open-pr",
+      "prompt": "I'm close to my usage limit. Wrap up the session safely: commit all changes, update the PR that's in flight, and stop work.",
+      "expected_output": "Unpushed commit and dirty test file pushed to feature/cache, PR #7 updated with a comment, no new PR, then a handoff paragraph.",
+      "files": ["evals/fixtures/make_repo.py", "evals/fixtures/gh"],
+      "expectations": [
+        "working_tree_committed", "branch_pushed_to_origin", "origin_main_untouched", "latest_commit_marked_wip",
+        "no_new_pr_created", "existing_pr_updated", "unpushed_commit_now_on_origin",
+        "handoff_under_120_words", "handoff_names_repo_path", "handoff_names_branch", "handoff_names_pr_url", "handoff_plain_text"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "now-secret-file-and-failing-hook",
+      "case": "secret-hook",
+      "prompt": "eject now, usage nearly gone. commit + push everything and open a draft PR `[ejected session]: <short desc>` if none exists.",
+      "expected_output": "Billing change committed past the failing lint hook and pushed, config/secrets.env left out, draft PR body notes --no-verify.",
+      "files": ["evals/fixtures/make_repo.py", "evals/fixtures/gh"],
+      "expectations": [
+        "working_tree_committed", "branch_pushed_to_origin", "origin_main_untouched", "latest_commit_marked_wip",
+        "secret_file_not_pushed", "billing_change_pushed", "one_draft_pr_created", "pr_title_has_eject_prefix", "pr_body_notes_no_verify",
+        "handoff_under_120_words", "handoff_names_repo_path", "handoff_names_branch", "handoff_names_pr_url", "handoff_plain_text"
+      ]
+    }
+  ]
+}

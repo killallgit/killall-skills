@@ -17,5 +17,5 @@ _old
 .claude/worktrees/
 .claude/settings.local.json
 
-# Experiment scratch output (constitution: Development Workflow)
+# Experiment scratch output
 tmp/

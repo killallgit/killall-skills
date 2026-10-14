@@ -1,0 +1,5 @@
+interface:
+  display_name: "Session eject"
+  short_description: "Commit, push, and update or open draft PRs before usage runs out."
+policy:
+  allow_implicit_invocation: false
