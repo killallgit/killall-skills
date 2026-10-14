@@ -12,3 +12,10 @@ __pycache__/
 _old
 # Serena is not used in this repository
 .serena/
+
+# Claude Code per-checkout state
+.claude/worktrees/
+.claude/settings.local.json
+
+# Experiment scratch output (constitution: Development Workflow)
+tmp/
