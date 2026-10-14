@@ -28,6 +28,7 @@ def write_files(repo: Path, files: dict[str, str]) -> None:
 def extract_skill(ref: str, dest: Path) -> Path:
     """Unpack skills/agent-setup as it was at `ref` and return its folder."""
     top = git(Path(__file__).resolve().parent, "rev-parse", "--show-toplevel")
+    dest.mkdir(parents=True, exist_ok=True)
     archive = dest / "skill.tar"
     with archive.open("wb") as handle:
         subprocess.run(["git", "-C", top, "archive", ref, SKILL_PATH], stdout=handle, check=True)
