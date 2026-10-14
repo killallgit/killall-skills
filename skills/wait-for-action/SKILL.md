@@ -1,6 +1,6 @@
 ---
 name: wait-for-action
-description: Wait for a GitHub Actions run to finish. Use when a workflow has been triggered and later work depends on it passing, or when you need to know why a run failed.
+description: Wait for a GitHub Actions run to finish, or for the CodeRabbit review of HEAD with --coderabbit. Use when a workflow has been triggered and later work depends on it passing, when you need to know why a run failed, or when the user says to wait for CodeRabbit.
 ---
 
 # wait-for-action
@@ -38,6 +38,7 @@ you have it.
 | `--log-dir PATH` | `/tmp/actions/<run-id>` | |
 | `--no-fail-fast` | off | wait for the whole run instead of bailing on the first failed job |
 | `--quiet` | off | only the terminal line and any failure log |
+| `--coderabbit` | off | wait for the CodeRabbit review of `HEAD` instead; see below |
 
 Getting a run id: `gh run list --limit 5 --json databaseId,workflowName,status`,
 or `--json databaseId --jq '.[0].databaseId'` right after triggering.
@@ -89,6 +90,34 @@ thousands of lines and will bury the context.
 grep -n -i -m20 -E 'error|failed|exception' /tmp/actions/<run-id>/jobs/<job>.log
 sed -n '1200,1260p' /tmp/actions/<run-id>/jobs/<job>.log   # around a hit
 ```
+
+## CodeRabbit
+
+CodeRabbit reviews in GitHub as an App, not an Actions run, so `gh run view`
+cannot see it. It reports through a commit status named `CodeRabbit`.
+`--coderabbit` polls that status for `HEAD` on the same schedule, instead of
+watching a run:
+
+```bash
+./scripts/wait-for-action.sh --coderabbit [--ttl 15m]
+```
+
+| Exit | Meaning |
+|---|---|
+| 0 | `DONE` — status `success`; the line carries its description, e.g. `Review completed` |
+| 1 | `FAILED` — status `failure` or `error` |
+| 2 | `TIMEOUT` — still `pending` |
+| 3 | `ERROR` — no `CodeRabbit` status after a minute: no open PR for `HEAD`, or CodeRabbit is not installed on the repo |
+
+`--coderabbit` takes no `--run-id` or `--repo`. Push first: the status is for
+the pushed `HEAD` commit. Then read the review comments to resolve them:
+
+```bash
+gh api 'repos/{owner}/{repo}/pulls/<n>/comments' --jq '.[] | select(.user.login=="coderabbitai[bot]") | {path, line, body}'
+```
+
+A `success` description such as `Review rate limited` or `Review skipped`
+means no review was posted. Report that; do not look for comments.
 
 ## Fail-fast
 
