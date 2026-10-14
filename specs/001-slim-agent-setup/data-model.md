@@ -66,7 +66,7 @@ Written by earlier versions; setup and remove both clear them when they carry th
 | Artifact | Where |
 | --- | --- |
 | `orchestrate` skill | `.claude/skills/orchestrate/`, `.agents/skills/orchestrate/`, `.cursor/skills/orchestrate/` |
-| Instruction block | Between `<!-- agent-setup:start -->` and `<!-- agent-setup:end -->` in any file |
+| Instruction block | Between `<!-- agent-setup:start -->` and `<!-- agent-setup:end -->` lines in any file, when the block names the `orchestrate` skill |
 | `orchestrator` agent (pre-orchestrate versions) | Same paths as agent definitions; replaced by the new orchestrator definition |
 
 Lifecycle: `absent → written (setup) → rewritten (rerun) → absent (remove)`. A file without the
