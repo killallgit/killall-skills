@@ -75,7 +75,7 @@ def changes(before: Tree, after: Tree) -> dict[str, list[str]]:
 
 
 def toml_error(text: str) -> str | None:
-    """The parse error, or None when the text parses or this Python has no TOML parser (before 3.11)."""
+    """Returns None on Python before 3.11, which has no tomllib, so expect_toml passes silently there."""
     try:
         import tomllib
     except ImportError:
@@ -146,7 +146,7 @@ def assertions(case: dict, result: subprocess.CompletedProcess[str], before: Tre
         error = toml_error(after[path])
         if error:
             failures.append(f"{path} is not valid TOML: {error}")
-    written = [path for path in actual["added"] + actual["modified"]]
+    written = actual["added"] + actual["modified"]
     for pattern in case.get("expect_no_match", []):
         regex = re.compile(pattern, re.IGNORECASE | re.MULTILINE)
         failures += [f"{path} matches {pattern!r}" for path in written if regex.search(after[path])]
@@ -166,9 +166,6 @@ def run_case(case: dict) -> list[str]:
             completed = render(repo, setup, vars_path)
             if completed.returncode:
                 return [f"setup failed: {completed.stderr.strip()}"]
-        for name, content in case.get("files_after_setup", {}).items():
-            (repo / name).parent.mkdir(parents=True, exist_ok=True)
-            (repo / name).write_text(content, encoding="utf-8")
         before = snapshot(repo)
         result = render(repo, case["args"], vars_path)
         return assertions(case, result, before, snapshot(repo))

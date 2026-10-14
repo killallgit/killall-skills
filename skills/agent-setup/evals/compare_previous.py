@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -12,8 +11,8 @@ EVALS = Path(__file__).resolve().parent
 sys.path.insert(0, str(EVALS / "fixtures"))
 sys.path.insert(0, str(EVALS))
 
-from make_repo import LEGACY_VARS, build, extract_skill
-from run import metadata, snapshot
+from make_repo import LEGACY_VARS, build
+from run import metadata, render, snapshot
 
 AGENTS = ("builder", "reviewer", "hall-monitor")
 PATHS = {
@@ -26,14 +25,6 @@ FIELDS = {
     "cursor": ("name", "model", "readonly"),
     "codex": ("name", "sandbox_mode"),
 }
-
-
-def render_with(skill: Path, repo: Path) -> dict[str, str]:
-    """Render every host with `skill` into a fresh `repo`. Each version reads only the vars keys it knows."""
-    build(repo, {})
-    renderer = skill / "scripts" / "render_agents.py"
-    subprocess.run([sys.executable, str(renderer), "--dest", str(repo), "--vars", str(LEGACY_VARS)], check=True, capture_output=True)
-    return snapshot(repo)
 
 
 def agent_fields(tree: dict[str, str]) -> dict[str, object]:
@@ -49,8 +40,10 @@ def agent_fields(tree: dict[str, str]) -> dict[str, object]:
 def main() -> None:
     ref = sys.argv[1]
     with tempfile.TemporaryDirectory() as tmp:
-        old = render_with(extract_skill(ref, Path(tmp) / "old"), Path(tmp) / "old-repo")
-        new = render_with(EVALS.parent, Path(tmp) / "new-repo")
+        old = snapshot(build(Path(tmp) / "old", {}, {"ref": ref}))
+        current = build(Path(tmp) / "new", {})
+        render(current, ["--vars", "{vars}"], LEGACY_VARS)
+        new = snapshot(current)
     old_fields, new_fields = agent_fields(old), agent_fields(new)
     differences = [f"{key}: {old_fields[key]} -> {new_fields[key]}" for key in old_fields if old_fields[key] != new_fields[key]]
     print("\n".join(differences) or f"agent metadata matches {ref}")
