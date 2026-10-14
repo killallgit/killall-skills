@@ -771,6 +771,28 @@
       "expect_content": {
         "CLAUDE.md": "# Mine\n"
       }
+    },
+    {
+      "id": "codex-force-bracket-in-string",
+      "files": {
+        ".codex/config.toml": "developer_instructions = '''\n[note] be brief\n'''\n\n[profiles.fast]\nmodel = \"o3\"\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}",
+        "--hosts",
+        "codex",
+        "--force"
+      ],
+      "expect_toml": [
+        ".codex/config.toml"
+      ],
+      "expect_endswith": {
+        ".codex/config.toml": "[profiles.fast]\nmodel = \"o3\"\n"
+      },
+      "expect_no_match": [
+        "be brief"
+      ]
     }
   ]
 }
