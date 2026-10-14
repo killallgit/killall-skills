@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Run each case in evals.json against a fresh fixture repository and report PASS or FAIL."""
 
 from __future__ import annotations
@@ -9,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import NamedTuple
 
 EVALS = Path(__file__).resolve().parent
 SKILL = EVALS.parent
@@ -108,52 +108,99 @@ def check_budget(budget: dict) -> list[str]:
     return failures
 
 
-def assertions(case: dict, result: subprocess.CompletedProcess[str], before: Tree, after: Tree) -> list[str]:
+class Outcome(NamedTuple):
+    result: subprocess.CompletedProcess[str]
+    before: Tree
+    after: Tree
+
+
+def exit_code(case: dict, outcome: Outcome) -> list[str]:
+    expected, actual = case.get("expect_exit", 0), outcome.result.returncode
+    if (actual != 0) if expected == "nonzero" else (actual == expected):
+        return []
+    return [f"exit {actual}, expected {expected}: {outcome.result.stderr.strip()[-200:]}"]
+
+
+def changed_paths(case: dict, outcome: Outcome) -> list[str]:
+    actual = changes(outcome.before, outcome.after)
+    expected = case.get("expect_changes", {}).items()
+    return [f"{kind} {actual[kind]} != {sorted(paths)}" for kind, paths in expected if actual[kind] != sorted(paths)]
+
+
+def present_files(case: dict, outcome: Outcome) -> list[str]:
+    return [f"missing {path}" for path in case.get("expect_files", []) if path not in outcome.after]
+
+
+def absent_files(case: dict, outcome: Outcome) -> list[str]:
+    return [f"present {path}" for path in case.get("expect_absent", []) if path in outcome.after]
+
+
+def unchanged_files(case: dict, outcome: Outcome) -> list[str]:
+    paths = case.get("expect_unchanged", [])
+    return [f"changed {path}" for path in paths if outcome.before.get(path) != outcome.after.get(path)]
+
+
+def metadata_fields(case: dict, outcome: Outcome) -> list[str]:
     failures = []
-    expect_exit = case.get("expect_exit", 0)
-    if (expect_exit == "nonzero" and result.returncode == 0) or (expect_exit != "nonzero" and result.returncode != expect_exit):
-        failures.append(f"exit {result.returncode}, expected {expect_exit}: {result.stderr.strip()[-200:]}")
-    actual = changes(before, after)
-    for kind, expected in case.get("expect_changes", {}).items():
-        if actual[kind] != sorted(expected):
-            failures.append(f"{kind} {actual[kind]} != {sorted(expected)}")
-    for path in case.get("expect_files", []):
-        if path not in after:
-            failures.append(f"missing {path}")
-    for path in case.get("expect_absent", []):
-        if path in after:
-            failures.append(f"present {path}")
-    for path in case.get("expect_unchanged", []):
-        if before.get(path) != after.get(path):
-            failures.append(f"changed {path}")
     for path, fields in case.get("expect_metadata", {}).items():
-        found = metadata(path, after[path]) if path in after else {}
+        found = metadata(path, outcome.after[path]) if path in outcome.after else {}
         for key, value in fields.items():
             if value is None and key in found:
                 failures.append(f"{path}: unexpected {key}")
             elif value is not None and unquote(found.get(key)) != value:
                 failures.append(f"{path}: {key}={found.get(key)!r}, expected {value!r}")
-    for path, text in case.get("expect_content", {}).items():
-        if after.get(path) != text:
-            failures.append(f"{path} content {after.get(path)!r} != {text!r}")
-    for path, prefix in case.get("expect_startswith", {}).items():
-        if not after.get(path, "").startswith(prefix):
-            failures.append(f"{path} does not start with {prefix!r}")
-    for path, suffix in case.get("expect_endswith", {}).items():
-        if not after.get(path, "").endswith(suffix):
-            failures.append(f"{path} does not end with {suffix!r}")
-    for path in case.get("expect_toml", []):
-        error = toml_error(after[path])
-        if error:
-            failures.append(f"{path} is not valid TOML: {error}")
+    return failures
+
+
+def file_contents(case: dict, outcome: Outcome) -> list[str]:
+    expected = case.get("expect_content", {}).items()
+    return [f"{path} content {outcome.after.get(path)!r} != {text!r}" for path, text in expected if outcome.after.get(path) != text]
+
+
+def file_prefixes(case: dict, outcome: Outcome) -> list[str]:
+    expected = case.get("expect_startswith", {}).items()
+    return [f"{path} does not start with {text!r}" for path, text in expected if not outcome.after.get(path, "").startswith(text)]
+
+
+def file_suffixes(case: dict, outcome: Outcome) -> list[str]:
+    expected = case.get("expect_endswith", {}).items()
+    return [f"{path} does not end with {text!r}" for path, text in expected if not outcome.after.get(path, "").endswith(text)]
+
+
+def valid_toml(case: dict, outcome: Outcome) -> list[str]:
+    errors = ((path, toml_error(outcome.after[path])) for path in case.get("expect_toml", []))
+    return [f"{path} is not valid TOML: {error}" for path, error in errors if error]
+
+
+def forbidden_patterns(case: dict, outcome: Outcome) -> list[str]:
+    actual = changes(outcome.before, outcome.after)
     written = actual["added"] + actual["modified"]
+    failures = []
     for pattern in case.get("expect_no_match", []):
         regex = re.compile(pattern, re.IGNORECASE | re.MULTILINE)
-        failures += [f"{path} matches {pattern!r}" for path in written if regex.search(after[path])]
-    for needle in case.get("expect_output", []):
-        if needle not in result.stdout + result.stderr:
-            failures.append(f"output lacks {needle!r}")
+        failures += [f"{path} matches {pattern!r}" for path in written if regex.search(outcome.after[path])]
     return failures
+
+
+def output_mentions(case: dict, outcome: Outcome) -> list[str]:
+    output = outcome.result.stdout + outcome.result.stderr
+    return [f"output lacks {needle!r}" for needle in case.get("expect_output", []) if needle not in output]
+
+
+CHECKS = (
+    exit_code,
+    changed_paths,
+    present_files,
+    absent_files,
+    unchanged_files,
+    metadata_fields,
+    file_contents,
+    file_prefixes,
+    file_suffixes,
+    valid_toml,
+    forbidden_patterns,
+    output_mentions,
+)
 
 
 def run_case(case: dict) -> list[str]:
@@ -168,7 +215,8 @@ def run_case(case: dict) -> list[str]:
                 return [f"setup failed: {completed.stderr.strip()}"]
         before = snapshot(repo)
         result = render(repo, case["args"], vars_path)
-        return assertions(case, result, before, snapshot(repo))
+        outcome = Outcome(result, before, snapshot(repo))
+        return [failure for check in CHECKS for failure in check(case, outcome)]
 
 
 def main() -> None:
