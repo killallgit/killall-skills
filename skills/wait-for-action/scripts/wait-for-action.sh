@@ -9,6 +9,7 @@
 # Usage:
 #   wait-for-action.sh --run-id <id> [options]
 #   wait-for-action.sh                      # newest run for the current HEAD
+#   wait-for-action.sh --coderabbit         # CodeRabbit review of HEAD instead
 #
 # Options:
 #   --run-id ID        workflow run to watch
@@ -19,6 +20,9 @@
 #   --no-fail-fast     wait for the whole run instead of bailing on the first
 #                      failed job
 #   --quiet            print only the terminal line and any failure log
+#   --coderabbit       wait for the CodeRabbit review of HEAD, not an Actions
+#                      run. CodeRabbit is a GitHub App, so it is polled through
+#                      its "CodeRabbit" commit status
 #   -h, --help         this text
 #
 # Poll schedule - dense while failures are likely, sparse once the run has
@@ -39,6 +43,7 @@ TAIL=40
 LOG_DIR=""
 FAIL_FAST=1
 QUIET=0
+CODERABBIT=0
 
 die() { printf 'wait-for-action.sh: %s\n' "$*" >&2; exit 3; }
 usage() { sed -n '2,/^set -/p' "$0" | sed 's/^# \{0,1\}//; /^set -/d'; }
@@ -68,6 +73,7 @@ while [[ $# -gt 0 ]]; do
     --log-dir=*) LOG_DIR="${1#*=}"; shift ;;
     --no-fail-fast) FAIL_FAST=0; shift ;;
     --quiet)     QUIET=1; shift ;;
+    --coderabbit) CODERABBIT=1; shift ;;
     -h|--help)   usage; exit 0 ;;
     *)           die "unknown argument: $1" ;;
   esac
@@ -96,6 +102,55 @@ emit() {
   return 0
 }
 
+interval_for() {
+  local e=$1
+  if   (( e < 90 ));  then echo 15
+  elif (( e < 210 )); then echo 30
+  elif (( e < 330 )); then echo 60
+  else                     echo 180
+  fi
+}
+
+if (( CODERABBIT )); then
+  [[ -z "$RUN_ID$REPO" ]] || die "--coderabbit watches HEAD; drop --run-id and --repo"
+  sha=$(git rev-parse HEAD 2>/dev/null) || die "not a git repository"
+  : "${LOG_DIR:=/tmp/actions/coderabbit-$sha}"
+  mkdir -p "$LOG_DIR"
+  POLL_LOG="$LOG_DIR/poll.log"
+  seen=""
+  while :; do
+    status=$(gh api "repos/{owner}/{repo}/commits/$sha/status" \
+      --jq '.statuses[] | select(.context=="CodeRabbit")
+            | "\(.state)\u001f\(.description)\u001f\(.target_url // "")"' 2>/dev/null || true)
+    IFS=$'\037' read -r state desc url <<<"$status"
+    case "$state" in
+      success) emit always "DONE coderabbit $desc $url"; exit 0 ;;
+      failure|error) emit always "FAILED coderabbit $desc $url"; exit 1 ;;
+      pending) [[ "$desc" != "$seen" ]] && emit normal "PENDING coderabbit $desc"; seen="$desc" ;;
+      *)
+        # Empty after a status was seen is a failed API call: keep waiting.
+        [[ -n "$seen" && "$seen" != none ]] || {
+          # CodeRabbit posts its status seconds after a PR push. Still nothing
+          # after a minute means it is not reviewing this commit.
+          if (( $(elapsed) > 60 )); then
+            emit always "ERROR no CodeRabbit status on $sha - is there an open PR for it?"
+            exit 3
+          fi
+          [[ -z "$seen" ]] && emit normal "PENDING coderabbit no status yet"
+          seen="none"
+        } ;;
+    esac
+    remaining=$(( TTL - $(elapsed) ))
+    if (( remaining <= 0 )); then
+      emit always "TIMEOUT coderabbit still pending after ${TTL}s -- $url"
+      exit 2
+    fi
+    nap=$(interval_for "$(elapsed)")
+    (( nap > remaining )) && nap=$remaining
+    sleep "$nap"
+  done
+fi
+
 if [[ -z "$RUN_ID" ]]; then
   [[ -n "$REPO" ]] && die "--repo requires --run-id"
   sha=$(git rev-parse HEAD 2>/dev/null) || die "not a git repository - pass --run-id"
@@ -110,15 +165,6 @@ mkdir -p "$LOG_DIR/jobs"
 POLL_LOG="$LOG_DIR/poll.log"
 RUN_JSON="$LOG_DIR/run.json"
 FAILED_LOG="$LOG_DIR/failed.log"
-
-interval_for() {
-  local e=$1
-  if   (( e < 90 ));  then echo 15
-  elif (( e < 210 )); then echo 30
-  elif (( e < 330 )); then echo 60
-  else                     echo 180
-  fi
-}
 
 # One API call per poll. Everything downstream reads run.json, so the jobs and
 # their steps cost nothing extra.
