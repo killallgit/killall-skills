@@ -41,7 +41,7 @@ class SharedState(unittest.TestCase):
         self.assertTrue((state / "README.md").is_file())
         self.assertEqual(list(state.parent.iterdir()), [state])
         for path in (self.repo / ".claude/agents/orchestrator.md", linked / ".codex/config.toml"):
-            self.assertIn(str(state), path.read_text())
+            self.assertIn(str(state), path.read_text(encoding="utf-8"))
         self.assertEqual(state.stat().st_mode & 0o777, 0o700)
 
     def test_rerun_and_remove_keep_lane_records(self):
@@ -49,10 +49,10 @@ class SharedState(unittest.TestCase):
         state = self.state()
         lane = state / "auth.json"
         content = json.dumps({"task": "Validate login", "status": "working", "worktree": str(self.repo)})
-        lane.write_text(content)
+        lane.write_text(content, encoding="utf-8")
         self.run_setup()
         self.run_setup(args=["--remove"])
-        self.assertEqual(lane.read_text(), content)
+        self.assertEqual(lane.read_text(encoding="utf-8"), content)
         self.assertTrue((state / "README.md").is_file())
 
     def test_encoding_collision_refused_even_with_force(self):
@@ -72,14 +72,14 @@ class SharedState(unittest.TestCase):
         self.run_setup(args=["--vars", "{vars}", "--hosts", "codex"])
         for path in (".claude/agents/builder.md", ".codex/agents/reviewer.toml", ".cursor/rules/orchestrator.mdc", ".claude/settings.json", ".codex/config.toml"):
             self.assertEqual(git(self.repo, "check-ignore", path), path)
-        self.assertNotIn("custom.md", (self.repo / ".git/info/exclude").read_text())
+        self.assertNotIn("custom.md", (self.repo / ".git/info/exclude").read_text(encoding="utf-8"))
         self.run_setup(args=["--remove"])
-        self.assertNotIn("agent-setup:start", (self.repo / ".git/info/exclude").read_text())
+        self.assertNotIn("agent-setup:start", (self.repo / ".git/info/exclude").read_text(encoding="utf-8"))
 
     def test_foreign_project_setting_leaves_state_untouched(self):
         config = self.repo / ".codex/config.toml"
         config.parent.mkdir()
-        config.write_text('model = "local"\n')
+        config.write_text('model = "local"\n', encoding="utf-8")
         result = render(self.repo, ["--vars", "{vars}"], self.vars, self.config)
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(self.state().exists())
