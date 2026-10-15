@@ -100,17 +100,23 @@
         ".claude/agents/builder.md": {
           "name": "builder",
           "tools": "Read, Grep, Glob, Bash, Edit, Write, Skill",
-          "skills": "follow-the-rules"
+          "skills": "follow-the-rules",
+          "model": "sonnet",
+          "effort": "high"
         },
         ".claude/agents/reviewer.md": {
           "name": "reviewer",
           "tools": "Read, Grep, Glob, Bash, Skill",
-          "skills": null
+          "skills": null,
+          "model": "opus",
+          "effort": "high"
         },
         ".claude/agents/hall-monitor.md": {
           "name": "hall-monitor",
           "tools": "Read, Grep, Glob, Bash, Skill",
-          "skills": "follow-the-rules"
+          "skills": "follow-the-rules",
+          "model": "sonnet",
+          "effort": "medium"
         },
         ".cursor/agents/builder.md": {
           "name": "builder",
@@ -129,17 +135,41 @@
         },
         ".codex/agents/builder.toml": {
           "name": "builder",
-          "sandbox_mode": "workspace-write"
+          "sandbox_mode": null,
+          "model": "gpt-6.1-sol",
+          "model_reasoning_effort": "high"
         },
         ".codex/agents/reviewer.toml": {
           "name": "reviewer",
-          "sandbox_mode": "workspace-write"
+          "sandbox_mode": null,
+          "model": "gpt-6.1-sol",
+          "model_reasoning_effort": "high"
         },
         ".codex/agents/hall-monitor.toml": {
           "name": "hall-monitor",
-          "sandbox_mode": "read-only"
+          "sandbox_mode": null,
+          "model": "gpt-6-luna",
+          "model_reasoning_effort": "high"
+        },
+        ".claude/agents/orchestrator.md": {
+          "model": "opus",
+          "effort": "high",
+          "tools": "Read, Grep, Glob, Agent(builder, reviewer, hall-monitor), SendMessage"
+        },
+        ".codex/config.toml": {
+          "model": "gpt-6-astra",
+          "model_reasoning_effort": "high"
         }
-      }
+      },
+      "expect_toml": [
+        ".codex/config.toml",
+        ".codex/agents/builder.toml",
+        ".codex/agents/reviewer.toml",
+        ".codex/agents/hall-monitor.toml"
+      ],
+      "expect_no_match": [
+        "^(?:claude|codex)_(?:model|effort|tools|sandbox):"
+      ]
     },
     {
       "id": "no-outside-tools",
@@ -293,7 +323,9 @@
       "expect_metadata": {
         ".claude/agents/orchestrator.md": {
           "name": "orchestrator",
-          "tools": null
+          "tools": "Read, Grep, Glob, Agent(builder, reviewer, hall-monitor), SendMessage",
+          "model": "opus",
+          "effort": "high"
         },
         ".claude/settings.json": {
           "agent": "orchestrator"
@@ -356,7 +388,7 @@
         "codex"
       ],
       "expect_startswith": {
-        ".codex/config.toml": "# agent-setup:start\ndeveloper_instructions = '''\n"
+        ".codex/config.toml": "# agent-setup:start\nmodel = \"gpt-6-astra\"\nmodel_reasoning_effort = \"high\"\ndeveloper_instructions = '''\n"
       },
       "expect_endswith": {
         ".codex/config.toml": "# agent-setup:end\n\n[model_providers.local]\nname = \"local\"\n"
@@ -463,10 +495,13 @@
         ".codex/config.toml": "# agent-setup:start\n"
       },
       "expect_endswith": {
-        ".codex/config.toml": "# agent-setup:end\n\nmodel = \"local\"\n"
+        ".codex/config.toml": "# agent-setup:end\n"
       },
       "expect_toml": [
         ".codex/config.toml"
+      ],
+      "expect_no_match": [
+        "model = \"local\""
       ]
     },
     {
@@ -633,8 +668,8 @@
     {
       "id": "text-budget",
       "text_budget": {
-        "max_words": 2146,
-        "max_renderer_lines": 251,
+        "max_words": 2400,
+        "max_renderer_lines": 285,
         "forbidden": "serena|gstack|mattpocock|spec kit|\\bnpx\\b"
       }
     },
@@ -688,7 +723,7 @@
     {
       "id": "codex-profile-instructions-kept",
       "files": {
-        ".codex/config.toml": "model = \"o3\"\n\n[profiles.fast]\ndeveloper_instructions = \"be quick\"\n"
+        ".codex/config.toml": "[profiles.fast]\nmodel = \"o3\"\ndeveloper_instructions = \"be quick\"\n"
       },
       "setup": [
         [
@@ -702,7 +737,7 @@
         "--remove"
       ],
       "expect_content": {
-        ".codex/config.toml": "model = \"o3\"\n\n[profiles.fast]\ndeveloper_instructions = \"be quick\"\n"
+        ".codex/config.toml": "[profiles.fast]\nmodel = \"o3\"\ndeveloper_instructions = \"be quick\"\n"
       }
     },
     {
@@ -792,6 +827,224 @@
       },
       "expect_no_match": [
         "be brief"
+      ]
+    },
+    {
+      "id": "upgrade-model-settings",
+      "previous": {
+        "ref": "1fe222f4a6f3f3a9ddbcb52c188bbc8c6700747a"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_metadata": {
+        ".claude/agents/orchestrator.md": {
+          "model": "opus",
+          "effort": "high",
+          "tools": "Read, Grep, Glob, Agent(builder, reviewer, hall-monitor), SendMessage"
+        },
+        ".codex/config.toml": {
+          "model": "gpt-6-astra",
+          "model_reasoning_effort": "high"
+        },
+        ".claude/agents/builder.md": {
+          "model": "sonnet",
+          "effort": "high"
+        },
+        ".codex/agents/builder.toml": {
+          "model": "gpt-6.1-sol",
+          "model_reasoning_effort": "high",
+          "sandbox_mode": null
+        },
+        ".claude/agents/reviewer.md": {
+          "model": "opus",
+          "effort": "high"
+        },
+        ".codex/agents/reviewer.toml": {
+          "model": "gpt-6.1-sol",
+          "model_reasoning_effort": "high",
+          "sandbox_mode": null
+        },
+        ".claude/agents/hall-monitor.md": {
+          "model": "sonnet",
+          "effort": "medium"
+        },
+        ".codex/agents/hall-monitor.toml": {
+          "model": "gpt-6-luna",
+          "model_reasoning_effort": "high",
+          "sandbox_mode": null
+        }
+      },
+      "expect_toml": [
+        ".codex/config.toml",
+        ".codex/agents/builder.toml",
+        ".codex/agents/reviewer.toml",
+        ".codex/agents/hall-monitor.toml"
+      ]
+    },
+    {
+      "id": "codex-foreign-model",
+      "files": {
+        ".codex/config.toml": "model = \"local\"\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_exit": "nonzero",
+      "expect_changes": {
+        "added": [],
+        "removed": [],
+        "modified": []
+      },
+      "expect_output": [
+        ".codex/config.toml"
+      ]
+    },
+    {
+      "id": "codex-foreign-model_reasoning_effort",
+      "files": {
+        ".codex/config.toml": "model_reasoning_effort = \"low\"\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_exit": "nonzero",
+      "expect_changes": {
+        "added": [],
+        "removed": [],
+        "modified": []
+      },
+      "expect_output": [
+        ".codex/config.toml"
+      ]
+    },
+    {
+      "id": "codex-foreign-quoted-model",
+      "files": {
+        ".codex/config.toml": "\"model\" = \"local\"\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_exit": "nonzero",
+      "expect_changes": {
+        "added": [],
+        "removed": [],
+        "modified": []
+      },
+      "expect_output": [
+        ".codex/config.toml"
+      ]
+    },
+    {
+      "id": "refresh-owned-agent",
+      "files": {
+        ".claude/agents/reviewer.md": "---\nname: reviewer\nmodel: haiku\neffort: low\n---\nOld instructions.\nGenerated by agent-setup.\n",
+        ".codex/agents/reviewer.toml": "model = \"old\"\nsandbox_mode = \"read-only\"\n# Generated by agent-setup.\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}"
+      ],
+      "expect_metadata": {
+        ".claude/agents/reviewer.md": {
+          "model": "opus",
+          "effort": "high"
+        },
+        ".codex/agents/reviewer.toml": {
+          "model": "gpt-6.1-sol",
+          "model_reasoning_effort": "high",
+          "sandbox_mode": null
+        }
+      },
+      "expect_no_match": [
+        "Old instructions|model = \"old\""
+      ]
+    },
+    {
+      "id": "codex-settings-inside-string-kept",
+      "files": {
+        ".codex/config.toml": "notes = '''\nmodel = \"example\"\nmodel_reasoning_effort = \"low\"\ndeveloper_instructions = \"example\"\n[note]\n'''\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}",
+        "--hosts",
+        "codex"
+      ],
+      "expect_endswith": {
+        ".codex/config.toml": "notes = '''\nmodel = \"example\"\nmodel_reasoning_effort = \"low\"\ndeveloper_instructions = \"example\"\n[note]\n'''\n"
+      },
+      "expect_toml": [
+        ".codex/config.toml"
+      ]
+    },
+    {
+      "id": "codex-parent-permissions-and-profile-kept",
+      "files": {
+        ".codex/config.toml": "sandbox_mode = \"workspace-write\"\n\n[profiles.fast]\nmodel = \"local\"\nmodel_reasoning_effort = \"low\"\n"
+      },
+      "args": [
+        "--vars",
+        "{vars}",
+        "--hosts",
+        "codex"
+      ],
+      "expect_endswith": {
+        ".codex/config.toml": "sandbox_mode = \"workspace-write\"\n\n[profiles.fast]\nmodel = \"local\"\nmodel_reasoning_effort = \"low\"\n"
+      },
+      "expect_startswith": {
+        ".codex/config.toml": "# agent-setup:start\nmodel = \"gpt-6-astra\"\nmodel_reasoning_effort = \"high\"\n"
+      },
+      "expect_toml": [
+        ".codex/config.toml"
+      ]
+    },
+    {
+      "id": "codex-ordinary-quotes-do-not-hide-model",
+      "files": {
+        ".codex/config.toml": "before = \"'''\"\nmodel = \"custom\"\nafter = \"'''\"\n"
+      },
+      "args": ["--vars", "{vars}", "--hosts", "codex"],
+      "expect_exit": "nonzero",
+      "expect_changes": {"added": [], "removed": [], "modified": []},
+      "expect_output": [".codex/config.toml"]
+    },
+    {
+      "id": "codex-comment-quotes-do-not-hide-model",
+      "files": {
+        ".codex/config.toml": "# '''\nmodel = \"custom\"\n# '''\n"
+      },
+      "args": ["--vars", "{vars}", "--hosts", "codex"],
+      "expect_exit": "nonzero",
+      "expect_changes": {"added": [], "removed": [], "modified": []},
+      "expect_output": [".codex/config.toml"]
+    },
+    {
+      "id": "codex-indented-profile-kept",
+      "files": {
+        ".codex/config.toml": "notes = '''\n  [example]\nmodel = \"example\"\n'''\n\n  [profiles.fast]\n  model = \"local\"\n  model_reasoning_effort = \"low\"\n  developer_instructions = \"be quick\"\n"
+      },
+      "setup": [
+        [
+          "--vars",
+          "{vars}",
+          "--hosts",
+          "codex"
+        ]
+      ],
+      "args": [
+        "--remove"
+      ],
+      "expect_content": {
+        ".codex/config.toml": "notes = '''\n  [example]\nmodel = \"example\"\n'''\n\n  [profiles.fast]\n  model = \"local\"\n  model_reasoning_effort = \"low\"\n  developer_instructions = \"be quick\"\n"
+      },
+      "expect_toml": [
+        ".codex/config.toml"
       ]
     }
   ]

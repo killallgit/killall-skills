@@ -1,6 +1,7 @@
 # agent-setup evals
 
 Run every case: `python3 evals/run.py` from `skills/agent-setup/`. Run some: `python3 evals/run.py <id> <id>`.
+Check shared state and local excludes: `python3 evals/state.py`. Both runners isolate `XDG_CONFIG_HOME` in temporary folders.
 Compare agent metadata with an earlier version: `python3 evals/compare_previous.py <git-ref>`.
 
 Each case in `evals.json` builds a fresh git repository, runs `scripts/render_agents.py --dest <repo>`

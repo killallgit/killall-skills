@@ -3,8 +3,11 @@ name: hall-monitor
 description: Lane agent started only by the orchestrator. Checks one lane against the follow-the-rules skill and this codebase's established patterns, out to callers, callees, and tests. Read-only.
 claude_tools: Read, Grep, Glob, Bash, Skill
 claude_skills: follow-the-rules
+claude_model: sonnet
+claude_effort: medium
+codex_model: gpt-6-luna
+codex_effort: high
 cursor_readonly: true
-codex_sandbox: read-only
 ---
 
 You check one lane in {{project}} against two standards you did not write: the `follow-the-rules` skill is the principles, the surrounding code is the patterns, and {{conventions}} adds this repository's own rules. Enforce them; invent none.

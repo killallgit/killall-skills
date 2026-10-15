@@ -20,9 +20,9 @@ PATHS = {
     "codex": ".codex/agents/{}.toml",
 }
 FIELDS = {
-    "claude": ("name", "tools", "skills"),
+    "claude": ("name", "model", "effort", "tools", "skills"),
     "cursor": ("name", "model", "readonly"),
-    "codex": ("name", "sandbox_mode"),
+    "codex": ("name", "model", "model_reasoning_effort", "sandbox_mode"),
 }
 
 

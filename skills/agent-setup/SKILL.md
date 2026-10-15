@@ -13,7 +13,7 @@ When the first argument is `remove`, run `python3 scripts/render_agents.py --des
 
 ## 1. Look
 
-Work in the path the user gave, otherwise `git rev-parse --show-toplevel`. Record each value from the repository, not from memory. Install nothing, and ask only where a row says so.
+Use the given path, otherwise `git rev-parse --show-toplevel`. Discover values from the repository. Install nothing; ask only where specified.
 
 | Value | Where it comes from |
 | --- | --- |
@@ -41,15 +41,15 @@ Write the values to a JSON file outside the repository, then from this skill's d
 python3 scripts/render_agents.py --dest <git-root> --vars <temp.json> --hosts <hosts>
 ```
 
-Per host it writes the three agents, the orchestrator, and the setting that makes a session start as it, and prints each path. A rerun replaces what it wrote and clears what earlier versions wrote. When it refuses a file or setting it did not write, ask the user before rerunning with `--force`.
+Templates hold role instructions, tools, models, and effort; the renderer adapts them to native files and locally excludes generated paths from Git. It creates a shared state README under `~/.config/killall-skills/agents/state/<encoded-main-checkout>/` (honoring `XDG_CONFIG_HOME`). Reruns refresh definitions and the README, preserve lane JSON, and clear legacy output. Update the installed skill first for newer agents. Ask before using `--force` on refused foreign files or settings.
 
 Done when the script exits 0.
 
 ## 3. Check
 
 - `follow-the-rules`, which builder and hall-monitor load, resolves on each host: under `.claude/skills/`, `.agents/skills/`, or `.cursor/skills/` in the repository or `~`, or from an enabled plugin.
-- Codex: it loads project config and agents only for a trusted project (`~/.codex/config.toml`). Builders inherit the session's sandbox, so they write only under `workspace-write`, and only inside the git root unless the worktree folder is in `sandbox_workspace_write.writable_roots`.
+- Codex needs a trusted project and write access to worktrees and the printed state folder (`codex --add-dir <state-folder>`). Subagents inherit session permissions. Its orchestrator delegates by instruction; Claude's tool allowlist excludes shell and edit tools.
 
 ## 4. Report
 
-Tell the user the hosts, the gate, the worktree note, the files written, and how a session starts as the orchestrator: `claude` (or `claude --agent orchestrator`), `codex` in the trusted project, or Cursor's agent in the repository. Name each host where `follow-the-rules` did not resolve, and any Codex gap. Committing the files is the user's call; `/agent-setup remove` takes them out.
+Report hosts, models/effort, gate, worktree note, files and state folder, and startup commands. Report unresolved `follow-the-rules`, tracked generated files (local excludes cannot untrack them), and Codex's isolation limit. `/agent-setup remove` removes definitions and local excludes while preserving lane state.

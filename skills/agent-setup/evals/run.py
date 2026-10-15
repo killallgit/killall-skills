@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -36,9 +37,10 @@ def write_vars(folder: Path, overrides: dict[str, str]) -> Path:
     return path
 
 
-def render(repo: Path, args: list[str], vars_path: Path) -> subprocess.CompletedProcess[str]:
+def render(repo: Path, args: list[str], vars_path: Path, config_home: Path | None = None) -> subprocess.CompletedProcess[str]:
     expanded = (arg.replace("{vars}", str(vars_path)).replace("{fixtures}", str(FIXTURES)) for arg in args)
-    return subprocess.run([sys.executable, str(RENDERER), "--dest", str(repo), *expanded], check=False, capture_output=True, text=True)
+    env = {**os.environ, "XDG_CONFIG_HOME": str(config_home or repo.parent / "config")}
+    return subprocess.run([sys.executable, str(RENDERER), "--dest", str(repo), *expanded], check=False, capture_output=True, text=True, env=env)
 
 
 def frontmatter(text: str) -> dict[str, str]:
@@ -92,7 +94,7 @@ def word_count(paths: list[Path]) -> int:
 
 
 def check_budget(budget: dict) -> list[str]:
-    words = word_count([SKILL / "SKILL.md", *sorted((SKILL / "templates").glob("*.tmpl.md"))])
+    words = word_count([SKILL / "SKILL.md", *sorted((SKILL / "templates").glob("*.md"))])
     lines = len(RENDERER.read_text(encoding="utf-8").splitlines())
     print(f"  text-budget: {words} words, renderer {lines} lines")
     failures = []
