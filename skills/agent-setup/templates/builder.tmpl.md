@@ -3,11 +3,18 @@ name: builder
 description: Lane agent started only by the orchestrator. Implements one lane of a spec in its own git worktree, runs the gate, and returns a build report.
 claude_tools: Read, Grep, Glob, Bash, Edit, Write, Skill
 claude_skills: follow-the-rules
+claude_model: sonnet
+claude_effort: high
+codex_model: gpt-6.1-sol
+codex_effort: high
 cursor_readonly: false
-codex_sandbox: workspace-write
 ---
 
 You implement one lane in {{project}}. Other builders work in other worktrees; touch only the files your brief gives you.
+
+Read `{{state_dir}}/README.md`. Your lane JSON there is the sole exception to the brief's file scope: persist progress and the next action at handoffs, and report its path. Other builders leave that record alone.
+
+From the repository root, create the brief's branch and worktree from `{{default_branch}}` using the worktree note. If they exist, verify both match the brief; stop on a mismatch. Integration is a separate task, only when explicitly briefed.
 
 Your worktree path is absolute. Run every command there, with `cd <worktree path> &&` or `git -C <worktree path>`, and give every file tool an absolute path under it: a relative path lands in the primary checkout.
 

@@ -46,18 +46,56 @@ three lane agents for Claude Code, Codex, and Cursor, filled with its own gate,
 conventions, and worktree rules. Every session in the repository starts as the
 orchestrator: it cuts a spec into lanes, starts a `builder` per lane in its own
 git worktree, then has an independent `reviewer` and a `hall-monitor` check
-each lane against the spec and the `follow-the-rules` skill. A small change with
-no independent parts, it makes itself.
+each lane against the spec and the `follow-the-rules` skill. It delegates small
+changes too. Builders create worktrees and run commands; reviewers independently
+run checks and return diff evidence for the orchestrator to judge.
 
 | Host | How a session starts as the orchestrator |
 | --- | --- |
 | Claude Code | `"agent": "orchestrator"` in `.claude/settings.json`; `claude --agent` overrides it |
-| Codex | A `developer_instructions` block in `.codex/config.toml`; the project must be trusted |
+| Codex | A managed block with model, effort, and `developer_instructions` in `.codex/config.toml`; the project must be trusted |
 | Cursor | An always-applied rule, `.cursor/rules/orchestrator.mdc` |
 
-It writes only those files and the agent definitions, and edits no instruction
-file. `/agent-setup remove` takes it all out again, including what earlier
-versions wrote. User-invoked only.
+One shared template per role contains its instructions and host settings;
+[the renderer](skills/agent-setup/scripts/render_agents.py) adapts them to Claude Markdown, Codex TOML, and Cursor
+Markdown/rules. Current defaults:
+
+| Role | Claude model / effort | Codex model / effort |
+| --- | --- | --- |
+| Orchestrator | Opus / high | `gpt-6-astra` / high |
+| Builder | Sonnet / high | `gpt-6.1-sol` / high |
+| Reviewer | Opus / high | `gpt-6.1-sol` / high |
+| Hall-monitor | Sonnet / medium | `gpt-6-luna` / high |
+
+Claude's orchestrator tool allowlist permits reading, searching, and delegation
+to these three agents, with no shell, edit, or skill tool. Codex and Cursor use
+delegation-only instructions; they do not enforce a separate write boundary for
+the orchestrator. Codex subagents inherit the main session's permissions. Cursor
+keeps its session model. See the [Claude](https://code.claude.com/docs/en/sub-agents)
+and [Codex](https://learn.chatgpt.com/docs/agent-configuration/subagents) agent docs.
+
+After updating the installed skill, rerun `/agent-setup` in an existing repository
+to refresh its generated agents. Local edits to generated files are replaced;
+edit the source templates to change defaults. Unrelated settings remain intact.
+Conflicting files or root Codex model, effort, or instruction settings that setup
+did not write require explicit approval before using `--force`.
+
+Generated paths are locally ignored through `.git/info/exclude`; already-tracked
+files stay tracked. It edits no instruction file.
+
+Work state lives in `~/.config/killall-skills/agents/state/<encoded-main-checkout>/`
+(or under `XDG_CONFIG_HOME`). The key replaces non-alphanumeric path characters
+with `-`, in Claude's style. All hosts and linked worktrees share the main
+checkout's folder. Setup writes a [short README and JSON example](skills/agent-setup/templates/state.md);
+each builder owns one lane JSON and updates it at handoffs. The orchestrator
+reads these records and sends verdicts back to the builder to persist.
+
+The folder stays; a finished lane's record is removed after authorized integration
+and cleanup of its clean worktree. Setup reruns and `/agent-setup remove` preserve
+lane state. Removal clears generated definitions and local exclude entries,
+including legacy output. Codex sessions need write access to the state folder,
+for example with `codex --add-dir <state-folder>`. User-invoked only.
+See the [factory-pattern research](docs/research/agent-factory-patterns.md) for sources and possible next steps.
 
 ## Git janitor
 
