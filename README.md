@@ -67,9 +67,9 @@ In Claude Code, `/git-janitor` cleans the current repository. Pass a path to
 target another repository, or add `audit-only` to inspect without removing
 anything. The plugin-qualified command is `/killall-skills:git-janitor`.
 
-For a separate conversation context, ask Claude Code to use the
-`killall-agents:git-janitor` agent from the separate agents plugin and include
-the repository path and any scope limits. The agent uses the same skill and returns a cleanup receipt.
+For a separate conversation context, mention `@agent-killall-agents:git-janitor`
+in Claude Code with the repository path and any scope limits. This requires
+the separate agents plugin. The agent uses the same skill and returns a cleanup receipt.
 Its context is separate; it operates on the repository's actual worktrees.
 
 ## End session
