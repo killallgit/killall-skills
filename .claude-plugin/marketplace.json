@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "killallgit",
-  "description": "Killallgit agents and skills for Claude Code.",
+  "description": "Killallgit workflow skills for Claude Code.",
   "owner": {
     "name": "archae0pteryx",
     "url": "https://github.com/killallgit"
@@ -10,7 +10,7 @@
     {
       "name": "killall-skills",
       "source": "./",
-      "description": "Killallgit agents and skills: agent-setup, catch-up, check-agent-docs, end-session, follow-the-rules, git-janitor, session-eject, and wait-for-action.",
+      "description": "Killallgit skills: catch-up, check-agent-docs, end-session, follow-the-rules, git-janitor, session-eject, and wait-for-action.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills"
     }

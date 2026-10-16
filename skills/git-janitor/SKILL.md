@@ -15,8 +15,8 @@ arguments can name another repository or narrow the request to an audit. The
 same workflow applies when the user asks in plain language or delegates to
 the `git-janitor` agent. "Clean up local git" authorizes the local cleanup
 policy below. The invoking agent owns cleanup decisions and checks any
-read-only findings from `git-janitor-investigator`. Follow any more specific
-instruction in the user's request.
+read-only findings from `killall-agents:git-janitor-investigator` when available.
+Follow any more specific instruction in the user's request.
 
 ## 1. Set the scope
 
@@ -58,9 +58,10 @@ superseded**, **disposable after inspecting its purpose**, or **valuable /
 uncertain**; note the evidence for each classification.
 
 Delegate read-only investigation of unmerged branches to
-`git-janitor-investigator` in bounded parallel calls when available. Give it
-the expected tip OID, default ref, upstream, and linked worktree path. If it
-is unavailable, inspect those signals inline and query PRs with
+`killall-agents:git-janitor-investigator` from the optional agents plugin in
+bounded parallel calls when available. Give it the expected tip OID, default
+ref, upstream, and linked worktree path. If it is unavailable, inspect those
+signals inline and query PRs with
 `gh pr list --state all --head "$short_branch"`. A failed PR lookup is
 unknown, not no PR. Recheck pivotal agent findings yourself.
 
