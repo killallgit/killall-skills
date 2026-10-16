@@ -1,7 +1,7 @@
 {
   "name": "killall-skills",
-  "description": "Killallgit agents and skills",
-  "version": "3.2.0",
+  "description": "Killallgit workflow skills",
+  "version": "4.0.0",
   "author": {
     "name": "archae0pteryx"
   },
