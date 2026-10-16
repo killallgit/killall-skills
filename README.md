@@ -30,36 +30,9 @@ npx skills add killallgit/killall-skills
 
 Claude Code runs a skill as `/name`; Codex runs it as `$name`.
 
-## Agent migration
+## Agents
 
-Version **4.0.0** moves the agent catalog and `agent-setup` into
-[killall-agents](https://github.com/killallgit/killall-agents). This repository
-continues to provide all seven ordinary workflow skills, including `git-janitor`
-and the original `follow-the-rules`. The agents package includes its own complete
-copy of `follow-the-rules`.
-
-For existing 3.x users:
-
-1. Update `killall-skills` to 4.x through your host’s plugin manager.
-2. Install the separate agents package, following its
-   [installation instructions](https://github.com/killallgit/killall-agents#install).
-3. Keep both plugins enabled if you use the git-janitor agent: it calls the
-   `killall-skills:git-janitor` skill.
-
-Update the skills plugin before enabling the agents plugin to avoid duplicate
-agent/setup definitions. Claude’s agent prefix is now `killall-agents:`, while
-ordinary skill commands keep the `killall-skills:` prefix. Run
-`/killall-agents:agent-setup` in Claude Code or `$agent-setup` in Codex to refresh
-project agents.
-
-Existing generated agents remain in their projects and keep working. Their file
-paths, ownership markers and work records at
-`~/.config/killall-skills/agents/state/<encoded-main-checkout>/` are unchanged;
-refresh/removal preserves lane JSON. See the
-[setup guide](https://github.com/killallgit/killall-agents#project-setup).
-
-The remaining git-janitor skill also works without the agents plugin; it inspects
-branches inline when the optional investigator is unavailable.
+Agent definitions and project setup live in [killall-agents](https://github.com/killallgit/killall-agents).
 
 ## Git janitor
 
