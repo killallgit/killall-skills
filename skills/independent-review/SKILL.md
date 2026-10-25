@@ -38,13 +38,14 @@ reviewing `HEAD`.
 
 ## 3. Resolve CodeRabbit's findings
 
-Read the comments with the `gh api` command in the `wait-for-action` skill.
-Rule on every comment: **fix** or **decline** with a one-line reason. Fix in
+Read the inline comments and the review bodies with the `gh api` commands in
+the `wait-for-action` skill. Rule on every finding in both: **fix** or
+**decline** with a one-line reason. Fix in
 commits, push, and reply on each thread with the commit or the reason. When a
 fix pushes new commits, run `wait-for-action --coderabbit` again.
 
-Done when every comment is fixed in a pushed commit or declined with a reason
-on its thread. Stop after three rounds and report what is still open.
+Done when every finding is fixed in a pushed commit or declined with a reason
+on its thread or, for a review-body finding, in a PR comment. Stop after three rounds and report what is still open.
 
 ## 4. Fresh local review
 

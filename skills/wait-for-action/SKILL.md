@@ -110,10 +110,12 @@ watching a run:
 | 3 | `ERROR` — no `CodeRabbit` status after a minute: no open PR for `HEAD`, or CodeRabbit is not installed on the repo |
 
 `--coderabbit` takes no `--run-id` or `--repo`. Push first: the status is for
-the pushed `HEAD` commit. Then read the review comments to resolve them:
+the pushed `HEAD` commit. Then read the review comments to resolve them. Read
+both: findings outside the diff land in the review body, not inline.
 
 ```bash
-gh api 'repos/{owner}/{repo}/pulls/<n>/comments' --jq '.[] | select(.user.login=="coderabbitai[bot]") | {path, line, body}'
+gh api --paginate 'repos/{owner}/{repo}/pulls/<n>/comments' --jq '.[] | select(.user.login=="coderabbitai[bot]") | {path, line, body}'
+gh api --paginate 'repos/{owner}/{repo}/pulls/<n>/reviews' --jq '.[] | select(.user.login=="coderabbitai[bot]") | .body'
 ```
 
 A `success` description such as `Review rate limited` or `Review skipped`
