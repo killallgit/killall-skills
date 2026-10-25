@@ -45,6 +45,15 @@ in Claude Code with the repository path and any scope limits. This requires
 the separate agents plugin. The agent uses the same skill and returns a cleanup receipt.
 Its context is separate; it operates on the repository's actual worktrees.
 
+## Independent review
+
+`/independent-review` gets the current branch reviewed by something that did
+not write it. It opens a PR if the branch has none, then waits for CodeRabbit
+and resolves its comments. When CodeRabbit is not installed, rate limited, or
+skipped, it dispatches a local review agent with fresh context (never the
+current session) and resolves that agent's findings instead. It reports what
+was fixed and declined, and leaves the PR open. User-invoked only.
+
 ## End session
 
 `/end-session` closes out a session. It fetches, fast-forwards local branches,

@@ -10,7 +10,7 @@
     {
       "name": "killall-skills",
       "source": "./",
-      "description": "Killallgit skills: catch-up, check-agent-docs, end-session, follow-the-rules, git-janitor, session-eject, and wait-for-action.",
+      "description": "Killallgit skills: catch-up, check-agent-docs, end-session, follow-the-rules, git-janitor, independent-review, session-eject, and wait-for-action.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills"
     }
