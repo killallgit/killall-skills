@@ -15,55 +15,69 @@ a `caveman` skill is available in this session, invoke it first.
 
 Run `gh pr view --json number,url,state,isDraft,headRefName`.
 
-- **Open PR**: use it. Push any unpushed commits.
-- **None**: push the branch with `-u` and `gh pr create` with a title and body
-  in the repository's convention. On the default branch, stop and tell the
-  user: there is nothing to review until the work sits on its own branch.
-- **Draft**: mark it ready with `gh pr ready`. CodeRabbit skips drafts.
+- **Open, not draft**: use it. Push any unpushed commits.
+- **Open, draft**: `gh pr ready`, and say so in the report. CodeRabbit skips
+  drafts.
+- **None, or merged or closed**: push the branch with `-u` and `gh pr create`
+  with a title and body in the repository's convention. A merged branch has
+  nothing new to review; stop and tell the user.
+- **On the default branch**: stop and tell the user. There is nothing to review
+  until the work sits on its own branch.
 
 This step is done when the pushed `HEAD` has an open, non-draft PR.
 
 ## 2. CodeRabbit
 
-Run `wait-for-action --coderabbit`. It blocks until CodeRabbit finishes
-reviewing `HEAD`.
+Run `scripts/wait-for-action.sh --coderabbit` from the `wait-for-action` skill.
+It blocks until CodeRabbit finishes reviewing `HEAD`.
 
 | Result | Next |
 |---|---|
-| `DONE` with `Review completed` | Step 3 with the CodeRabbit comments |
+| `DONE`, not `rate limited` or `skipped` | Step 3 |
 | `DONE` with `rate limited` or `skipped` | Step 4: no review was posted |
-| `ERROR` (CodeRabbit not installed or no status) | Step 4 |
-| `TIMEOUT` | Report that CodeRabbit is still pending. Step 4 runs meanwhile; step 3 takes CodeRabbit's comments once they land |
+| `ERROR`: no status after a minute | Step 4 |
+| `TIMEOUT` | Run again with `--ttl 30m`. Still pending: step 4 |
 | `FAILED` | Step 4 |
 
 ## 3. Resolve CodeRabbit's findings
 
 Read the inline comments and the review bodies with the `gh api` commands in
-the `wait-for-action` skill. Rule on every finding in both: **fix** or
-**decline** with a one-line reason. Fix in
-commits, push, and reply on each thread with the commit or the reason. When a
-fix pushes new commits, run `wait-for-action --coderabbit` again.
+the `wait-for-action` skill. Rule only on findings from the newest review:
+skip comments that are replies and threads you already answered. Rule on every
+finding, inline and in the body: **fix** or **decline** with a one-line reason.
 
-Done when every finding is fixed in a pushed commit or declined with a reason
-on its thread or, for a review-body finding, in a PR comment. Stop after three rounds and report what is still open.
+Fix in commits and push. Answer each inline comment on its thread:
+
+```bash
+gh api -X POST 'repos/{owner}/{repo}/pulls/<n>/comments/<id>/replies' -f body='<commit or reason>'
+```
+
+Answer a review-body finding in one `gh pr comment`. After a push, run step 2
+again.
+
+Done when every finding is fixed in a pushed commit or declined with its reason
+in a reply. Stop after three rounds and report what is still open.
 
 ## 4. Fresh local review
 
 Dispatch one reviewer that starts with **fresh context**: a new subagent, never
 a fork, and never this session. Where the host has no subagents, a headless
 `claude -p` or `codex exec` process serves. Pick the best fit installed: a
-`reviewer` agent, else the `code-review` skill run inside a general-purpose
-subagent, else a general-purpose subagent with the brief below.
+`reviewer` agent, else a general-purpose subagent.
 
-The brief names the PR number and its base branch, and asks for a review
-only. Leave out the author's reasoning, the task history, and any verdict on
-the code; a reviewer handed the author's conclusion confirms it. It returns
-findings as `file:line`, severity, and the failure scenario, ranked
+The brief names the base branch, tells the reviewer to diff `base...HEAD`, and
+asks for a review only: no edits, no commits, no PR comments. Leave out the PR
+number, the author's reasoning, the task history, and any verdict on the code;
+the PR body is the author's conclusion, and a reviewer handed it confirms it.
+It returns findings as `file:line`, severity, and the failure scenario, ranked
 most-severe first, or states that it found none.
 
-Rule on each finding as in step 3, then push. Each further round dispatches a
-new reviewer. Done when a round returns no finding to fix. Stop after two
-rounds and report what is still open.
+Rule on each finding as in step 3, then push. Local findings have no thread, so
+the report in step 5 is their record. Each further round dispatches a new
+reviewer.
+
+Done when a round returns no finding to fix. Stop after two rounds and report
+what is still open.
 
 ## 5. Report
 

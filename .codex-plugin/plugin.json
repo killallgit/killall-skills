@@ -11,7 +11,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Killall Skills",
-    "shortDescription": "Catch-up, agent-doc checks, git cleanup, session wrap-up, and CI waits.",
+    "shortDescription": "Catch-up, agent-doc checks, git cleanup, session wrap-up, independent review, and CI waits.",
     "developerName": "archae0pteryx",
     "category": "Productivity"
   }
