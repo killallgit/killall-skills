@@ -10,7 +10,7 @@ PASSING = [{"name": "CodeRabbit", "state": "SUCCESS"}]
 
 
 def run_guard(
-    tmp_path: Path, command: str, checks: list[dict], payload: str | None = None, gh_body: str = ""
+    tmp_path: Path, command: str, checks: list[dict], payload: str | None = None, gh_body: str = "", timeout: str = "10"
 ) -> int:
     gh = tmp_path / "gh"
     gh.write_text(
@@ -18,7 +18,7 @@ def run_guard(
     )
     gh.chmod(0o755)
     payload = payload or json.dumps({"tool_input": {"command": command}})
-    env = {"PATH": f"{tmp_path}:/usr/bin:/bin:/opt/homebrew/bin", "GUARD_GH_TIMEOUT": "1"}
+    env = {"PATH": f"{tmp_path}:/usr/bin:/bin:/opt/homebrew/bin", "GUARD_GH_TIMEOUT": timeout}
     return subprocess.run(
         [str(GUARD)], input=payload, text=True, env=env, capture_output=True, cwd=tmp_path
     ).returncode
@@ -100,7 +100,7 @@ def test_merge_is_blocked_when_the_coderabbit_check_only_shares_a_prefix(coderab
 
 
 def test_merge_is_blocked_when_gh_stalls(coderabbit_repo):
-    assert run_guard(coderabbit_repo, MERGE, PASSING, gh_body="exec sleep 30\n") == 2
+    assert run_guard(coderabbit_repo, MERGE, PASSING, gh_body="exec sleep 30\n", timeout="1") == 2
 
 
 def test_merge_is_blocked_when_gh_fails(coderabbit_repo):

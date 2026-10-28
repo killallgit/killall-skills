@@ -22,9 +22,9 @@ from pathlib import Path
 
 BOT = "coderabbitai[bot]"
 TRIGGER = "@coderabbitai review"
-NO_CHECK_GRACE = 60
-RETRY_PAD = 15
-MAX_TRIGGERS = 2
+NO_CHECK_GRACE = 180
+RETRY_PAD = 30
+MAX_LIMIT_RETRIES = 4
 EXIT_DONE, EXIT_FAILED, EXIT_TIMEOUT, EXIT_ERROR, EXIT_NOT_REVIEWED = 0, 1, 2, 3, 4
 
 BAD_CONCLUSIONS = {"failure", "timed_out", "cancelled", "startup_failure", "action_required"}
@@ -195,7 +195,8 @@ class Clock:
 def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) -> int:
     """`say(always, line)` prints a status line; `save(name, data)` keeps an artifact."""
     start = clock.now()
-    floor = triggers = errors = 0
+    floor = triggers = errors = limit_retries = 0
+    skip_nudged = False
     last = retry_at = pr = None
 
     def elapsed() -> int:
@@ -265,11 +266,12 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
                     else:
                         announce("PENDING", "waiting for CodeRabbit to start")
                 elif kind == "SKIPPED":
-                    if not trigger or triggers >= 1:
+                    if not trigger or skip_nudged:
                         return not_reviewed(f"{verdict.detail} {verdict.url}".strip())
+                    skip_nudged = True
                     nudge(verdict.detail.lower(), check)
                 else:
-                    if not trigger or triggers >= MAX_TRIGGERS:
+                    if not trigger or limit_retries >= MAX_LIMIT_RETRIES:
                         return not_reviewed(f"{verdict.detail} {verdict.url}".strip())
                     if retry_at is None:
                         wait = rate_limit_seconds(client.comments(pr), clock.now())
@@ -281,6 +283,7 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
                         announce("RATE_LIMITED", f"retrying in {wait // 60 + 1}m")
                     if clock.now() >= retry_at:
                         retry_at = None
+                        limit_retries += 1
                         nudge("rate limit reset", check)
                     else:
                         nap = retry_at - clock.now()

@@ -23,14 +23,14 @@ def stamp(offset: float) -> str:
     return datetime.fromtimestamp(T0 + offset, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def check(id=1, status="completed", conclusion="success", title="Review completed", name="CodeRabbit"):
+def check(id=1, status="completed", conclusion="success", title="Review completed", name="CodeRabbit", started=-5):
     return {
         "id": id,
         "name": name,
         "status": status,
         "conclusion": conclusion,
         "html_url": "https://example.test/check",
-        "started_at": stamp(-5),
+        "started_at": stamp(started),
         "output": {"title": title},
     }
 
@@ -62,6 +62,7 @@ class FakeClient:
         self.clock, self.scripts, self.pr = clock, scripts, pr
         self.calls = 0
         self.posted = []
+        self.posted_at = []
         self.existing = comments or []
         self.threads = threads or []
         self.legacy = None
@@ -80,10 +81,11 @@ class FakeClient:
         return self.pr
 
     def comments(self, pr):
-        return self.existing + [human_trigger(self.clock.now() - T0) for _ in self.posted]
+        return self.existing + [human_trigger(at) for at in self.posted_at]
 
     def comment(self, pr, body):
         self.posted.append(body)
+        self.posted_at.append(self.clock.now() - T0)
 
     def unresolved_threads(self, pr):
         return self.threads
@@ -257,6 +259,19 @@ def test_a_rate_limit_is_waited_out_then_restarted_with_a_comment():
     assert any(line.startswith("RATE_LIMITED coderabbit") for line in lines)
 
 
+def test_a_rate_limit_that_is_still_on_after_the_comment_is_waited_out_again():
+    clock = FakeClock()
+    first = check(id=1, conclusion="neutral", title="Review rate limited")
+    second = check(id=2, conclusion="neutral", title="Review rate limited", started=200)
+    client = FakeClient(clock, [[first], [first], [first, second], [first, second], [first, second, check(id=3)]],
+                        comments=[limit_notice(minutes=2)])
+
+    code, _, _ = run_watch(client, clock, ttl=3600)
+
+    assert code == 0
+    assert client.posted == [TRIGGER, TRIGGER]
+
+
 def test_a_rate_limit_longer_than_the_budget_is_not_reviewed_and_does_not_wait():
     clock = FakeClock()
     limited = check(conclusion="neutral", title="Review rate limited")
@@ -283,7 +298,7 @@ def test_a_review_comment_already_on_the_pr_is_not_posted_twice():
 
 def test_no_check_after_a_minute_on_an_open_pr_is_restarted_with_a_comment():
     clock = FakeClock()
-    client = FakeClient(clock, [[]] * 6 + [[check(id=2)]])
+    client = FakeClient(clock, [[]] * 14 + [[check(id=2)]])
 
     code, _, _ = run_watch(client, clock)
 
