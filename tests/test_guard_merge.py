@@ -70,14 +70,14 @@ def test_merge_is_allowed_in_a_repo_without_coderabbit_config(tmp_path):
 @pytest.mark.parametrize(
     ("command", "expected"),
     [
-        ("gh pr merge --squash", "pr checks --json name,state"),
-        ("gh pr merge 42 --squash", "pr checks 42 --json name,state"),
-        ("gh pr merge --squash 42", "pr checks 42 --json name,state"),
-        ("gh pr merge https://github.com/o/r/pull/42", "pr checks https://github.com/o/r/pull/42 --json name,state"),
-        ("gh pr merge my-branch --delete-branch", "pr checks my-branch --json name,state"),
-        ("gh -R o/r pr merge 42", "pr checks 42 -R o/r --json name,state"),
-        ("gh pr merge 42 --repo o/r", "pr checks 42 -R o/r --json name,state"),
-        ("gh pr merge 42 --subject fix && git pull", "pr checks 42 --json name,state"),
+        ("gh pr merge --squash", "pr checks --json name,state,description"),
+        ("gh pr merge 42 --squash", "pr checks 42 --json name,state,description"),
+        ("gh pr merge --squash 42", "pr checks 42 --json name,state,description"),
+        ("gh pr merge https://github.com/o/r/pull/42", "pr checks https://github.com/o/r/pull/42 --json name,state,description"),
+        ("gh pr merge my-branch --delete-branch", "pr checks my-branch --json name,state,description"),
+        ("gh -R o/r pr merge 42", "pr checks 42 -R o/r --json name,state,description"),
+        ("gh pr merge 42 --repo o/r", "pr checks 42 -R o/r --json name,state,description"),
+        ("gh pr merge 42 --subject fix && git pull", "pr checks 42 --json name,state,description"),
     ],
 )
 def test_the_checked_pr_is_the_one_being_merged(coderabbit_repo, command, expected):
@@ -105,3 +105,36 @@ def test_merge_is_blocked_when_gh_stalls(coderabbit_repo):
 
 def test_merge_is_blocked_when_gh_fails(coderabbit_repo):
     assert run_guard(coderabbit_repo, MERGE, PASSING, gh_body="exit 1\n") == 2
+
+
+def test_merge_is_blocked_when_a_compound_command_merges_twice(coderabbit_repo):
+    assert run_guard(coderabbit_repo, "gh pr merge 41 && gh pr merge 42", PASSING) == 2
+
+
+@pytest.mark.parametrize("description", ["Review rate limited", "Review skipped", "Review paused"])
+def test_merge_is_blocked_when_a_successful_status_reports_no_review(coderabbit_repo, description):
+    checks = [{"name": "CodeRabbit", "state": "SUCCESS", "description": description}]
+
+    assert run_guard(coderabbit_repo, MERGE, checks) == 2
+
+
+def test_merge_is_allowed_when_the_status_describes_a_finished_review(coderabbit_repo):
+    checks = [{"name": "CodeRabbit", "state": "SUCCESS", "description": "Review completed"}]
+
+    assert run_guard(coderabbit_repo, MERGE, checks) == 0
+
+
+def run_without_jq(tmp_path: Path, command: str) -> int:
+    for tool in ("bash", "env", "cat", "git"):
+        link = tmp_path / tool
+        if not link.exists():
+            link.symlink_to(subprocess.run(["which", tool], capture_output=True, text=True).stdout.strip())
+    payload = json.dumps({"tool_input": {"command": command}})
+    return subprocess.run(
+        [str(GUARD)], input=payload, text=True, env={"PATH": str(tmp_path)}, capture_output=True, cwd=tmp_path
+    ).returncode
+
+
+def test_without_jq_unrelated_commands_pass_and_merges_are_blocked(tmp_path):
+    assert run_without_jq(tmp_path, "git status") == 0
+    assert run_without_jq(tmp_path, MERGE) == 2

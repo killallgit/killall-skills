@@ -144,8 +144,14 @@ def interval_for(elapsed: int) -> int:
     return 180
 
 
+GH_TIMEOUT = 60
+
+
 def gh(*args: str) -> str:
-    result = subprocess.run(["gh", *args], capture_output=True, text=True)
+    try:
+        result = subprocess.run(["gh", *args], capture_output=True, text=True, timeout=GH_TIMEOUT)
+    except (subprocess.TimeoutExpired, OSError) as err:
+        raise GhError(f"gh {' '.join(args[:2])}: {err}") from err
     if result.returncode:
         raise GhError(result.stderr.strip() or f"gh {' '.join(args)} failed")
     return result.stdout
@@ -180,7 +186,7 @@ class GhClient:
         return [
             summarize_thread(n) for n in nodes
             if not n["isResolved"] and n["comments"]["nodes"]
-            and n["comments"]["nodes"][0]["author"]["login"] == "coderabbitai"
+            and (n["comments"]["nodes"][0]["author"] or {}).get("login") == "coderabbitai"
         ]
 
 

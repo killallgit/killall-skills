@@ -3,6 +3,7 @@
 # dependencies = ["pyyaml"]
 # ///
 import json
+import os
 import re
 import subprocess
 import sys
@@ -48,13 +49,20 @@ def publish_steps(version: str) -> list[list[str]]:
     ]
 
 
+GIT_LOCATION_VARS = {"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"}
+
+
+def clean_env() -> dict[str, str]:
+    return {k: v for k, v in os.environ.items() if k not in GIT_LOCATION_VARS}
+
+
 def run(step: list[str], cwd: Path) -> None:
-    subprocess.run(step, check=True, cwd=cwd)
+    subprocess.run(step, check=True, cwd=cwd, env=clean_env())
 
 
 def output(step: list[str], cwd: Path) -> str:
     return subprocess.run(
-        step, check=True, capture_output=True, text=True, cwd=cwd
+        step, check=True, capture_output=True, text=True, cwd=cwd, env=clean_env()
     ).stdout
 
 

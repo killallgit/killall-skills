@@ -52,7 +52,7 @@ def test_publish_steps_push_branch_and_tag_atomically_last():
 
 def git(cwd: Path, *args: str) -> str:
     return subprocess.run(
-        ["git", *args], cwd=cwd, check=True, capture_output=True, text=True
+        ["git", *args], cwd=cwd, check=True, capture_output=True, text=True, env=release.clean_env()
     ).stdout
 
 

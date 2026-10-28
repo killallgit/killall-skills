@@ -110,7 +110,7 @@ always automatic, so the script handles the states a plain poll cannot:
 | in progress | keeps polling |
 | rate limited | reads the reset time from CodeRabbit's notice, sleeps until then if it fits in `--ttl`, then comments `@coderabbitai review` |
 | skipped (label, draft, paused) | comments `@coderabbitai review` once; a label is never needed |
-| no check after a minute on an open PR | comments `@coderabbitai review` once |
+| no check after 3 minutes on an open PR | comments `@coderabbitai review` once |
 | completed | reports `DONE`, the other checks' CI totals, and the unresolved CodeRabbit threads |
 
 It never posts the same trigger twice: a review comment already newer than the

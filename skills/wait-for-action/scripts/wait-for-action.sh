@@ -125,7 +125,7 @@ if (( CODERABBIT )); then
   (( NO_TRIGGER )) && args+=(--no-trigger)
   [[ -n "$LOG_DIR" ]] && args+=(--log-dir "$LOG_DIR")
   if command -v uv >/dev/null; then
-    exec uv run --no-project --python 3.12 "$here/coderabbit.py" "${args[@]}"
+    exec uv run --no-project "$here/coderabbit.py" "${args[@]}"
   fi
   exec python3 "$here/coderabbit.py" "${args[@]}"
 fi
