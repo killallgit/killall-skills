@@ -9,14 +9,16 @@ MERGE = "gh pr merge --squash --delete-branch"
 PASSING = [{"name": "CodeRabbit", "state": "SUCCESS"}]
 
 
-def run_guard(tmp_path: Path, command: str, checks: list[dict]) -> int:
+def run_guard(
+    tmp_path: Path, command: str, checks: list[dict], payload: str | None = None, gh_body: str = ""
+) -> int:
     gh = tmp_path / "gh"
     gh.write_text(
-        f"#!/usr/bin/env bash\necho \"$@\" > '{tmp_path}/gh-args'\necho '{json.dumps(checks)}'\n"
+        f"#!/usr/bin/env bash\necho \"$@\" > '{tmp_path}/gh-args'\n{gh_body}echo '{json.dumps(checks)}'\n"
     )
     gh.chmod(0o755)
-    payload = json.dumps({"tool_input": {"command": command}})
-    env = {"PATH": f"{tmp_path}:/usr/bin:/bin:/opt/homebrew/bin"}
+    payload = payload or json.dumps({"tool_input": {"command": command}})
+    env = {"PATH": f"{tmp_path}:/usr/bin:/bin:/opt/homebrew/bin", "GUARD_GH_TIMEOUT": "1"}
     return subprocess.run(
         [str(GUARD)], input=payload, text=True, env=env, capture_output=True, cwd=tmp_path
     ).returncode
@@ -85,3 +87,21 @@ def test_the_checked_pr_is_the_one_being_merged(coderabbit_repo, command, expect
 
 def test_merge_is_blocked_when_more_than_one_pr_is_named(coderabbit_repo):
     assert run_guard(coderabbit_repo, "gh pr merge 41 42", PASSING) == 2
+
+
+def test_merge_is_blocked_when_the_hook_input_cannot_be_read(coderabbit_repo):
+    assert run_guard(coderabbit_repo, "", PASSING, payload="not json") == 2
+
+
+def test_merge_is_blocked_when_the_coderabbit_check_only_shares_a_prefix(coderabbit_repo):
+    checks = [{"name": "CodeRabbit lint", "state": "SUCCESS"}]
+
+    assert run_guard(coderabbit_repo, MERGE, checks) == 2
+
+
+def test_merge_is_blocked_when_gh_stalls(coderabbit_repo):
+    assert run_guard(coderabbit_repo, MERGE, PASSING, gh_body="exec sleep 30\n") == 2
+
+
+def test_merge_is_blocked_when_gh_fails(coderabbit_repo):
+    assert run_guard(coderabbit_repo, MERGE, PASSING, gh_body="exit 1\n") == 2

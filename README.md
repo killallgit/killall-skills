@@ -33,8 +33,9 @@ Claude Code runs a skill as `/name`; Codex runs it as `$name`.
 ## Ship
 
 `/ship` opens a PR, waits for CodeRabbit, fixes its findings, merges, syncs
-main, and runs the git janitor. If CodeRabbit is rate-limited it stops and
-asks you.
+main, and runs the git janitor. If CodeRabbit is rate limited or skips the
+review it stops and asks you. It calls the `wait-for-action` and `git-janitor`
+skills, so install the bundle or those two alongside `ship`.
 
 Installing it also installs a `PreToolUse` hook that blocks `gh pr merge` until
 the merged PR's CodeRabbit check has succeeded. The hook only applies in repos

@@ -33,6 +33,7 @@
             "hooks": [
               {
                 "type": "command",
+                "timeout": 30,
                 "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/ship/hooks/guard-merge.sh\""
               }
             ]
@@ -142,6 +143,7 @@
             "hooks": [
               {
                 "type": "command",
+                "timeout": 30,
                 "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/ship/hooks/guard-merge.sh\""
               }
             ]
