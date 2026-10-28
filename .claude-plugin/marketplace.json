@@ -127,7 +127,7 @@
     {
       "name": "ship",
       "source": "./",
-      "description": "Open PR, wait for CodeRabbit, fix findings, merge, sync main, clean up",
+      "description": "Open PR, wait for CodeRabbit, fix findings, merge, sync main, clean up. Use when the user says \"ship it\", \"ship this\", or invokes `/ship`.",
       "strict": false,
       "skills": [
         "./skills/ship"

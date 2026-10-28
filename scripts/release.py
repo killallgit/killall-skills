@@ -6,6 +6,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from generate_manifests import generated_files, write_files
@@ -30,11 +31,10 @@ def bump_version(current: str, level: str) -> str:
     return ".".join(map(str, bumped))
 
 
-def sync_steps() -> list[list[str]]:
+def check_steps() -> list[list[str]]:
     return [
-        ["git", "fetch", "origin", "--tags"],
-        ["git", "switch", "main"],
-        ["git", "pull", "--rebase", "origin", "main"],
+        ["uv", "run", "--python", "3.12", "--with", "pytest", "--with", "pyyaml", "pytest"],
+        ["uv", "run", "--python", "3.12", "scripts/generate_manifests.py", "--check"],
     ]
 
 
@@ -44,34 +44,50 @@ def publish_steps(version: str) -> list[list[str]]:
         ["git", "add", *RELEASE_FILES],
         ["git", "commit", "-m", f"chore: release {tag}"],
         ["git", "tag", "-a", tag, "-m", tag],
-        ["git", "push", "--atomic", "origin", "main", tag],
+        ["git", "push", "--atomic", "origin", "HEAD:main", tag],
     ]
 
 
-def run(step: list[str]) -> None:
-    subprocess.run(step, check=True)
+def run(step: list[str], cwd: Path) -> None:
+    subprocess.run(step, check=True, cwd=cwd)
 
 
-def output(step: list[str]) -> str:
-    return subprocess.run(step, check=True, capture_output=True, text=True).stdout
+def output(step: list[str], cwd: Path) -> str:
+    return subprocess.run(
+        step, check=True, capture_output=True, text=True, cwd=cwd
+    ).stdout
 
 
-def release(root: Path, level: str) -> str:
-    if output(["git", "status", "--porcelain"]).strip():
-        raise SystemExit("working tree is not clean")
-    for step in sync_steps():
-        run(step)
-    config_path = root / "marketplace.config.json"
+def release_from(work: Path, level: str) -> str:
+    for step in check_steps():
+        run(step, work)
+    config_path = work / "marketplace.config.json"
     config = json.loads(config_path.read_text())
     config["version"] = bump_version(config["version"], level)
     tag = f"v{config['version']}"
-    if output(["git", "tag", "--list", tag]).strip():
+    if output(["git", "tag", "--list", tag], work).strip():
         raise SystemExit(f"{tag} already exists")
     config_path.write_text(json.dumps(config, indent=2) + "\n")
-    write_files(generated_files(root))
-    for step in publish_steps(config["version"]):
-        run(step)
+    write_files(generated_files(work))
+    try:
+        for step in publish_steps(config["version"]):
+            run(step, work)
+    except subprocess.CalledProcessError:
+        if output(["git", "tag", "--list", tag], work).strip():
+            run(["git", "tag", "-d", tag], work)
+        raise
     return tag
+
+
+def release(root: Path, level: str) -> str:
+    run(["git", "fetch", "origin", "--tags"], root)
+    with tempfile.TemporaryDirectory() as parent:
+        work = Path(parent) / "release"
+        run(["git", "worktree", "add", "--detach", str(work), "origin/main"], root)
+        try:
+            return release_from(work, level)
+        finally:
+            run(["git", "worktree", "remove", "--force", str(work)], root)
 
 
 def main(argv: list[str]) -> int:

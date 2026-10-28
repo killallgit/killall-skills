@@ -33,8 +33,13 @@ Claude Code runs a skill as `/name`; Codex runs it as `$name`.
 ## Ship
 
 `/ship` opens a PR, waits for CodeRabbit, fixes its findings, merges, syncs
-main, and runs the git janitor. Installing it also installs a `PreToolUse`
-hook that blocks `gh pr merge` until the PR's CodeRabbit check has succeeded.
+main, and runs the git janitor. If CodeRabbit is rate-limited it stops and
+asks you.
+
+Installing it also installs a `PreToolUse` hook that blocks `gh pr merge` until
+the merged PR's CodeRabbit check has succeeded. The hook only applies in repos
+with a `.coderabbit.yaml`, and only runs on Claude Code. Codex installs the
+plugin but the hook is not supported or tested there.
 
 ## Development
 
@@ -43,7 +48,7 @@ frontmatter and `marketplace.config.json`; Claude Code and Codex both read it.
 After adding, renaming, or editing a skill description:
 
 ```
-uv run scripts/generate_manifests.py
+task manifests
 ```
 
 CI fails when the committed file is out of date.
@@ -51,7 +56,10 @@ CI fails when the committed file is out of date.
 A skill can ship hooks in `skills/<name>/hooks/hooks.json`; the generator inlines
 them into that skill's entry and into the `killall-skills` bundle.
 
-To release, run one of these from anywhere in the checkout:
+To release, run one of these from anywhere in the checkout. The release runs in
+a temporary worktree off `origin/main`, so your checkout is never switched. It
+runs the tests and `generate_manifests.py --check` first, and on a failed push
+it removes the tag it created:
 
 ```
 task tag:patch
