@@ -94,35 +94,45 @@ sed -n '1200,1260p' /tmp/actions/<run-id>/jobs/<job>.log   # around a hit
 ## CodeRabbit
 
 CodeRabbit reviews in GitHub as an App, not an Actions run, so `gh run view`
-cannot see it. It reports through a commit status named `CodeRabbit`.
-`--coderabbit` polls that status for `HEAD` on the same schedule, instead of
-watching a run:
+cannot see it. It reports through a `CodeRabbit` check run on the commit
+(older installs: a commit status; both are read). `--coderabbit` watches the
+review of `HEAD` on the same poll schedule:
 
 ```bash
-./scripts/wait-for-action.sh --coderabbit [--ttl 15m]
+./scripts/wait-for-action.sh --coderabbit [--ttl 15m] [--no-trigger]
 ```
+
+Push first: the review is for the pushed `HEAD` commit. The review is not
+always automatic, so the script handles the states a plain poll cannot:
+
+| State | What the script does |
+|---|---|
+| in progress | keeps polling |
+| rate limited | reads the reset time from CodeRabbit's notice, sleeps until then if it fits in `--ttl`, then comments `@coderabbitai review` |
+| skipped (label, draft, paused) | comments `@coderabbitai review` once; a label is never needed |
+| no check after a minute on an open PR | comments `@coderabbitai review` once |
+| completed | reports `DONE`, the other checks' CI totals, and the unresolved CodeRabbit threads |
+
+It never posts the same trigger twice: a review comment already newer than the
+last check counts. `--no-trigger` reports instead of commenting.
 
 | Exit | Meaning |
 |---|---|
-| 0 | `DONE` — status `success`; the line carries its description, e.g. `Review completed` |
-| 1 | `FAILED` — status `failure` or `error` |
-| 2 | `TIMEOUT` — still `pending` |
-| 3 | `ERROR` — no `CodeRabbit` status after a minute: no open PR for `HEAD`, or CodeRabbit is not installed on the repo |
+| 0 | `DONE`: reviewed. Findings are listed after the line and kept in `findings.json` |
+| 1 | `FAILED`: the check failed |
+| 2 | `TIMEOUT`: still pending |
+| 3 | `ERROR`: no open PR for `HEAD`, or the API kept failing |
+| 4 | `NOT_REVIEWED`: still rate limited or skipped after a trigger, or the reset is later than `--ttl`; the line says how long |
 
-`--coderabbit` takes no `--run-id` or `--repo`. Push first: the status is for
-the pushed `HEAD` commit. Then read the review comments to resolve them. Read
-both: findings outside the diff land in the review body, not inline.
+On exit 4 report it to the user. If the line gives a reset time, rerun with a
+`--ttl` that covers it.
+
+Unresolved threads are only what CodeRabbit left inline. Findings outside the
+diff land in the review body, so read it too:
 
 ```bash
-gh api --paginate 'repos/{owner}/{repo}/pulls/<n>/comments' --jq '.[] | select(.user.login=="coderabbitai[bot]" and .in_reply_to_id==null) | {id, path, line: (.line // .original_line), body}'
 gh api --paginate 'repos/{owner}/{repo}/pulls/<n>/reviews' --jq '.[] | select(.user.login=="coderabbitai[bot]" and .body!="") | {submitted_at, body}'
 ```
-
-`line` is null once a later push moves the diff, so the first query falls back
-to `original_line`. Both queries return every round; act on the newest.
-
-A `success` description such as `Review rate limited` or `Review skipped`
-means no review was posted. Report that; do not look for comments.
 
 ## Fail-fast
 
@@ -139,12 +149,12 @@ Run it in the background when the user wants you to keep working meanwhile, and
 watch for the terminal line:
 
 ```
-Monitor pattern: ^\[t=\d+s\] (DONE|FAILED|TIMEOUT|ERROR)
+Monitor pattern: ^\[t=\d+s\] (DONE|FAILED|TIMEOUT|ERROR|NOT_REVIEWED)
 ```
 
 ## Notes
 
-- Requires `gh` (authenticated) and `jq`.
+- Requires `gh` (authenticated) and `jq`. `--coderabbit` also needs `uv` or `python3`.
 - A run created seconds ago can 404 until GitHub catches up; the script retries
   through that for the first minute before giving up with exit 3.
 - Each poll is one API call, plus one per job at the moment it completes.
