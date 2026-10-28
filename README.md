@@ -1,6 +1,6 @@
 # killall-skills
 
-Workflow skills for Claude Code, Codex, and Cursor (beta).
+Workflow skills for Claude Code and Codex.
 
 ## Install
 
@@ -18,9 +18,9 @@ codex plugin marketplace add killallgit/killall-skills
 codex plugin add killall-skills@killallgit
 ```
 
-Cursor: in **Customize**, install from the repository URL
-`https://github.com/killallgit/killall-skills`. Cursor reads
-`.cursor-plugin/plugin.json`.
+`killall-skills` installs every skill. To install one, use its name instead,
+for example `git-janitor@killallgit`. Pick either the bundle or individual
+skills, not both.
 
 Any host, skills only, through the skills CLI:
 
@@ -29,6 +29,39 @@ npx skills add killallgit/killall-skills
 ```
 
 Claude Code runs a skill as `/name`; Codex runs it as `$name`.
+
+## Ship
+
+`/ship` opens a PR, waits for CodeRabbit, fixes its findings, merges, syncs
+main, and runs the git janitor. Installing it also installs a `PreToolUse`
+hook that blocks `gh pr merge` until the PR's CodeRabbit check has succeeded.
+
+## Development
+
+`.claude-plugin/marketplace.json` is generated from each skill's `SKILL.md`
+frontmatter and `marketplace.config.json`; Claude Code and Codex both read it.
+After adding, renaming, or editing a skill description:
+
+```
+uv run scripts/generate_manifests.py
+```
+
+CI fails when the committed file is out of date.
+
+A skill can ship hooks in `skills/<name>/hooks/hooks.json`; the generator inlines
+them into that skill's entry and into the `killall-skills` bundle.
+
+To release, run one of these from anywhere in the checkout:
+
+```
+task tag:patch
+task tag:minor
+task tag:major
+```
+
+It rebases main on origin, bumps `version` in `marketplace.config.json`,
+regenerates the manifest, commits, tags `vX.Y.Z`, and pushes main and the tag.
+It refuses to run with a dirty working tree.
 
 ## Agents
 

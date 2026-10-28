@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "killallgit",
-  "description": "Killallgit workflow skills for Claude Code.",
+  "description": "Killallgit workflow skills for Claude Code and Codex.",
   "owner": {
     "name": "archae0pteryx",
     "url": "https://github.com/killallgit"
@@ -10,9 +10,156 @@
     {
       "name": "killall-skills",
       "source": "./",
-      "description": "Killallgit skills: catch-up, check-agent-docs, end-session, follow-the-rules, git-janitor, independent-review, session-eject, and wait-for-action.",
+      "description": "Helpful agent skills.",
+      "strict": false,
+      "skills": [
+        "./skills/catch-up",
+        "./skills/check-agent-docs",
+        "./skills/end-session",
+        "./skills/follow-the-rules",
+        "./skills/git-janitor",
+        "./skills/independent-review",
+        "./skills/session-eject",
+        "./skills/ship",
+        "./skills/wait-for-action"
+      ],
       "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills"
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0",
+      "hooks": {
+        "PreToolUse": [
+          {
+            "matcher": "Bash",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/ship/hooks/guard-merge.sh\""
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "catch-up",
+      "source": "./",
+      "description": "Rebuild a human's lost context on the work in flight after reconciling the current checkout's dangling changes \u2014 commit what belongs to an open PR, discard what already landed, sync the branch \u2014 then summarize the state of play, decisions, live PRs and tickets, and the single next step. Use when the user says \"catch me up\", \"where were we\", \"what's the state of this\", \"get back on track\", or invokes `/catch-up` after time away.",
+      "strict": false,
+      "skills": [
+        "./skills/catch-up"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0"
+    },
+    {
+      "name": "check-agent-docs",
+      "source": "./",
+      "description": "Review and clean up a project whose root has both AGENTS.md and CLAUDE.md \u2014 shared instructions live once in AGENTS.md, CLAUDE.md imports them with `@AGENTS.md` instead of repeating them, and every checkable claim in either file still matches the repo. Use when the user says \"check the agent docs\", \"check project\", \"dedupe CLAUDE.md and AGENTS.md\", or invokes `/check-agent-docs`. Does nothing unless both files exist.",
+      "strict": false,
+      "skills": [
+        "./skills/check-agent-docs"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0"
+    },
+    {
+      "name": "end-session",
+      "source": "./",
+      "description": "Bring this session's branch up to date, land or discard its work, and archive the session.",
+      "strict": false,
+      "skills": [
+        "./skills/end-session"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0"
+    },
+    {
+      "name": "follow-the-rules",
+      "source": "./",
+      "description": "Core programming rules for all agents and users alike. The following documents contain the most important, fundamental, rules that every engineer - junior to principle - MUST follow.",
+      "strict": false,
+      "skills": [
+        "./skills/follow-the-rules"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0"
+    },
+    {
+      "name": "git-janitor",
+      "source": "./",
+      "description": "Clean up local Git when the user says \"clean up our local git\", prune the repo, or review stale branches and worktrees. Inspect uncommitted and unpublished work in every worktree first, discard work that is superseded or over 60 days old when justified, then remove merged and stale local worktrees and branches. Record what was discarded and why.",
+      "strict": false,
+      "skills": [
+        "./skills/git-janitor"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0"
+    },
+    {
+      "name": "independent-review",
+      "source": "./",
+      "description": "Get the current branch reviewed by a reviewer that did not write it. Opens a PR if none exists, runs CodeRabbit when available, otherwise a fresh-context local review agent, then resolves the findings.",
+      "strict": false,
+      "skills": [
+        "./skills/independent-review"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0"
+    },
+    {
+      "name": "session-eject",
+      "source": "./",
+      "description": "Save all work before usage runs out \u2014 commit, push, update or open draft PRs, and stop. `now` skips waiting for subagents.",
+      "strict": false,
+      "skills": [
+        "./skills/session-eject"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0"
+    },
+    {
+      "name": "ship",
+      "source": "./",
+      "description": "Open PR, wait for CodeRabbit, fix findings, merge, sync main, clean up",
+      "strict": false,
+      "skills": [
+        "./skills/ship"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0",
+      "hooks": {
+        "PreToolUse": [
+          {
+            "matcher": "Bash",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/ship/hooks/guard-merge.sh\""
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "wait-for-action",
+      "source": "./",
+      "description": "Wait for a GitHub Actions run to finish, or for the CodeRabbit review of HEAD with --coderabbit. Use when a workflow has been triggered and later work depends on it passing, when you need to know why a run failed, or when the user says to wait for CodeRabbit.",
+      "strict": false,
+      "skills": [
+        "./skills/wait-for-action"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.1.0"
     }
   ]
 }

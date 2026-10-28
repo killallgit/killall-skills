@@ -1,0 +1,22 @@
+version: "3"
+
+tasks:
+  manifests:
+    desc: Regenerate the marketplace manifest from the skills
+    cmds:
+      - uv run --python 3.12 scripts/generate_manifests.py
+
+  tag:patch:
+    desc: Update main, bump the patch version, tag it, and push
+    cmds:
+      - uv run --python 3.12 scripts/release.py patch
+
+  tag:minor:
+    desc: Update main, bump the minor version, tag it, and push
+    cmds:
+      - uv run --python 3.12 scripts/release.py minor
+
+  tag:major:
+    desc: Update main, bump the major version, tag it, and push
+    cmds:
+      - uv run --python 3.12 scripts/release.py major
