@@ -34,6 +34,7 @@ for word in "${words[@]}"; do
   case "$word" in
     -R|--repo) skip=repo ;;
     --repo=*) repo=(-R "${word#--repo=}") ;;
+    -R?*) repo=(-R "${word#-R}") ;;
     -b|--body|-F|--body-file|-t|--subject|-A|--author-email|--match-head-commit) skip=other ;;
     -*) ;;
     *) pr+=("$word") ;;

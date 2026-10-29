@@ -69,9 +69,10 @@ task tag:minor
 task tag:major
 ```
 
-It rebases main on origin, bumps `version` in `marketplace.config.json`,
-regenerates the manifest, commits, tags `vX.Y.Z`, and pushes main and the tag.
-It refuses to run with a dirty working tree.
+It bumps `version` in `marketplace.config.json`, regenerates the manifest,
+commits, tags `vX.Y.Z`, and pushes the commit and tag together. The release is
+built from `origin/main`, so uncommitted changes in your checkout are ignored
+and never released.
 
 ## Agents
 

@@ -77,6 +77,8 @@ def test_merge_is_allowed_in_a_repo_without_coderabbit_config(tmp_path):
         ("gh pr merge my-branch --delete-branch", "pr checks my-branch --json name,state,description"),
         ("gh -R o/r pr merge 42", "pr checks 42 -R o/r --json name,state,description"),
         ("gh pr merge 42 --repo o/r", "pr checks 42 -R o/r --json name,state,description"),
+        ("gh pr merge 42 --repo=o/r", "pr checks 42 -R o/r --json name,state,description"),
+        ("gh pr merge 42 -Ro/r", "pr checks 42 -R o/r --json name,state,description"),
         ("gh pr merge 42 --subject fix && git pull", "pr checks 42 --json name,state,description"),
     ],
 )
@@ -178,3 +180,13 @@ def test_a_merge_for_another_repo_is_guarded_only_when_that_repo_uses_coderabbit
 )
 def test_a_failed_or_stalled_repo_lookup_blocks_the_merge(tmp_path, body):
     assert run_guard(tmp_path, "gh pr merge 42 -R o/other", [], gh_body=body, timeout="1") == 2
+
+
+@pytest.mark.parametrize("flag", ["-R o/guarded", "-Ro/guarded", "--repo o/guarded", "--repo=o/guarded"])
+def test_every_spelling_of_the_repo_flag_reaches_the_target_repo_lookup(tmp_path, flag):
+    body = (
+        'if [[ "$*" == *guarded/contents* ]]; then exit 0; fi\n'
+        '[[ "$1" == api ]] && { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }\n'
+    )
+
+    assert run_guard(tmp_path, f"gh pr merge 42 {flag}", [], gh_body=body) == 2
