@@ -386,3 +386,16 @@ def test_a_finished_review_whose_findings_cannot_be_read_is_an_error_not_a_clean
 
     assert code == 3
     assert "findings could not be read" in lines[-1]
+
+
+def test_no_comment_is_posted_once_the_budget_ran_out_during_a_long_sleep():
+    clock = FakeClock()
+    limited = check(conclusion="neutral", title="Review rate limited")
+    client = FakeClient(clock, [[limited]], comments=[limit_notice(minutes=2)])
+    clock.sleep = lambda seconds: setattr(clock, "t", clock.t + 10_000)
+
+    code, lines, _ = run_watch(client, clock, ttl=3600)
+
+    assert code == 2
+    assert lines[-1].startswith("TIMEOUT")
+    assert client.posted == []

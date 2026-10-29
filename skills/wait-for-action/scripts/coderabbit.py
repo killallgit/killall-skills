@@ -279,6 +279,9 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
                 if kind == "FAILED":
                     say(True, f"FAILED coderabbit {verdict.detail} {verdict.url}".rstrip())
                     return EXIT_FAILED
+                if elapsed() >= ttl:
+                    say(True, f"TIMEOUT coderabbit still {kind.lower()} after {ttl}s")
+                    return EXIT_TIMEOUT
                 if kind == "PENDING":
                     announce("PENDING", verdict.detail)
                 elif kind == "NONE" and elapsed() <= NO_CHECK_GRACE:

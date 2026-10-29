@@ -135,10 +135,11 @@ gh api graphql -f query='mutation($id:ID!){resolveReviewThread(input:{threadId:$
 ```
 
 Unresolved threads are only what CodeRabbit left inline. Findings outside the
-diff land in the review body, so read it too:
+diff land in the review body, so read the newest one too (older bodies hold
+findings from earlier rounds):
 
 ```bash
-gh api --paginate 'repos/{owner}/{repo}/pulls/<n>/reviews' --jq '.[] | select(.user.login=="coderabbitai[bot]" and .body!="") | {submitted_at, body}'
+gh api --paginate 'repos/{owner}/{repo}/pulls/<n>/reviews?per_page=100' --jq '[.[] | select(.user.login=="coderabbitai[bot]" and .body!="")] | last | {submitted_at, body}'
 ```
 
 ## Fail-fast
