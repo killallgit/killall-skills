@@ -1,11 +1,12 @@
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 import release
-from release import bump_version, check_steps, publish_steps
+from release import bump_version, check_steps, generate_step, publish_steps
 
 
 @pytest.mark.parametrize(
@@ -62,6 +63,8 @@ def checkout(tmp_path, monkeypatch):
         monkeypatch.setenv(f"GIT_{key}_NAME", "tester")
         monkeypatch.setenv(f"GIT_{key}_EMAIL", "tester@example.com")
     monkeypatch.setattr(release, "check_steps", lambda: [])
+    generator = Path(release.__file__).parent / "generate_manifests.py"
+    monkeypatch.setattr(release, "generate_step", lambda: [sys.executable, "scripts/generate_manifests.py"])
     origin = tmp_path / "origin.git"
     git(tmp_path, "init", "--bare", "-b", "main", str(origin))
     clone = tmp_path / "clone"
@@ -76,6 +79,8 @@ def checkout(tmp_path, monkeypatch):
         "bundle": {"name": "b", "description": "d"},
     }
     (clone / "marketplace.config.json").write_text(json.dumps(config))
+    (clone / "scripts").mkdir()
+    (clone / "scripts" / "generate_manifests.py").write_text(generator.read_text())
     skill = clone / "skills" / "one"
     skill.mkdir(parents=True)
     (skill / "SKILL.md").write_text("---\nname: one\ndescription: first\n---\n")
@@ -110,3 +115,16 @@ def test_release_leaves_no_tag_or_worktree_when_the_push_is_rejected(checkout):
     assert git(clone, "tag", "--list").strip() == ""
     assert git(clone, "worktree", "list").count("\n") == 1
     assert git(origin, "tag", "--list").strip() == ""
+
+
+def test_the_manifest_is_generated_by_the_script_in_the_release_checkout():
+    assert generate_step()[-1] == "scripts/generate_manifests.py"
+
+
+def test_release_regenerates_the_manifest_with_the_checkout_generator(checkout):
+    clone, origin = checkout
+
+    release.release(clone, "patch")
+
+    manifest = json.loads(git(origin, "show", "main:.claude-plugin/marketplace.json"))
+    assert {plugin["name"] for plugin in manifest["plugins"]} == {"b", "one"}

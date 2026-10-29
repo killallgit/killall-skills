@@ -31,13 +31,18 @@ BAD_CONCLUSIONS = {"failure", "timed_out", "cancelled", "startup_failure", "acti
 UNITS = {"second": 1, "minute": 60, "hour": 3600}
 RESET = re.compile(r"available in (\d+)\s*(second|minute|hour)", re.I)
 WAIT = re.compile(r"wait (?:for )?(\d+) (minute|second|hour)s?(?: and (\d+) seconds?)?", re.I)
-THREADS_QUERY = """query($owner:String!,$repo:String!,$n:Int!){repository(owner:$owner,name:$repo){
-pullRequest(number:$n){reviewThreads(first:100){nodes{isResolved isOutdated path line
+THREADS_QUERY = """query($owner:String!,$repo:String!,$n:Int!,$after:String){repository(owner:$owner,name:$repo){
+pullRequest(number:$n){reviewThreads(first:100,after:$after){pageInfo{hasNextPage endCursor}
+nodes{id isResolved isOutdated path line originalLine
 comments(first:1){nodes{author{login} body}}}}}}}"""
 
 
 class GhError(Exception):
     pass
+
+
+# A payload that is not the shape we expect is as transient as a failed call.
+API_ERRORS = (GhError, ValueError, KeyError, TypeError)
 
 
 class Verdict:
@@ -126,8 +131,9 @@ def summarize_thread(thread: dict) -> dict:
     severity = re.match(r"\*\*\s*(\w+)", lines[0]) if lines else None
     title = next((m.group(1) for m in (re.fullmatch(r"\*\*(.+)\*\*", l) for l in lines[1:]) if m), "")
     return {
+        "id": thread["id"],
         "path": thread["path"],
-        "line": thread["line"],
+        "line": thread["line"] or thread.get("originalLine"),
         "outdated": thread["isOutdated"],
         "severity": severity.group(1) if severity else "",
         "title": title or (lines[0][:80] if lines else ""),
@@ -178,11 +184,19 @@ class GhClient:
 
     def unresolved_threads(self, pr: int) -> list[dict]:
         repo = json.loads(gh("repo", "view", "--json", "owner,name"))
-        data = json.loads(gh(
-            "api", "graphql", "-f", f"query={THREADS_QUERY}",
-            "-F", f"owner={repo['owner']['login']}", "-F", f"repo={repo['name']}", "-F", f"n={pr}",
-        ))
-        nodes = data["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+        nodes, after = [], None
+        while True:
+            args = [
+                "api", "graphql", "-f", f"query={THREADS_QUERY}",
+                "-F", f"owner={repo['owner']['login']}", "-F", f"repo={repo['name']}", "-F", f"n={pr}",
+            ]
+            if after:
+                args += ["-F", f"after={after}"]
+            page = json.loads(gh(*args))["data"]["repository"]["pullRequest"]["reviewThreads"]
+            nodes += page["nodes"]
+            if not page["pageInfo"]["hasNextPage"]:
+                break
+            after = page["pageInfo"]["endCursor"]
         return [
             summarize_thread(n) for n in nodes
             if not n["isResolved"] and n["comments"]["nodes"]
@@ -238,14 +252,15 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
         try:
             runs = client.check_runs(sha)
             check = coderabbit_check(runs, floor)
-            verdict = classify(check, None if floor else client.legacy_status(sha))
+            legacy = None if check or floor else client.legacy_status(sha)
+            verdict = classify(check, legacy)
             errors = 0
-        except GhError as err:
+        except API_ERRORS as err:
             errors += 1
             if errors >= 3:
-                say(True, f"ERROR {err}")
+                say(True, f"ERROR {err!r}")
                 return EXIT_ERROR
-            announce("PENDING", f"api-error, retrying -- {err}")
+            announce("PENDING", f"api-error, retrying -- {err!r}")
 
         nap = None
         if verdict is not None:
@@ -293,8 +308,8 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
                         nudge("rate limit reset", check)
                     else:
                         nap = retry_at - clock.now()
-            except GhError as err:
-                say(True, f"ERROR {err}")
+            except API_ERRORS as err:
+                say(True, f"ERROR {err!r}")
                 return EXIT_ERROR
 
         remaining = ttl - elapsed()
@@ -308,14 +323,15 @@ def report_findings(client, sha: str, pr: int | None, say, save) -> None:
     try:
         pr = pr or client.open_pr(sha)
         threads = client.unresolved_threads(pr) if pr else []
-    except GhError as err:
-        say(False, f"findings: unavailable -- {err}")
+    except API_ERRORS as err:
+        say(False, f"findings: unavailable -- {err!r}")
         return
     save("findings.json", threads)
     say(False, f"findings: {len(threads)} unresolved CodeRabbit thread(s), see findings.json")
     for thread in threads:
         mark = " (outdated)" if thread["outdated"] else ""
-        say(False, f"  {thread['path']}:{thread['line']} {thread['severity']} {thread['title']}{mark}")
+        where = f"{thread['path']}:{thread['line']}" if thread["line"] else thread["path"]
+        say(False, f"  {where} {thread['severity']} {thread['title']}{mark}")
 
 
 def main(argv: list[str]) -> int:
@@ -334,6 +350,7 @@ def main(argv: list[str]) -> int:
         return EXIT_ERROR
     log_dir = Path(args.log_dir or f"/tmp/actions/coderabbit-{sha}")
     log_dir.mkdir(parents=True, exist_ok=True)
+    (log_dir / "poll.log").write_text("")
     start = time.time()
 
     def say(always: bool, line: str) -> None:
@@ -346,7 +363,11 @@ def main(argv: list[str]) -> int:
     def save(name: str, data) -> None:
         (log_dir / name).write_text(json.dumps(data, indent=2) + "\n")
 
-    return watch(GhClient(), sha, args.ttl, Clock(), say, save, trigger=not args.no_trigger)
+    try:
+        return watch(GhClient(), sha, args.ttl, Clock(), say, save, trigger=not args.no_trigger)
+    except Exception as err:  # exit 1 means FAILED to callers, so never leak a traceback
+        say(True, f"ERROR unexpected {err!r}")
+        return EXIT_ERROR
 
 
 if __name__ == "__main__":

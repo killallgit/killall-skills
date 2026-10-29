@@ -169,6 +169,7 @@ def test_ci_summary_ignores_coderabbit():
 
 def test_thread_summary_strips_html_and_keeps_severity_and_title():
     thread = {
+        "id": "T1",
         "path": "a.sh",
         "line": 3,
         "isOutdated": False,
@@ -176,8 +177,17 @@ def test_thread_summary_strips_html_and_keeps_severity_and_title():
     }
 
     assert summarize_thread(thread) == {
-        "path": "a.sh", "line": 3, "outdated": False, "severity": "Major", "title": "Block on failure.",
+        "id": "T1", "path": "a.sh", "line": 3, "outdated": False, "severity": "Major", "title": "Block on failure.",
     }
+
+
+def test_thread_summary_falls_back_to_the_original_line():
+    thread = {
+        "id": "T1", "path": "a.sh", "line": None, "originalLine": 9, "isOutdated": True,
+        "comments": {"nodes": [{"body": "**Major** x"}]},
+    }
+
+    assert summarize_thread(thread)["line"] == 9
 
 
 def test_a_pending_review_is_waited_out_until_done():
@@ -194,7 +204,7 @@ def test_a_pending_review_is_waited_out_until_done():
 
 def test_done_lists_the_unresolved_findings():
     clock = FakeClock()
-    thread = {"path": "a.sh", "line": 3, "outdated": False, "severity": "Major", "title": "Fix it"}
+    thread = {"id": "T1", "path": "a.sh", "line": 3, "outdated": False, "severity": "Major", "title": "Fix it"}
     client = FakeClient(clock, [[check()]], threads=[thread])
 
     code, lines, saved = run_watch(client, clock)
@@ -333,3 +343,31 @@ def test_a_few_api_errors_are_retried_but_a_persistent_one_is_an_error():
 
     assert run_watch(flaky, clock)[0] == 0
     assert run_watch(broken, clock)[0] == 3
+
+
+def test_a_threadless_line_is_listed_by_path_only():
+    clock = FakeClock()
+    thread = {"id": "T1", "path": "a.sh", "line": None, "outdated": True, "severity": "Major", "title": "Fix it"}
+    client = FakeClient(clock, [[check()]], threads=[thread])
+
+    _, lines, _ = run_watch(client, clock)
+
+    assert "  a.sh Major Fix it (outdated)" in lines
+
+
+def test_an_unexpected_payload_shape_is_retried_then_an_error_not_a_failure():
+    clock = FakeClock()
+    client = FakeClient(clock, [KeyError("check_runs")])
+
+    code, lines, _ = run_watch(client, clock)
+
+    assert code == 3
+    assert "KeyError" in lines[-1]
+
+
+def test_the_legacy_status_is_only_read_when_there_is_no_check_run():
+    clock = FakeClock()
+    client = FakeClient(clock, [[check()]])
+    client.legacy_status = lambda sha: pytest.fail("legacy status read")
+
+    assert run_watch(client, clock)[0] == 0

@@ -127,6 +127,13 @@ last check counts. `--no-trigger` reports instead of commenting.
 On exit 4 report it to the user. If the line gives a reset time, rerun with a
 `--ttl` that covers it.
 
+Each finding carries its thread `id`. Resolve a thread once its finding is fixed,
+so the next round lists only what is left:
+
+```bash
+gh api graphql -f query='mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{isResolved}}}' -F id=<id>
+```
+
 Unresolved threads are only what CodeRabbit left inline. Findings outside the
 diff land in the review body, so read it too:
 

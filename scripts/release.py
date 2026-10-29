@@ -1,6 +1,5 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["pyyaml"]
 # ///
 import json
 import os
@@ -9,8 +8,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
-from generate_manifests import generated_files, write_files
 
 SEMVER = re.compile(r"\A(\d+)\.(\d+)\.(\d+)\Z")
 LEVELS = ("patch", "minor", "major")
@@ -37,6 +34,10 @@ def check_steps() -> list[list[str]]:
         ["uv", "run", "--python", "3.12", "--with", "pytest", "--with", "pyyaml", "pytest"],
         ["uv", "run", "--python", "3.12", "scripts/generate_manifests.py", "--check"],
     ]
+
+
+def generate_step() -> list[str]:
+    return ["uv", "run", "--python", "3.12", "scripts/generate_manifests.py"]
 
 
 def publish_steps(version: str) -> list[list[str]]:
@@ -76,7 +77,7 @@ def release_from(work: Path, level: str) -> str:
     if output(["git", "tag", "--list", tag], work).strip():
         raise SystemExit(f"{tag} already exists")
     config_path.write_text(json.dumps(config, indent=2) + "\n")
-    write_files(generated_files(work))
+    run(generate_step(), work)
     try:
         for step in publish_steps(config["version"]):
             run(step, work)

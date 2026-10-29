@@ -86,6 +86,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "$TAIL" =~ ^[0-9]+$ ]] || die "--tail must be an integer"
+(( ! NO_TRIGGER || CODERABBIT )) || die "--no-trigger only applies to --coderabbit"
 command -v gh >/dev/null || die "gh CLI not found"
 command -v jq >/dev/null || die "jq not found"
 

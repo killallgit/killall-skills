@@ -138,3 +138,32 @@ def run_without_jq(tmp_path: Path, command: str) -> int:
 def test_without_jq_unrelated_commands_pass_and_merges_are_blocked(tmp_path):
     assert run_without_jq(tmp_path, "git status") == 0
     assert run_without_jq(tmp_path, MERGE) == 2
+
+
+def test_a_word_ending_in_gh_is_not_a_merge(coderabbit_repo):
+    assert run_guard(coderabbit_repo, "echo high pr merge notes", []) == 0
+
+
+@pytest.mark.parametrize("exit_code", [1, 8])
+def test_failed_or_pending_ci_does_not_hide_a_finished_coderabbit_review(coderabbit_repo, exit_code):
+    body = f"echo '{json.dumps(PASSING)}'; exit {exit_code}\n"
+
+    assert run_guard(coderabbit_repo, MERGE, [], gh_body=body) == 0
+
+
+def test_the_repo_a_merge_cds_into_decides_whether_it_is_guarded(tmp_path):
+    guarded = tmp_path / "guarded"
+    guarded.mkdir()
+    (guarded / ".coderabbit.yaml").write_text("")
+
+    assert run_guard(tmp_path, f"cd {guarded} && {MERGE}", []) == 2
+    assert run_guard(tmp_path, f"cd {tmp_path} && {MERGE}", []) == 0
+
+
+def test_a_merge_for_another_repo_is_guarded_only_when_that_repo_uses_coderabbit(tmp_path):
+    guarded = "gh pr merge 42 -R o/guarded"
+    unguarded = "gh pr merge 42 -R o/other"
+    body = 'if [[ "$*" == *guarded/contents* ]]; then exit 0; fi\n[[ "$1" == api ]] && exit 1\n'
+
+    assert run_guard(tmp_path, guarded, [], gh_body=body) == 2
+    assert run_guard(tmp_path, unguarded, [], gh_body=body) == 0
