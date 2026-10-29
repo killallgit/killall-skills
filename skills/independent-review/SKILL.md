@@ -31,13 +31,16 @@ This step is done when the pushed `HEAD` has an open, non-draft PR.
 Run `scripts/wait-for-action.sh --coderabbit` from the `wait-for-action` skill.
 It blocks until CodeRabbit finishes reviewing `HEAD`.
 
+The script restarts a skipped or rate-limited review itself when the reset fits
+in `--ttl`.
+
 | Result | Next |
 |---|---|
-| `DONE`, not `rate limited` or `skipped` | Step 3 |
-| `DONE` with `rate limited` or `skipped` | Step 4: no review was posted |
-| `ERROR`: no status after a minute | Step 4 |
-| `TIMEOUT` | Run again with `--ttl 30m`. Still pending: step 4 |
-| `FAILED` | Step 4 |
+| `DONE` (exit 0) | Step 3 |
+| `NOT_REVIEWED` (exit 4): still rate limited or skipped | Step 4: no review was posted |
+| `ERROR` (exit 3): no open PR, API failure, or unreadable findings | Step 4 |
+| `TIMEOUT` (exit 2) | Run again with `--ttl 30m`. Still pending: step 4 |
+| `FAILED` (exit 1) | Step 4 |
 
 ## 3. Resolve CodeRabbit's findings
 

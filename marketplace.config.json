@@ -1,0 +1,15 @@
+{
+  "name": "killallgit",
+  "description": "Killallgit workflow skills for Claude Code and Codex.",
+  "version": "4.1.0",
+  "owner": {
+    "name": "archae0pteryx",
+    "url": "https://github.com/killallgit"
+  },
+  "homepage": "https://github.com/killallgit/killall-skills",
+  "category": "workflow",
+  "bundle": {
+    "name": "killall-skills",
+    "description": "Helpful agent skills."
+  }
+}

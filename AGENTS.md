@@ -5,4 +5,3 @@
 # Supported tools
 - claude
 - codex
-- (beta) cursor
