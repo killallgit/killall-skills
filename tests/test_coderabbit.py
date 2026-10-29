@@ -399,3 +399,17 @@ def test_no_comment_is_posted_once_the_budget_ran_out_during_a_long_sleep():
     assert code == 2
     assert lines[-1].startswith("TIMEOUT")
     assert client.posted == []
+
+
+def test_a_review_skipped_again_at_the_deadline_is_not_reviewed_not_a_timeout():
+    clock = FakeClock()
+    first = check(id=1, conclusion="neutral", title="Review skipped")
+    second = check(id=2, conclusion="neutral", title="Review skipped")
+    client = FakeClient(clock, [[first], [first, second]])
+    clock.sleep = lambda seconds: setattr(clock, "t", clock.t + 10_000)
+
+    code, lines, _ = run_watch(client, clock, ttl=60)
+
+    assert code == 4
+    assert lines[-1].startswith("NOT_REVIEWED")
+    assert client.posted == [TRIGGER]

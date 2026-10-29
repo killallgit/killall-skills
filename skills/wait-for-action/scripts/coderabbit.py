@@ -245,6 +245,10 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
         pr = pr or client.open_pr(sha)
         return pr
 
+    def timed_out() -> int:
+        say(True, f"TIMEOUT coderabbit still {last[0].lower() if last else 'pending'} after {ttl}s")
+        return EXIT_TIMEOUT
+
     def not_reviewed(detail: str) -> int:
         say(True, f"NOT_REVIEWED coderabbit {detail}")
         return EXIT_NOT_REVIEWED
@@ -279,9 +283,6 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
                 if kind == "FAILED":
                     say(True, f"FAILED coderabbit {verdict.detail} {verdict.url}".rstrip())
                     return EXIT_FAILED
-                if elapsed() >= ttl:
-                    say(True, f"TIMEOUT coderabbit still {kind.lower()} after {ttl}s")
-                    return EXIT_TIMEOUT
                 if kind == "PENDING":
                     announce("PENDING", verdict.detail)
                 elif kind == "NONE" and elapsed() <= NO_CHECK_GRACE:
@@ -291,12 +292,16 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
                     return EXIT_ERROR
                 elif kind == "NONE":
                     if trigger and triggers == 0:
+                        if elapsed() >= ttl:
+                            return timed_out()
                         nudge("no review started", None)
                     else:
                         announce("PENDING", "waiting for CodeRabbit to start")
                 elif kind == "SKIPPED":
                     if not trigger or skip_nudged:
                         return not_reviewed(f"{verdict.detail} {verdict.url}".strip())
+                    if elapsed() >= ttl:
+                        return timed_out()
                     skip_nudged = True
                     nudge(verdict.detail.lower(), check)
                 else:
@@ -311,6 +316,8 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
                         retry_at = clock.now() + wait + RETRY_PAD
                         announce("RATE_LIMITED", f"retrying in {wait // 60 + 1}m")
                     if clock.now() >= retry_at:
+                        if elapsed() >= ttl:
+                            return timed_out()
                         retry_at = None
                         limit_retries += 1
                         nudge("rate limit reset", check)
@@ -322,8 +329,7 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
 
         remaining = ttl - elapsed()
         if remaining <= 0:
-            say(True, f"TIMEOUT coderabbit still {last[0].lower() if last else 'pending'} after {ttl}s")
-            return EXIT_TIMEOUT
+            return timed_out()
         clock.sleep(min(nap if nap is not None else interval_for(elapsed()), remaining))
 
 
