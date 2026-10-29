@@ -196,7 +196,10 @@ class GhClient:
             nodes += page["nodes"]
             if not page["pageInfo"]["hasNextPage"]:
                 break
-            after = page["pageInfo"]["endCursor"]
+            cursor = page["pageInfo"]["endCursor"]
+            if not cursor or cursor == after:
+                raise GhError("reviewThreads pagination did not advance")
+            after = cursor
         return [
             summarize_thread(n) for n in nodes
             if not n["isResolved"] and n["comments"]["nodes"]
@@ -269,7 +272,9 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
                 if kind == "DONE":
                     say(True, f"DONE coderabbit {verdict.detail} {verdict.url}".rstrip())
                     say(False, ci_summary(runs))
-                    report_findings(client, sha, pr, say, save)
+                    if not report_findings(client, sha, pr, say, save):
+                        say(True, "ERROR review finished but its inline findings could not be read")
+                        return EXIT_ERROR
                     return EXIT_DONE
                 if kind == "FAILED":
                     say(True, f"FAILED coderabbit {verdict.detail} {verdict.url}".rstrip())
@@ -319,19 +324,20 @@ def watch(client, sha: str, ttl: int, clock, say, save, trigger: bool = True) ->
         clock.sleep(min(nap if nap is not None else interval_for(elapsed()), remaining))
 
 
-def report_findings(client, sha: str, pr: int | None, say, save) -> None:
+def report_findings(client, sha: str, pr: int | None, say, save) -> bool:
     try:
         pr = pr or client.open_pr(sha)
         threads = client.unresolved_threads(pr) if pr else []
     except API_ERRORS as err:
         say(False, f"findings: unavailable -- {err!r}")
-        return
+        return False
     save("findings.json", threads)
     say(False, f"findings: {len(threads)} unresolved CodeRabbit thread(s), see findings.json")
     for thread in threads:
         mark = " (outdated)" if thread["outdated"] else ""
         where = f"{thread['path']}:{thread['line']}" if thread["line"] else thread["path"]
         say(False, f"  {where} {thread['severity']} {thread['title']}{mark}")
+    return True
 
 
 def main(argv: list[str]) -> int:

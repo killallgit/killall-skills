@@ -121,7 +121,7 @@ last check counts. `--no-trigger` reports instead of commenting.
 | 0 | `DONE`: reviewed. Findings are listed after the line and kept in `findings.json` |
 | 1 | `FAILED`: the check failed |
 | 2 | `TIMEOUT`: still pending |
-| 3 | `ERROR`: no open PR for `HEAD`, or the API kept failing |
+| 3 | `ERROR`: no open PR for `HEAD`, the API kept failing, or the review finished but its inline findings could not be read |
 | 4 | `NOT_REVIEWED`: still rate limited or skipped after a trigger, or the reset is later than `--ttl`; the line says how long |
 
 On exit 4 report it to the user. If the line gives a reset time, rerun with a

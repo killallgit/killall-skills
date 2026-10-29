@@ -163,7 +163,18 @@ def test_the_repo_a_merge_cds_into_decides_whether_it_is_guarded(tmp_path):
 def test_a_merge_for_another_repo_is_guarded_only_when_that_repo_uses_coderabbit(tmp_path):
     guarded = "gh pr merge 42 -R o/guarded"
     unguarded = "gh pr merge 42 -R o/other"
-    body = 'if [[ "$*" == *guarded/contents* ]]; then exit 0; fi\n[[ "$1" == api ]] && exit 1\n'
+    body = (
+        'if [[ "$*" == *guarded/contents* ]]; then exit 0; fi\n'
+        '[[ "$1" == api ]] && { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }\n'
+    )
 
     assert run_guard(tmp_path, guarded, [], gh_body=body) == 2
     assert run_guard(tmp_path, unguarded, [], gh_body=body) == 0
+
+
+@pytest.mark.parametrize(
+    "body",
+    ['[[ "$1" == api ]] && { echo "gh: HTTP 401" >&2; exit 1; }\n', '[[ "$1" == api ]] && exec sleep 30\n'],
+)
+def test_a_failed_or_stalled_repo_lookup_blocks_the_merge(tmp_path, body):
+    assert run_guard(tmp_path, "gh pr merge 42 -R o/other", [], gh_body=body, timeout="1") == 2

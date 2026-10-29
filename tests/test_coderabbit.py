@@ -371,3 +371,18 @@ def test_the_legacy_status_is_only_read_when_there_is_no_check_run():
     client.legacy_status = lambda sha: pytest.fail("legacy status read")
 
     assert run_watch(client, clock)[0] == 0
+
+
+def test_a_finished_review_whose_findings_cannot_be_read_is_an_error_not_a_clean_pass():
+    clock = FakeClock()
+    client = FakeClient(clock, [[check()]])
+
+    def unreadable(pr):
+        raise GhError("graphql down")
+
+    client.unresolved_threads = unreadable
+
+    code, lines, _ = run_watch(client, clock)
+
+    assert code == 3
+    assert "findings could not be read" in lines[-1]
