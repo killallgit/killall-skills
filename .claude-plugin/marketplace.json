@@ -26,22 +26,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.3.0",
-      "hooks": {
-        "PreToolUse": [
-          {
-            "matcher": "Bash",
-            "hooks": [
-              {
-                "type": "command",
-                "if": "Bash(*pr*merge*)",
-                "timeout": 30,
-                "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/ship/hooks/guard-merge.sh\""
-              }
-            ]
-          }
-        ]
-      }
+      "version": "4.3.0"
     },
     {
       "name": "catch-up",
@@ -149,22 +134,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.3.0",
-      "hooks": {
-        "PreToolUse": [
-          {
-            "matcher": "Bash",
-            "hooks": [
-              {
-                "type": "command",
-                "if": "Bash(*pr*merge*)",
-                "timeout": 30,
-                "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/ship/hooks/guard-merge.sh\""
-              }
-            ]
-          }
-        ]
-      }
+      "version": "4.3.0"
     },
     {
       "name": "wait-for-action",
