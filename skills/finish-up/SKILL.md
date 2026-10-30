@@ -67,19 +67,24 @@ Exit 1: `[x]` with the failing check names and stop.
 
 ## 2. confirming review...
 
-A review is needed when the PR's repo has a `.coderabbit.yaml`
-(`gh api repos/<owner>/<repo>/contents/.coderabbit.yaml`), or `reviewDecision`
-is `REVIEW_REQUIRED` or `CHANGES_REQUESTED`. Check each that applies.
+A review is needed only when the changes warrant one: the diff touches
+executable code (scripts, hooks, CI config), or `reviewDecision` is
+`REVIEW_REQUIRED` or `CHANGES_REQUESTED`. A PR of docs and skill text alone
+needs none: `[-] no review needed`.
 
-- **Not needed** and no review exists: `[-] no review needed`.
-- **CodeRabbit** (when the repo has a `.coderabbit.yaml`): run `wait-for-action --coderabbit` and read its exit code as
-  the `wait-for-action` skill does. Anything but `DONE`, or any unresolved
-  thread left, is `[x] review not done` with the reason; point the user to
-  `/ship` or `/independent-review` to resolve it.
-- **Human reviewers** (when `reviewDecision` asks for one): it must be `APPROVED`, else `[x] awaiting
-  approval`.
+When one is needed:
 
-Name every reviewer that reviewed: `[+] reviewed by coderabbit, <login>`.
+- **Already reviewed**: step 0 ran `independent-review` on this PR, or a
+  reviewer already covered the current head. Name them.
+- **Otherwise** invoke the `independent-review` skill. It uses CodeRabbit when
+  CodeRabbit is available and a fresh-context local review agent when it is
+  rate limited, skipped or absent, so a CodeRabbit outage never blocks the run.
+  Findings it leaves open are `[x] review not done`.
+- **Human approval**: when `reviewDecision` asks for it, it must be `APPROVED`,
+  else `[x] awaiting approval`.
+
+Name every reviewer: `[+] reviewed by coderabbit, <login>` or
+`[+] reviewed by local agent`.
 
 ## 3. merging <PR title>...
 
