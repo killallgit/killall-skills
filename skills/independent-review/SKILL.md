@@ -10,6 +10,10 @@ the code, so it reads intent where a stranger reads the diff. Put the branch in
 front of a reviewer with no part in writing it, then resolve what it finds. When
 a `caveman` skill is available in this session, invoke it first.
 
+An agent may run this skill itself, including from another skill such as
+`finish-up`. CodeRabbit is optional: when it is rate limited, skipped or not
+installed, step 4 runs a local review agent, so the review never waits on it.
+
 ## 1. Get a PR
 
 Run `gh pr view --json number,url,state,isDraft,headRefName`.
