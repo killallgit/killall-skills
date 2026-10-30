@@ -38,11 +38,6 @@ restarted with an `@coderabbitai review` comment; if it still does not review,
 `ship` stops and asks you. It calls the `wait-for-action` and `git-janitor`
 skills, so install the bundle or those two alongside `ship`.
 
-Installing it also installs a `PreToolUse` hook that blocks `gh pr merge` until
-the merged PR's CodeRabbit check has succeeded. The hook only applies in repos
-with a `.coderabbit.yaml`, and only runs on Claude Code. Codex installs the
-plugin but the hook is not supported or tested there.
-
 ## Development
 
 `.claude-plugin/marketplace.json` is generated from each skill's `SKILL.md`
