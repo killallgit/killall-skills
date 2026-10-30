@@ -35,7 +35,7 @@ No other narration between lines.
 ## PRs
 
 Use the PR numbers in the argument. With none, use the open PR for the current
-branch (`gh pr view --json number,title,url,headRefName,reviewDecision,body`).
+branch (`gh pr view --json number,title,url,headRefName,headRefOid,reviewDecision,body`).
 When the branch is the default branch, stop and say so. When the branch has no
 open PR, run step 0 for it first. Run steps 1 to 4 for each PR in turn; steps 5
 and 6 run once, over all of them.
@@ -54,21 +54,24 @@ Its fixes are new pushes, so step 1 runs again afterwards.
 
 Checks register a few seconds after a push or a new PR, and an early
 `gh pr checks` reports none. Poll `gh pr checks <n>` every 5 seconds, up to 2
-minutes, until at least one check exists; if none ever appears, that is `[x] no
-checks started`, not a pass. Then `gh pr checks <n> --watch --fail-fast`. Exit 0:
-`[+] ci passed`. Exit 1: `[x]` with the failing check names and stop.
+minutes, until at least one check exists, then wait 10 more seconds for the rest to
+register. If none ever appears: with no `.github/workflows` in the repo, print
+`[-] no ci configured` and go on; with workflows, `[x] no checks started`, not a
+pass. Then `gh pr checks <n> --watch --fail-fast`. Exit 0: `[+] ci passed`.
+Exit 1: `[x]` with the failing check names and stop.
 
 ## 2. confirming review...
 
-A review is needed when the repo has a `.coderabbit.yaml`, or `reviewDecision`
-is `REVIEW_REQUIRED` or `CHANGES_REQUESTED`.
+A review is needed when the PR's repo has a `.coderabbit.yaml`
+(`gh api repos/<owner>/<repo>/contents/.coderabbit.yaml`), or `reviewDecision`
+is `REVIEW_REQUIRED` or `CHANGES_REQUESTED`. Check each that applies.
 
 - **Not needed** and no review exists: `[-] no review needed`.
-- **CodeRabbit**: run `wait-for-action --coderabbit` and read its exit code as
+- **CodeRabbit** (when the repo has a `.coderabbit.yaml`): run `wait-for-action --coderabbit` and read its exit code as
   the `wait-for-action` skill does. Anything but `DONE`, or any unresolved
   thread left, is `[x] review not done` with the reason; point the user to
   `/ship` or `/independent-review` to resolve it.
-- **Human reviewers**: `reviewDecision` must be `APPROVED`, else `[x] awaiting
+- **Human reviewers** (when `reviewDecision` asks for one): it must be `APPROVED`, else `[x] awaiting
   approval`.
 
 Name every reviewer that reviewed: `[+] reviewed by coderabbit, <login>`.
@@ -122,11 +125,15 @@ Ask `Clean up branch <name> and its worktree? [y/n]` and wait for the answer.
 - **n**: leave both. Stop.
 - **y**: for each merged PR, from the main checkout (never from inside the
   worktree being removed):
-  1. If the worktree has uncommitted changes, keep it and say so.
-  2. Otherwise `git worktree remove <path>`, then `git branch -D <branch>`. The
-     squash merge hides the commits from `git branch -d`, but the merge in step 3
-     already proved them landed.
-  3. `git push origin --delete <branch>` when the remote branch still exists.
-  4. `git checkout <default> && git pull` in the main checkout.
+  1. If the checkout holding the branch has uncommitted changes, or the
+     branch's tip (`git rev-parse <branch>`) is not the PR's `headRefOid`
+     (local commits the merge never saw), keep the branch and worktree and
+     say so.
+  2. If the main checkout has the branch checked out, `git checkout <default>
+     && git pull` first. If a linked worktree has it, `git worktree remove
+     <path>`, then pull the default branch in the main checkout.
+  3. `git branch -D <branch>`. The squash merge hides the commits from
+     `git branch -d`; the tip check above shows they landed.
+  4. `git push origin --delete <branch>` when the remote branch still exists.
 
   `[+] cleaned <branch>`.
