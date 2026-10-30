@@ -96,7 +96,8 @@ not write it. It opens a PR if the branch has none, then waits for CodeRabbit
 and resolves its comments. When CodeRabbit is not installed, rate limited, or
 skipped, it dispatches a local review agent with fresh context (never the
 current session) and resolves that agent's findings instead. It reports what
-was fixed and declined, and leaves the PR open. User-invoked only.
+was fixed and declined, and leaves the PR open. Other skills, such as
+`finish-up`, can run it too.
 
 ## Finish up
 

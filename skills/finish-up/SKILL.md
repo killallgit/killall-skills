@@ -45,17 +45,18 @@ and 6 run once, over all of them.
 1. Push the branch with `-u` and `gh pr create` with a title and body in the
    repository's convention. `[+] opened <PR title>`.
 2. Wait for CI as in step 1. A failure is `[x]` and stops here.
-3. Invoke the `independent-review` skill and let it finish. Where the host
-   refuses to run it from another skill, follow its `SKILL.md` steps directly.
+3. Invoke the `independent-review` skill and let it finish.
    `[+] independent review done` with its fixed and declined counts.
 
 Its fixes are new pushes, so step 1 runs again afterwards.
 
 ## 1. confirming ci...
 
-`gh pr checks <n> --watch --fail-fast`. Exit 0: `[+] ci passed`. Exit 1: `[x]`
-with the failing check names and stop. A PR with no checks counts as passed;
-say `[+] ci passed (no checks)`.
+Checks register a few seconds after a push or a new PR, and an early
+`gh pr checks` reports none. Poll `gh pr checks <n>` every 5 seconds, up to 2
+minutes, until at least one check exists; if none ever appears, that is `[x] no
+checks started`, not a pass. Then `gh pr checks <n> --watch --fail-fast`. Exit 0:
+`[+] ci passed`. Exit 1: `[x]` with the failing check names and stop.
 
 ## 2. confirming review...
 
