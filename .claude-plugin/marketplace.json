@@ -26,7 +26,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0",
+      "version": "4.3.0",
       "hooks": {
         "PreToolUse": [
           {
@@ -53,7 +53,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0"
+      "version": "4.3.0"
     },
     {
       "name": "check-agent-docs",
@@ -65,7 +65,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0"
+      "version": "4.3.0"
     },
     {
       "name": "end-session",
@@ -77,7 +77,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0"
+      "version": "4.3.0"
     },
     {
       "name": "finish-up",
@@ -89,7 +89,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0"
+      "version": "4.3.0"
     },
     {
       "name": "follow-the-rules",
@@ -101,7 +101,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0"
+      "version": "4.3.0"
     },
     {
       "name": "git-janitor",
@@ -113,7 +113,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0"
+      "version": "4.3.0"
     },
     {
       "name": "independent-review",
@@ -125,7 +125,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0"
+      "version": "4.3.0"
     },
     {
       "name": "session-eject",
@@ -137,7 +137,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0"
+      "version": "4.3.0"
     },
     {
       "name": "ship",
@@ -149,7 +149,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0",
+      "version": "4.3.0",
       "hooks": {
         "PreToolUse": [
           {
@@ -176,7 +176,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.2.0"
+      "version": "4.3.0"
     }
   ]
 }
