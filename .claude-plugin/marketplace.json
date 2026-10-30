@@ -16,6 +16,7 @@
         "./skills/catch-up",
         "./skills/check-agent-docs",
         "./skills/end-session",
+        "./skills/finish-up",
         "./skills/follow-the-rules",
         "./skills/git-janitor",
         "./skills/independent-review",
@@ -33,6 +34,7 @@
             "hooks": [
               {
                 "type": "command",
+                "if": "Bash(*pr*merge*)",
                 "timeout": 30,
                 "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/ship/hooks/guard-merge.sh\""
               }
@@ -78,6 +80,18 @@
       "version": "4.2.0"
     },
     {
+      "name": "finish-up",
+      "source": "./",
+      "description": "Wrap up finished work. Confirm the PR's CI passed and any required review is done, merge it, update the tickets and beads it relates to, then offer to clean up the branch and worktree. Use when the user says \"finish up\", \"wrap this up\", or invokes `/finish-up`.",
+      "strict": false,
+      "skills": [
+        "./skills/finish-up"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "4.2.0"
+    },
+    {
       "name": "follow-the-rules",
       "source": "./",
       "description": "Core programming rules for all agents and users alike. The following documents contain the most important, fundamental, rules that every engineer - junior to principle - MUST follow.",
@@ -104,7 +118,7 @@
     {
       "name": "independent-review",
       "source": "./",
-      "description": "Get the current branch reviewed by a reviewer that did not write it. Opens a PR if none exists, runs CodeRabbit when available, otherwise a fresh-context local review agent, then resolves the findings.",
+      "description": "Get the current branch reviewed by a reviewer that did not write it. Opens a PR if none exists, runs CodeRabbit when available, otherwise a fresh-context local review agent, then resolves the findings. Use when the user asks for an independent review, or when another skill calls for one.",
       "strict": false,
       "skills": [
         "./skills/independent-review"
@@ -143,6 +157,7 @@
             "hooks": [
               {
                 "type": "command",
+                "if": "Bash(*pr*merge*)",
                 "timeout": 30,
                 "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/ship/hooks/guard-merge.sh\""
               }

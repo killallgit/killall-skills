@@ -1,0 +1,5 @@
+interface:
+  display_name: "Finish up"
+  short_description: "Confirm CI and review, merge the PR, update its tickets and beads, then clean up."
+policy:
+  allow_implicit_invocation: false

@@ -96,7 +96,19 @@ not write it. It opens a PR if the branch has none, then waits for CodeRabbit
 and resolves its comments. When CodeRabbit is not installed, rate limited, or
 skipped, it dispatches a local review agent with fresh context (never the
 current session) and resolves that agent's findings instead. It reports what
-was fixed and declined, and leaves the PR open. User-invoked only.
+was fixed and declined, and leaves the PR open. Other skills, such as
+`finish-up`, can run it too.
+
+## Finish up
+
+`/finish-up` wraps up work that is ready to land. A branch with no PR gets one,
+waits for CI, and goes through `independent-review` first. For each PR it confirms CI
+passed and that any required review is done (CodeRabbit or a human), then
+squash-merges. It finds the beads, Jira tickets, and GitHub issues the PR
+relates to and updates them: closed when the PR closes them, commented when it
+only mentions them. It prints one `[+]`, `[-]`, or `[x]` line per step, stops
+at the first failed step, and ends by asking `[y/n]` whether to remove the branch and
+worktree. It calls the `wait-for-action` and `independent-review` skills. User-invoked only.
 
 ## End session
 

@@ -1,7 +1,6 @@
 ---
 name: independent-review
-description: Get the current branch reviewed by a reviewer that did not write it. Opens a PR if none exists, runs CodeRabbit when available, otherwise a fresh-context local review agent, then resolves the findings.
-disable-model-invocation: true
+description: Get the current branch reviewed by a reviewer that did not write it. Opens a PR if none exists, runs CodeRabbit when available, otherwise a fresh-context local review agent, then resolves the findings. Use when the user asks for an independent review, or when another skill calls for one.
 ---
 
 # Independent review

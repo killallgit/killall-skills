@@ -2,4 +2,4 @@ interface:
   display_name: "Independent review"
   short_description: "Open a PR, then review it with CodeRabbit or a fresh-context local agent and resolve the findings."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
