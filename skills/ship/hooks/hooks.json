@@ -6,6 +6,7 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(*pr*merge*)",
             "timeout": 30,
             "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/ship/hooks/guard-merge.sh\""
           }

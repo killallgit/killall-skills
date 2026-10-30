@@ -98,6 +98,17 @@ skipped, it dispatches a local review agent with fresh context (never the
 current session) and resolves that agent's findings instead. It reports what
 was fixed and declined, and leaves the PR open. User-invoked only.
 
+## Finish up
+
+`/finish-up` wraps up work that is ready to land. A branch with no PR gets one,
+waits for CI, and goes through `independent-review` first. For each PR it confirms CI
+passed and that any required review is done (CodeRabbit or a human), then
+squash-merges. It finds the beads, Jira tickets, and GitHub issues the PR
+relates to and updates them: closed when the PR closes them, commented when it
+only mentions them. It prints one `[+]`, `[-]`, or `[x]` line per step, stops
+at the first `[x]`, and ends by asking `[y/n]` whether to remove the branch and
+worktree. It calls the `wait-for-action` and `independent-review` skills. User-invoked only.
+
 ## End session
 
 `/end-session` closes out a session. It fetches, fast-forwards local branches,
