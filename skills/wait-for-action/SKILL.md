@@ -1,16 +1,18 @@
 ---
 name: wait-for-action
-description: Wait for a GitHub Actions run to finish, or for the CodeRabbit or PR-Agent review of HEAD with --coderabbit or --pr-agent. Use when a workflow has been triggered and later work depends on it passing, when you need to know why a run failed, or when the user says to wait for CodeRabbit or PR-Agent.
+description: Wait for every check on a pull request (--checks), a GitHub Actions run, or the CodeRabbit or PR-Agent review of HEAD. Use when later work depends on CI or a review finishing, when a run failed and you need the log, or when the user says to wait for checks, CodeRabbit, or PR-Agent.
 ---
 
 # wait-for-action
 
-One blocking Bash call that polls a workflow run until it reaches a terminal
-state. Costs no conversation tokens while the run is in flight, and pulls logs
-to disk instead of into context.
+One blocking Bash call that polls until a workflow run, or every check on a
+pull request, reaches a terminal state. Costs no conversation tokens while the
+wait is in flight, and pulls logs to disk instead of into context.
 
 ## When to use
 
+- CI on a pull request has to finish before the next step (merge, review).
+  That wait is `--checks`, which covers every check on the head
 - A workflow was just triggered (push, `gh workflow run`, `gh pr merge`) and the
   next step depends on its result
 - A run is already going and the user wants to know when it lands
@@ -22,20 +24,24 @@ the wait to the script.
 ## How
 
 ```bash
+./scripts/wait-for-action.sh --checks [--pr N] [--repo OWNER/REPO] [--ttl 15m]
 ./scripts/wait-for-action.sh --run-id <id> [--repo OWNER/REPO] [--ttl 15m]
 ```
 
-With no `--run-id`, it resolves the newest run for the current `HEAD` commit.
-That is right after a push and wrong after any later commit — pass the id when
-you have it.
+`--checks` waits for the whole PR rollup. With no `--run-id` and no `--checks`,
+the script resolves the newest Actions run for the current `HEAD` commit. That
+is one workflow, right after a push, and wrong after any later commit — pass
+the id when you have it. Confirming CI uses `--checks`.
 
 | Flag | Default | Notes |
 |---|---|---|
+| `--checks` | off | every check on the PR head; see below |
+| `--pr N` | open PR for the current branch | only with `--checks` |
 | `--run-id ID` | newest run for `HEAD` | |
-| `--repo OWNER/REPO` | repo in cwd | requires `--run-id` |
+| `--repo OWNER/REPO` | repo in cwd | with `--run-id`, or with `--checks` |
 | `--ttl DURATION` | `15m` | `45s`, `15m`, `1h`; raise it for known-slow pipelines |
 | `--tail N` | `40` | log lines echoed on failure |
-| `--log-dir PATH` | `/tmp/actions/<run-id>` | |
+| `--log-dir PATH` | `/tmp/actions/<run-id>` | `/tmp/actions/pr-<n>` with `--checks` |
 | `--no-fail-fast` | off | wait for the whole run instead of bailing on the first failed job |
 | `--quiet` | off | only the terminal line and any failure log |
 | `--coderabbit` | off | wait for the CodeRabbit review of `HEAD` instead; see below |
@@ -67,9 +73,55 @@ to learn by asking every few seconds.
 | 1 | Run failed, or a job failed and fail-fast tripped |
 | 2 | TTL expired — the run is still going |
 | 3 | Usage error, or the API kept refusing |
+| 5 | `--checks` only: no check ever appeared |
 
-Exit 2 is not a failure. Either invoke again with the same `--run-id` to keep
-waiting, or report that the run is still in flight — do not call it broken.
+Exit 2 is not a failure of the run. Either invoke again with the same
+`--run-id` (or the same `--checks --pr`) to keep waiting, or report that it
+is still in flight.
+
+## PR checks (`--checks`)
+
+`gh run view` sees one Actions run. A pull request's CI is the rollup `gh pr
+checks` reads: every Actions workflow, every other check run, and legacy
+commit statuses. `--checks` polls that.
+
+```bash
+./scripts/wait-for-action.sh --checks --pr <n>
+```
+
+Checks register a few seconds after a push. An empty rollup is retried for 2
+minutes, or until `--ttl` when that is shorter. Still empty: the line is
+`NONE` and the exit is 5. That is "nothing started", including a path-filtered
+workflow that never created a check.
+
+A green result waits until the set of check names has stayed the same for 10
+seconds, so a check that shows up late is included. A failure returns
+immediately. `--no-fail-fast` waits until nothing is still pending, then fails
+if any check failed.
+
+The script classifies from the check's `state`. `gh pr checks` leaves
+`STARTUP_FAILURE` and `STALE` in its pending bucket and treats `CANCELLED` as
+neither a pass nor a fail, so those would hang a `--watch` or look like a pass.
+
+| Result | States |
+|---|---|
+| pass | `SUCCESS` |
+| skipping, counts as passed | `SKIPPED`, `NEUTRAL` |
+| fail | `FAILURE`, `ERROR`, `TIMED_OUT`, `ACTION_REQUIRED`, `STARTUP_FAILURE`, `STALE`, `CANCELLED` |
+| pending | `QUEUED`, `IN_PROGRESS`, `WAITING`, `PENDING`, `REQUESTED`, `EXPECTED`, and anything still running |
+
+A state the table does not name, that already has a completion time, counts as
+failed.
+
+| Exit | Meaning |
+|---|---|
+| 0 | `DONE`: every check passed or skipped |
+| 1 | `FAILED`: a check failed or was cancelled. Each name, state, and link is printed. An Actions job link also pulls that job's log |
+| 2 | `TIMEOUT`: at least one check is still pending |
+| 3 | `ERROR`: usage, or the API kept refusing |
+| 5 | `NONE`: no check appeared |
+
+Files for this mode land in `/tmp/actions/pr-<n>/`: `checks.json`, `summary.json`, `poll.log`, and `failed.log` when an Actions job failed.
 
 ## Logs
 
@@ -177,8 +229,9 @@ PR-Agent has no threads to resolve. Answer its findings in one `gh pr comment`.
 
 By default the script exits as soon as any job concludes failure, without
 waiting for the rest of the run — the outcome is already decided and the failing
-job's log is already on disk. If the workflow has jobs marked
-`continue-on-error` whose failure is expected, pass `--no-fail-fast`.
+job's log is already on disk. `--checks` does the same on the first failed or
+cancelled check. If the workflow has jobs marked `continue-on-error` whose
+failure is expected, pass `--no-fail-fast`.
 
 ## Foreground vs background
 
@@ -192,7 +245,7 @@ Run it in the background too when the user wants you to keep working
 meanwhile, and watch for the terminal line:
 
 ```
-Monitor pattern: ^\[t=\d+s\] (DONE|FAILED|TIMEOUT|ERROR|NOT_REVIEWED)
+Monitor pattern: ^\[t=\d+s\] (DONE|FAILED|TIMEOUT|ERROR|NOT_REVIEWED|NONE)
 ```
 
 ## Notes
