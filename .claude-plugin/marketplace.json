@@ -103,7 +103,7 @@
     {
       "name": "independent-review",
       "source": "./",
-      "description": "Get the current branch reviewed by a reviewer that did not write it. Opens a PR if none exists, runs CodeRabbit when available, otherwise a fresh-context local review agent, then resolves the findings. Use when the user asks for an independent review, or when another skill calls for one.",
+      "description": "Get the current branch reviewed by a reviewer that did not write it. Opens a PR if none exists, waits for the repo's CI reviewers (CodeRabbit, PR-Agent) when it has any, otherwise runs a fresh-context local review agent, then resolves the findings. Use when the user asks for an independent review, or when another skill calls for one.",
       "strict": false,
       "skills": [
         "./skills/independent-review"
@@ -127,7 +127,7 @@
     {
       "name": "ship",
       "source": "./",
-      "description": "Open PR, wait for CodeRabbit, fix findings, merge, sync main, clean up. Use when the user says \"ship it\", \"ship this\", or invokes `/ship`.",
+      "description": "Open PR, get it independently reviewed and fixed, merge, sync main, clean up. Use when the user says \"ship it\", \"ship this\", or invokes `/ship`.",
       "strict": false,
       "skills": [
         "./skills/ship"
@@ -139,7 +139,7 @@
     {
       "name": "wait-for-action",
       "source": "./",
-      "description": "Wait for a GitHub Actions run to finish, or for the CodeRabbit review of HEAD with --coderabbit. Use when a workflow has been triggered and later work depends on it passing, when you need to know why a run failed, or when the user says to wait for CodeRabbit.",
+      "description": "Wait for a GitHub Actions run to finish, or for the CodeRabbit or PR-Agent review of HEAD with --coderabbit or --pr-agent. Use when a workflow has been triggered and later work depends on it passing, when you need to know why a run failed, or when the user says to wait for CodeRabbit or PR-Agent.",
       "strict": false,
       "skills": [
         "./skills/wait-for-action"

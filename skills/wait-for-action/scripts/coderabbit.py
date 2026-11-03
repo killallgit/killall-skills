@@ -349,7 +349,9 @@ def report_findings(client, sha: str, pr: int | None, say, save) -> bool:
     return True
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], watcher=None, client=None, name: str = "coderabbit") -> int:
+    """Shared entry point: pr_agent.py passes its own watcher, client and log-dir name."""
+    watcher, client = watcher or watch, client or GhClient()
     parser = argparse.ArgumentParser()
     parser.add_argument("--ttl", type=int, required=True)
     parser.add_argument("--quiet", action="store_true")
@@ -363,7 +365,7 @@ def main(argv: list[str]) -> int:
     except (subprocess.CalledProcessError, FileNotFoundError):
         print("wait-for-action.sh: not a git repository", file=sys.stderr)
         return EXIT_ERROR
-    log_dir = Path(args.log_dir or f"/tmp/actions/coderabbit-{sha}")
+    log_dir = Path(args.log_dir or f"/tmp/actions/{name}-{sha}")
     log_dir.mkdir(parents=True, exist_ok=True)
     (log_dir / "poll.log").write_text("")
     start = time.time()
@@ -379,7 +381,7 @@ def main(argv: list[str]) -> int:
         (log_dir / name).write_text(json.dumps(data, indent=2) + "\n")
 
     try:
-        return watch(GhClient(), sha, args.ttl, Clock(), say, save, trigger=not args.no_trigger)
+        return watcher(client, sha, args.ttl, Clock(), say, save, trigger=not args.no_trigger)
     except Exception as err:  # exit 1 means FAILED to callers, so never leak a traceback
         say(True, f"ERROR unexpected {err!r}")
         return EXIT_ERROR

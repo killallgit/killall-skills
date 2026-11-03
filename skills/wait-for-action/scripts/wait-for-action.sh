@@ -10,6 +10,7 @@
 #   wait-for-action.sh --run-id <id> [options]
 #   wait-for-action.sh                      # newest run for the current HEAD
 #   wait-for-action.sh --coderabbit         # CodeRabbit review of HEAD instead
+#   wait-for-action.sh --pr-agent           # PR-Agent review of HEAD instead
 #
 # Options:
 #   --run-id ID        workflow run to watch
@@ -25,7 +26,12 @@
 #                      its "CodeRabbit" check run (see coderabbit.py). A rate
 #                      limited or skipped review is restarted by commenting
 #                      "@coderabbitai review"
-#   --no-trigger       with --coderabbit: report instead of commenting
+#   --pr-agent         wait for the PR-Agent review of HEAD, not an Actions
+#                      run. PR-Agent answers with one comment, not a check run
+#                      (see pr_agent.py). A missing review is started by
+#                      commenting "/review"
+#   --no-trigger       with --coderabbit or --pr-agent: report instead of
+#                      commenting
 #   -h, --help         this text
 #
 # Poll schedule - dense while failures are likely, sparse once the run has
@@ -37,6 +43,7 @@
 #
 # Exit: 0 success  1 failed  2 ttl expired  3 usage or API error
 #       4 CodeRabbit did not review (--coderabbit only)
+#       (--pr-agent uses 0, 2 and 3 only)
 
 set -euo pipefail
 
@@ -48,6 +55,7 @@ LOG_DIR=""
 FAIL_FAST=1
 QUIET=0
 CODERABBIT=0
+PR_AGENT=0
 NO_TRIGGER=0
 
 die() { printf 'wait-for-action.sh: %s\n' "$*" >&2; exit 3; }
@@ -79,6 +87,7 @@ while [[ $# -gt 0 ]]; do
     --no-fail-fast) FAIL_FAST=0; shift ;;
     --quiet)     QUIET=1; shift ;;
     --coderabbit) CODERABBIT=1; shift ;;
+    --pr-agent)  PR_AGENT=1; shift ;;
     --no-trigger) NO_TRIGGER=1; shift ;;
     -h|--help)   usage; exit 0 ;;
     *)           die "unknown argument: $1" ;;
@@ -86,7 +95,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "$TAIL" =~ ^[0-9]+$ ]] || die "--tail must be an integer"
-(( ! NO_TRIGGER || CODERABBIT )) || die "--no-trigger only applies to --coderabbit"
+(( ! NO_TRIGGER || CODERABBIT || PR_AGENT )) || die "--no-trigger only applies to --coderabbit or --pr-agent"
+(( ! CODERABBIT || ! PR_AGENT )) || die "--coderabbit and --pr-agent are separate waits; run one, then the other"
 command -v gh >/dev/null || die "gh CLI not found"
 command -v jq >/dev/null || die "jq not found"
 
@@ -118,17 +128,19 @@ interval_for() {
   fi
 }
 
-if (( CODERABBIT )); then
-  [[ -z "$RUN_ID$REPO" ]] || die "--coderabbit watches HEAD; drop --run-id and --repo"
+if (( CODERABBIT || PR_AGENT )); then
+  [[ -z "$RUN_ID$REPO" ]] || die "--coderabbit and --pr-agent watch HEAD; drop --run-id and --repo"
   here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  script=coderabbit.py
+  (( PR_AGENT )) && script=pr_agent.py
   args=(--ttl "$TTL")
   (( QUIET )) && args+=(--quiet)
   (( NO_TRIGGER )) && args+=(--no-trigger)
   [[ -n "$LOG_DIR" ]] && args+=(--log-dir "$LOG_DIR")
   if command -v uv >/dev/null; then
-    exec uv run --no-project "$here/coderabbit.py" "${args[@]}"
+    exec uv run --no-project "$here/$script" "${args[@]}"
   fi
-  exec python3 "$here/coderabbit.py" "${args[@]}"
+  exec python3 "$here/$script" "${args[@]}"
 fi
 
 if [[ -z "$RUN_ID" ]]; then
