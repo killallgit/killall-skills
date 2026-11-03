@@ -32,11 +32,10 @@ Claude Code runs a skill as `/name`; Codex runs it as `$name`.
 
 ## Ship
 
-`/ship` opens a PR, waits for CodeRabbit, fixes its findings, merges, syncs
-main, and runs the git janitor. A rate-limited or skipped CodeRabbit review is
-restarted with an `@coderabbitai review` comment; if it still does not review,
-`ship` stops and asks you. It calls the `wait-for-action` and `git-janitor`
-skills, so install the bundle or those two alongside `ship`.
+`/ship` gets the branch independently reviewed through `independent-review`,
+merges, syncs main, and runs the git janitor. It stops and asks you only when
+review findings stay open. It calls the `independent-review` and `git-janitor`
+skills (and through them `wait-for-action`), so install the bundle.
 
 ## Development
 
@@ -87,18 +86,20 @@ Its context is separate; it operates on the repository's actual worktrees.
 ## Independent review
 
 `/independent-review` gets the current branch reviewed by something that did
-not write it. It opens a PR if the branch has none, then waits for CodeRabbit
-and resolves its comments. When CodeRabbit is not installed, rate limited, or
-skipped, it dispatches a local review agent with fresh context (never the
+not write it. It opens a PR if the branch has none, then waits, within a fixed
+budget, for the CI reviewers the repo runs (CodeRabbit when `.coderabbit.yaml`
+exists, PR-Agent when `.pr_agent.toml` or a `pr-agent` workflow does) and
+resolves their comments. When the repo has none, or none reviews (rate limited,
+skipped, slow), it dispatches a local review agent with fresh context (never the
 current session) and resolves that agent's findings instead. It reports what
-was fixed and declined, and leaves the PR open. Other skills, such as
-`finish-up`, can run it too.
+was fixed and declined, and leaves the PR open. Other skills, such as `ship`
+and `finish-up`, run it too.
 
 ## Finish up
 
 `/finish-up` wraps up work that is ready to land. A branch with no PR gets one,
 waits for CI, and goes through `independent-review` first. For each PR it confirms CI
-passed and that any required review is done (CodeRabbit or a human), then
+passed and that any required review is done (a CI reviewer or a human), then
 squash-merges. It finds the beads, Jira tickets, and GitHub issues the PR
 relates to and updates them: closed when the PR closes them, commented when it
 only mentions them. It prints one `[+]`, `[-]`, or `[x]` line per step, stops

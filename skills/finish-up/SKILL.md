@@ -19,7 +19,7 @@ lines stay in the transcript, so the finished run reads top to bottom:
 
 ```
 [+] ci passed
-[+] reviewed by coderabbit, <login>
+[+] reviewed by <ci reviewer>, <login>
 [+] merged <PR title>
 [+] found 2 beads
 [+] updated <id>: <title>
@@ -36,7 +36,7 @@ No other narration between lines.
 ## PRs
 
 Use the PR numbers in the argument, each from a checkout of its branch
-(`gh pr checkout <n>`), since the CodeRabbit wait watches the local `HEAD`. With
+(`gh pr checkout <n>`), since the CI reviewer waits watch the local `HEAD`. With
 none, use the open PR for the current branch
 (`gh pr view --json number,title,url,headRefName,reviewDecision,body,isCrossRepository`).
 When the branch is the default branch, stop and say so. When the branch has no
@@ -76,26 +76,24 @@ When one is needed:
 
 - **Already reviewed**: step 0 ran `independent-review` on this PR, or a
   reviewer already covered the current head. Name them.
-- **Otherwise** invoke the `independent-review` skill. It uses CodeRabbit when
-  CodeRabbit is available and a fresh-context local review agent when it is
-  rate limited, skipped or absent, so a CodeRabbit outage never blocks the run.
+- **Otherwise** invoke the `independent-review` skill. It waits for the repo's
+  CI reviewers (CodeRabbit, PR-Agent) and uses a fresh-context local review
+  agent when none of them reviews, so a reviewer outage never blocks the run.
   Findings it leaves open are `[x] review not done`.
 - **Human approval**: when `reviewDecision` asks for it, it must be `APPROVED`,
   else `[x] awaiting approval`.
 
-Name every reviewer: `[+] reviewed by coderabbit, <login>` or
+Name every reviewer: `[+] reviewed by <ci reviewer>, <login>` or
 `[+] reviewed by local agent`.
 
 ## 3. merging <PR title>...
 
 Read the PR's current head: `gh pr view <n> --json headRefOid`. Pushes since
-the first read (review fixes, CodeRabbit autofixes) are in it. Then
+the first read (review fixes, reviewer autofixes) are in it. Then
 `gh pr merge <n> --squash --match-head-commit <headRefOid>`, so a push after CI
 and review is never merged unchecked. A repo that refuses squash is an `[x]`.
 Keep that `headRefOid` for step 6. The branch is deleted in step 6, not here, because a
-worktree holding it blocks the local delete. A `ship` merge guard may block the
-command until CodeRabbit's check succeeds; that is an `[x]`, not something to
-bypass. A conflict or branch-protection refusal is also `[x]` with gh's message.
+worktree holding it blocks the local delete. A conflict or branch-protection refusal is `[x]` with gh's message.
 Then `git fetch --prune`. `[+] merged <PR title>`.
 
 ## 4. finding tickets|beads...

@@ -1,6 +1,6 @@
 ---
 name: wait-for-action
-description: Wait for a GitHub Actions run to finish, or for the CodeRabbit review of HEAD with --coderabbit. Use when a workflow has been triggered and later work depends on it passing, when you need to know why a run failed, or when the user says to wait for CodeRabbit.
+description: Wait for a GitHub Actions run to finish, or for the CodeRabbit or PR-Agent review of HEAD with --coderabbit or --pr-agent. Use when a workflow has been triggered and later work depends on it passing, when you need to know why a run failed, or when the user says to wait for CodeRabbit or PR-Agent.
 ---
 
 # wait-for-action
@@ -39,6 +39,7 @@ you have it.
 | `--no-fail-fast` | off | wait for the whole run instead of bailing on the first failed job |
 | `--quiet` | off | only the terminal line and any failure log |
 | `--coderabbit` | off | wait for the CodeRabbit review of `HEAD` instead; see below |
+| `--pr-agent` | off | wait for the PR-Agent review of `HEAD` instead; see below |
 
 Getting a run id: `gh run list --limit 5 --json databaseId,workflowName,status`,
 or `--json databaseId --jq '.[0].databaseId'` right after triggering.
@@ -134,6 +135,12 @@ so the next round lists only what is left:
 gh api graphql -f query='mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{isResolved}}}' -F id=<id>
 ```
 
+Answer a thread with a reply:
+
+```bash
+gh api -X POST 'repos/{owner}/{repo}/pulls/<n>/comments/<id>/replies' -f body='<commit or reason>'
+```
+
 Unresolved threads are only what CodeRabbit left inline. Findings outside the
 diff land in the review body, so read the newest one too (older bodies hold
 findings from earlier rounds):
@@ -141,6 +148,30 @@ findings from earlier rounds):
 ```bash
 gh api --paginate 'repos/{owner}/{repo}/pulls/<n>/reviews?per_page=100' --jq '[.[] | select(.user.login=="coderabbitai[bot]" and .body!="")] | last | {submitted_at, body}'
 ```
+
+## PR-Agent
+
+[PR-Agent](https://github.com/qodo-ai/pr-agent) runs as a GitHub Action or App
+and answers with one comment, not a check run, and its workflow run belongs to
+the default branch's commit. `gh run view` and the CodeRabbit check cannot see
+it. `--pr-agent` instead looks for its comment (a bot comment carrying
+`<!-- pr-agent:review`) last updated after the `HEAD` commit was made, and
+comments `/review` once when there is none:
+
+```bash
+./scripts/wait-for-action.sh --pr-agent [--ttl 5m] [--no-trigger]
+```
+
+Push first. A review takes about a minute; the default `--ttl` is generous. The
+`/review` workflow only runs for repo members and owners.
+
+| Exit | Meaning |
+|---|---|
+| 0 | `DONE`: reviewed. The comment is kept in `review.md` |
+| 2 | `TIMEOUT`: no review of `HEAD` yet. Check the repo's workflow run for the `/review` comment |
+| 3 | `ERROR`: no open PR for `HEAD`, or the API kept failing |
+
+PR-Agent has no threads to resolve. Answer its findings in one `gh pr comment`.
 
 ## Fail-fast
 
@@ -151,10 +182,14 @@ job's log is already on disk. If the workflow has jobs marked
 
 ## Foreground vs background
 
-Foreground is the default: one call, blocks, returns the answer.
+Foreground is the default for a workflow run: one call, blocks, returns the
+answer. A foreground Bash call in Claude Code ends at 2 minutes by default and
+10 at most, so a wait that can run longer (any `--coderabbit` wait, a long
+`--ttl`) goes in the background: `run_in_background`, then continue when the
+completion notice arrives.
 
-Run it in the background when the user wants you to keep working meanwhile, and
-watch for the terminal line:
+Run it in the background too when the user wants you to keep working
+meanwhile, and watch for the terminal line:
 
 ```
 Monitor pattern: ^\[t=\d+s\] (DONE|FAILED|TIMEOUT|ERROR|NOT_REVIEWED)
@@ -162,7 +197,7 @@ Monitor pattern: ^\[t=\d+s\] (DONE|FAILED|TIMEOUT|ERROR|NOT_REVIEWED)
 
 ## Notes
 
-- Requires `gh` (authenticated) and `jq`. `--coderabbit` also needs `uv` or `python3`.
+- Requires `gh` (authenticated) and `jq`. `--coderabbit` and `--pr-agent` also need `uv` or `python3`.
 - A run created seconds ago can 404 until GitHub catches up; the script retries
   through that for the first minute before giving up with exit 3.
 - Each poll is one API call, plus one per job at the moment it completes.
