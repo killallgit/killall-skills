@@ -57,13 +57,56 @@ Its fixes are new pushes, so step 1 runs again afterwards.
 
 If the repo has no `.github/workflows`
 (`gh api repos/<owner>/<repo>/contents/.github/workflows`), print
-`[-] no ci configured` and go on. Otherwise: checks register a few seconds
-after a push or a new PR, and an early `gh pr checks` reports none. Poll `gh pr checks <n>` every 5 seconds, up to 2
-minutes, until at least one check exists, then wait 10 more seconds for the rest to
-register. If none ever appears, print `[x] no checks started` and tell the user:
-a path-filtered workflow is a valid reason, and whether to merge is theirs to
-decide. Then `gh pr checks <n> --watch --fail-fast`. Exit 0: `[+] ci passed`.
-Exit 1: `[x]` with the failing check names and stop.
+`[-] no ci configured` and go on. Otherwise wait for every check on the PR
+head. Checks register a few seconds after a push, and an early look can show
+none.
+
+Use the first waiter that exists. An error from the one you chose (`ERROR`,
+exit 3) is `[x]` with its message. Stop.
+
+1. **`wait-for-action`**, when that skill is available in this session. Read
+   it and run `scripts/wait-for-action.sh --checks --pr <n>` from that skill.
+   It waits for every check GitHub reports on the head: Actions runs, other
+   check runs, and commit statuses. A long wait goes in the background, as
+   that skill describes.
+2. **Another preferred waiter**, when that skill is not available. Look for a
+   skill or tool in this session whose job is waiting for GitHub Actions or
+   CI checks to finish, and use it for this PR. Map its result onto the
+   outcomes below.
+3. **`gh`**, when neither exists.
+   - Poll `gh pr checks <n> --json name,state,bucket` every 5 seconds, up to
+     2 minutes, until the array is non-empty. An empty rollup makes the
+     command exit 1 and print `no checks reported`. That is an empty list, so
+     keep polling. `--json` cannot be combined with `--watch` or
+     `--fail-fast`.
+   - Still empty after 2 minutes: `[x] no checks started`. Tell the user a
+     path-filtered workflow is a valid reason, and whether to merge is theirs
+     to decide. Stop.
+   - Wait 10 more seconds for the rest to register, then run
+     `gh pr checks <n> --watch --fail-fast` as one blocking call. If the host
+     will cut a foreground command short of a long CI run, run it in the
+     background and continue when it finishes.
+   - `--watch` exits 0 when every check is successful, skipped, neutral, or
+     cancelled. It exits 1 for `FAILURE`, `ERROR`, `TIMED_OUT`, or
+     `ACTION_REQUIRED`. It exits 8 while any check is still pending.
+     `STARTUP_FAILURE` and `STALE` stay in the pending bucket, so `--watch`
+     keeps waiting on them. After `--watch` returns, read
+     `gh pr checks <n> --json name,state,bucket` once and apply the outcomes
+     below. If it is still running well after the checks should have
+     finished, read that JSON and stop when a check is `STARTUP_FAILURE` or
+     `STALE`.
+
+Outcomes:
+
+- No checks appeared (the script prints `NONE` and exits 5, or the `gh` poll
+  stayed empty): `[x] no checks started`, with the path-filter note, and stop.
+- Exit 0, and every check is `SUCCESS`, `SKIPPED`, or `NEUTRAL`:
+  `[+] ci passed`.
+- Exit 1, or any check is `FAILURE`, `ERROR`, `TIMED_OUT`, `ACTION_REQUIRED`,
+  `STARTUP_FAILURE`, `STALE`, or `CANCELLED`: `[x]` with those check names,
+  and stop.
+- Exit 2, or checks still pending when the wait ends: `[x]` with the pending
+  check names, and stop.
 
 ## 2. confirming review...
 

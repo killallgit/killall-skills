@@ -7,19 +7,28 @@
 # echoed.
 #
 # Usage:
+#   wait-for-action.sh --checks [--pr N]   # every check on the PR, any source
 #   wait-for-action.sh --run-id <id> [options]
 #   wait-for-action.sh                      # newest run for the current HEAD
 #   wait-for-action.sh --coderabbit         # CodeRabbit review of HEAD instead
 #   wait-for-action.sh --pr-agent           # PR-Agent review of HEAD instead
 #
 # Options:
+#   --checks           wait until every check on the PR head has finished.
+#                      That is Actions runs, other check runs, and commit
+#                      statuses — anything `gh pr checks` reports. Use this
+#                      to confirm CI. With no flags the script still watches
+#                      only the newest Actions run for HEAD.
+#   --pr N             pull request number for --checks (default: the open PR
+#                      for the current branch)
 #   --run-id ID        workflow run to watch
 #   --repo OWNER/REPO  repository (default: the one in cwd)
 #   --ttl DURATION     total budget: 45s, 15m, 1h (default 15m)
 #   --tail N           log lines to echo on failure (default 40)
-#   --log-dir PATH     where to keep logs (default /tmp/actions/<run-id>)
-#   --no-fail-fast     wait for the whole run instead of bailing on the first
-#                      failed job
+#   --log-dir PATH     where to keep logs (default /tmp/actions/<run-id>,
+#                      or /tmp/actions/pr-<n> with --checks)
+#   --no-fail-fast     wait for the whole run, or for every check to finish,
+#                      instead of bailing on the first failure
 #   --quiet            print only the terminal line and any failure log
 #   --coderabbit       wait for the CodeRabbit review of HEAD, not an Actions
 #                      run. CodeRabbit is a GitHub App, so it is polled through
@@ -43,7 +52,21 @@
 #
 # Exit: 0 success  1 failed  2 ttl expired  3 usage or API error
 #       4 CodeRabbit did not review (--coderabbit only)
+#       5 no check ever appeared (--checks only)
 #       (--pr-agent uses 0, 2 and 3 only)
+#
+# --checks classification, from the check's own state. `gh pr checks` leaves
+# STARTUP_FAILURE and STALE in its pending bucket and treats CANCELLED as
+# neither a pass nor a fail, so the bucket is only a fallback:
+#   pass     SUCCESS
+#   skipping SKIPPED, NEUTRAL (both count as passed)
+#   fail     FAILURE, ERROR, TIMED_OUT, ACTION_REQUIRED, STARTUP_FAILURE,
+#            STALE, CANCELLED
+#   pending  QUEUED, IN_PROGRESS, WAITING, PENDING, REQUESTED, EXPECTED
+# An empty rollup is retried for 2 minutes (or until --ttl, when that is
+# shorter), then exit 5. A green result waits until the set of check names
+# has stayed unchanged for 10 seconds, so a check that registers late is
+# included. A failure returns immediately unless --no-fail-fast.
 
 set -euo pipefail
 
@@ -57,6 +80,8 @@ QUIET=0
 CODERABBIT=0
 PR_AGENT=0
 NO_TRIGGER=0
+CHECKS=0
+PR=""
 
 die() { printf 'wait-for-action.sh: %s\n' "$*" >&2; exit 3; }
 usage() { sed -n '2,/^set -/p' "$0" | sed 's/^# \{0,1\}//; /^set -/d'; }
@@ -88,6 +113,9 @@ while [[ $# -gt 0 ]]; do
     --quiet)     QUIET=1; shift ;;
     --coderabbit) CODERABBIT=1; shift ;;
     --pr-agent)  PR_AGENT=1; shift ;;
+    --checks)    CHECKS=1; shift ;;
+    --pr)        PR="${2:?--pr needs a value}"; shift 2 ;;
+    --pr=*)      PR="${1#*=}"; shift ;;
     --no-trigger) NO_TRIGGER=1; shift ;;
     -h|--help)   usage; exit 0 ;;
     *)           die "unknown argument: $1" ;;
@@ -97,6 +125,10 @@ done
 [[ "$TAIL" =~ ^[0-9]+$ ]] || die "--tail must be an integer"
 (( ! NO_TRIGGER || CODERABBIT || PR_AGENT )) || die "--no-trigger only applies to --coderabbit or --pr-agent"
 (( ! CODERABBIT || ! PR_AGENT )) || die "--coderabbit and --pr-agent are separate waits; run one, then the other"
+# `&&` binds tighter than `||`: checks mode excludes the review waits.
+(( CHECKS == 0 || PR_AGENT == 0 && CODERABBIT == 0 )) || die "--checks does not combine with --coderabbit or --pr-agent"
+[[ -z "$RUN_ID" || "$CHECKS" -eq 0 ]] || die "--checks does not combine with --run-id"
+[[ -z "$PR" || "$CHECKS" -eq 1 ]] || die "--pr only applies to --checks"
 command -v gh >/dev/null || die "gh CLI not found"
 command -v jq >/dev/null || die "jq not found"
 
@@ -143,20 +175,22 @@ if (( CODERABBIT || PR_AGENT )); then
   exec python3 "$here/$script" "${args[@]}"
 fi
 
-if [[ -z "$RUN_ID" ]]; then
-  [[ -n "$REPO" ]] && die "--repo requires --run-id"
-  sha=$(git rev-parse HEAD 2>/dev/null) || die "not a git repository - pass --run-id"
-  RUN_ID=$(gh run list --commit "$sha" --limit 1 --json databaseId \
-    --jq '.[0].databaseId // empty' 2>/dev/null || true)
-  [[ -n "$RUN_ID" ]] || die "no workflow run found for $sha - pass --run-id"
-fi
-[[ "$RUN_ID" =~ ^[0-9]+$ ]] || die "--run-id must be numeric, got: $RUN_ID"
+if (( ! CHECKS )); then
+  if [[ -z "$RUN_ID" ]]; then
+    [[ -n "$REPO" ]] && die "--repo requires --run-id"
+    sha=$(git rev-parse HEAD 2>/dev/null) || die "not a git repository - pass --run-id"
+    RUN_ID=$(gh run list --commit "$sha" --limit 1 --json databaseId \
+      --jq '.[0].databaseId // empty' 2>/dev/null || true)
+    [[ -n "$RUN_ID" ]] || die "no workflow run found for $sha - pass --run-id"
+  fi
+  [[ "$RUN_ID" =~ ^[0-9]+$ ]] || die "--run-id must be numeric, got: $RUN_ID"
 
-: "${LOG_DIR:=/tmp/actions/$RUN_ID}"
-mkdir -p "$LOG_DIR/jobs"
-POLL_LOG="$LOG_DIR/poll.log"
-RUN_JSON="$LOG_DIR/run.json"
-FAILED_LOG="$LOG_DIR/failed.log"
+  : "${LOG_DIR:=/tmp/actions/$RUN_ID}"
+  mkdir -p "$LOG_DIR/jobs"
+  POLL_LOG="$LOG_DIR/poll.log"
+  RUN_JSON="$LOG_DIR/run.json"
+  FAILED_LOG="$LOG_DIR/failed.log"
+fi
 
 # One API call per poll. Everything downstream reads run.json, so the jobs and
 # their steps cost nothing extra.
@@ -219,7 +253,7 @@ report_failure_log() {
   if [[ -n "$job_id" ]]; then
     gh run view "${REPO_ARG[@]}" --job "$job_id" --log >"$FAILED_LOG" 2>/dev/null || true
   fi
-  if [[ ! -s "$FAILED_LOG" ]]; then
+  if [[ ! -s "$FAILED_LOG" && -n "$RUN_ID" ]]; then
     gh run view "$RUN_ID" "${REPO_ARG[@]}" --log-failed >"$FAILED_LOG" 2>/dev/null || true
   fi
   if [[ ! -s "$FAILED_LOG" ]]; then
@@ -246,6 +280,179 @@ finish_failed() {
   report_failure_log "$job" "$job_id"
   exit 1
 }
+
+# `gh pr checks --json` exits 0 whenever the rollup is non-empty, including
+# when checks have failed, and exits 1 with "no checks reported" when the
+# rollup is empty. The JSON on stdout is the source of truth either way.
+fetch_checks() {
+  local err
+  if err=$(gh pr checks "$PR" "${REPO_ARG[@]}" \
+      --json name,state,bucket,link,workflow,completedAt \
+      2>&1 >"$CHECKS_JSON.tmp"); then
+    mv "$CHECKS_JSON.tmp" "$CHECKS_JSON"
+    return 0
+  fi
+  if [[ -s "$CHECKS_JSON.tmp" ]] && jq -e 'type == "array"' "$CHECKS_JSON.tmp" >/dev/null 2>&1; then
+    mv "$CHECKS_JSON.tmp" "$CHECKS_JSON"
+    return 0
+  fi
+  # gh prints this on stderr. A build that puts it on stdout lands in the file.
+  if [[ "$err" == *"no checks reported"* ]] || grep -q "no checks reported" "$CHECKS_JSON.tmp" 2>/dev/null; then
+    echo '[]' >"$CHECKS_JSON"
+    rm -f "$CHECKS_JSON.tmp"
+    return 0
+  fi
+  rm -f "$CHECKS_JSON.tmp"
+  FETCH_ERR="$err"
+  return 1
+}
+
+# Bucket is a fallback. gh leaves STARTUP_FAILURE and STALE pending, and
+# CANCELLED in its own bucket, and a merge must not treat either as a pass.
+CHECKS_JQ='
+def klass:
+  if .state == "SUCCESS" then "pass"
+  elif (.state == "SKIPPED" or .state == "NEUTRAL") then "skip"
+  elif (.state == "FAILURE" or .state == "ERROR" or .state == "TIMED_OUT"
+        or .state == "ACTION_REQUIRED" or .state == "STARTUP_FAILURE"
+        or .state == "STALE" or .state == "CANCELLED") then "fail"
+  elif .bucket == "pass" then "pass"
+  elif .bucket == "skipping" then "skip"
+  elif (.bucket == "fail" or .bucket == "cancel") then "fail"
+  elif ((.completedAt // "") | test("^[1-9]")) then "fail"
+  else "pending"
+  end;
+[.[] | . + {klass: klass}] as $rows
+| {
+    key: ([$rows[].name] | sort | join("\n")),
+    pending: ([$rows[] | select(.klass == "pending")] | length),
+    pass: ([$rows[] | select(.klass == "pass")] | length),
+    skip: ([$rows[] | select(.klass == "skip")] | length),
+    fail: ([$rows[] | select(.klass == "fail")] | length),
+    at: ([$rows[] | select(.klass == "pending") | .name][0] // ""),
+    failed: [$rows[] | select(.klass == "fail") | {name, state, link, workflow: (.workflow // "")}]
+  }
+'
+
+finish_checks_failed() {
+  local name state link workflow logged=0
+  while IFS=$'\037' read -r name state link workflow; do
+    [[ -z "$name" ]] && continue
+    emit always "FAILED state='$state' name='$name'${workflow:+ workflow='$workflow'}${link:+ $link}"
+    if (( ! logged )) && [[ "$link" =~ /actions/runs/([0-9]+)/job/([0-9]+) ]]; then
+      logged=1
+      RUN_ID="${BASH_REMATCH[1]}"
+      report_failure_log "$name" "${BASH_REMATCH[2]}"
+    fi
+  done < <(jq -r '.failed[] | "\(.name)\u001f\(.state)\u001f\(.link)\u001f\(.workflow)"' "$LOG_DIR/summary.json")
+  (( logged )) || printf -- '--- checks: %s ---\n' "$LOG_DIR"
+  exit 1
+}
+
+# WFA_REGISTER_FOR, WFA_SETTLE_FOR, and WFA_INTERVAL override the 2 minute
+# registration window, the 10 second settle, and the poll interval. Tests set
+# them; a normal run leaves them unset.
+wait_for_checks() {
+  local register_for=${WFA_REGISTER_FOR:-120}
+  local settle_for=${WFA_SETTLE_FOR:-10}
+  [[ "$register_for" =~ ^[0-9]+$ ]] || die "WFA_REGISTER_FOR must be an integer"
+  [[ "$settle_for" =~ ^[0-9]+$ ]] || die "WFA_SETTLE_FOR must be an integer"
+  [[ -z "${WFA_INTERVAL:-}" || "${WFA_INTERVAL}" =~ ^[0-9]+$ ]] || die "WFA_INTERVAL must be an integer"
+
+  if [[ -z "$PR" ]]; then
+    PR=$(gh pr view "${REPO_ARG[@]}" --json number --jq .number 2>/dev/null) \
+      || die "no open PR for the current branch - pass --pr"
+  fi
+  [[ "$PR" =~ ^[0-9]+$ ]] || die "--pr must be numeric, got: $PR"
+
+  : "${LOG_DIR:=/tmp/actions/pr-$PR}"
+  mkdir -p "$LOG_DIR"
+  POLL_LOG="$LOG_DIR/poll.log"
+  CHECKS_JSON="$LOG_DIR/checks.json"
+  FAILED_LOG="$LOG_DIR/failed.log"
+  PR_URL=$(gh pr view "$PR" "${REPO_ARG[@]}" --json url --jq .url 2>/dev/null || true)
+
+  local errors=0 seen=0 stable_key="" stable_at=0 last="" nap remaining
+  local count key pending=0 pass skip fail at now state
+  while :; do
+    pending=0
+    if ! fetch_checks; then
+      errors=$(( errors + 1 ))
+      if (( errors >= 3 )) || (( $(elapsed) > 60 )); then
+        emit always "ERROR $FETCH_ERR"
+        exit 3
+      fi
+      emit normal "PENDING api-error, retrying -- $FETCH_ERR"
+    elif ! jq -c "$CHECKS_JQ" "$CHECKS_JSON" >"$LOG_DIR/summary.json"; then
+      emit always "ERROR could not read checks"
+      exit 3
+    else
+      errors=0
+      count=$(jq 'length' "$CHECKS_JSON")
+      if (( count == 0 )); then
+        if (( $(elapsed) >= register_for )); then
+          emit always "NONE no checks reported${PR_URL:+ $PR_URL}"
+          exit 5
+        fi
+        state="no checks yet"
+        [[ "$state" != "$last" ]] && emit normal "PENDING $state"
+        last="$state"
+      else
+        seen=1
+        key=$(jq -r '.key' "$LOG_DIR/summary.json")
+        pending=$(jq -r '.pending' "$LOG_DIR/summary.json")
+        pass=$(jq -r '.pass' "$LOG_DIR/summary.json")
+        skip=$(jq -r '.skip' "$LOG_DIR/summary.json")
+        fail=$(jq -r '.fail' "$LOG_DIR/summary.json")
+        at=$(jq -r '.at' "$LOG_DIR/summary.json")
+        if [[ "$key" != "$stable_key" ]]; then
+          stable_key=$key
+          stable_at=$(date +%s)
+        fi
+        if (( fail > 0 )) && { (( FAIL_FAST )) || (( pending == 0 )); }; then
+          finish_checks_failed
+        fi
+        if (( pending == 0 && fail == 0 )); then
+          now=$(date +%s)
+          if (( now - stable_at >= settle_for )); then
+            if (( pass == 0 && skip > 0 )); then
+              emit always "DONE skipped${PR_URL:+ $PR_URL}"
+            else
+              emit always "DONE pass${PR_URL:+ $PR_URL}"
+            fi
+            exit 0
+          fi
+        fi
+        state="pass=$pass pending=$pending skip=$skip fail=$fail"
+        [[ "$state" != "$last" ]] && emit normal "PENDING $state${at:+ at=$at}"
+        last="$state"
+      fi
+    fi
+
+    remaining=$(( TTL - $(elapsed) ))
+    if (( remaining <= 0 )); then
+      if (( seen )); then
+        emit always "TIMEOUT still pending after ${TTL}s${PR_URL:+ $PR_URL}"
+        exit 2
+      fi
+      emit always "NONE no checks reported${PR_URL:+ $PR_URL}"
+      exit 5
+    fi
+    if [[ -n "${WFA_INTERVAL:-}" ]]; then
+      nap=$WFA_INTERVAL
+    elif (( ! seen || pending == 0 )); then
+      nap=5
+    else
+      nap=$(interval_for "$(elapsed)")
+    fi
+    (( nap > remaining )) && nap=$remaining
+    sleep "$nap"
+  done
+}
+
+if (( CHECKS )); then
+  wait_for_checks
+fi
 
 errors=0
 last=""

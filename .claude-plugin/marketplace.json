@@ -139,7 +139,7 @@
     {
       "name": "wait-for-action",
       "source": "./",
-      "description": "Wait for a GitHub Actions run to finish, or for the CodeRabbit or PR-Agent review of HEAD with --coderabbit or --pr-agent. Use when a workflow has been triggered and later work depends on it passing, when you need to know why a run failed, or when the user says to wait for CodeRabbit or PR-Agent.",
+      "description": "Wait for every check on a pull request (--checks), a GitHub Actions run, or the CodeRabbit or PR-Agent review of HEAD. Use when later work depends on CI or a review finishing, when a run failed and you need the log, or when the user says to wait for checks, CodeRabbit, or PR-Agent.",
       "strict": false,
       "skills": [
         "./skills/wait-for-action"
