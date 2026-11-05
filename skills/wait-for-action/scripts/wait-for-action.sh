@@ -8,6 +8,7 @@
 #
 # Usage:
 #   wait-for-action.sh --checks [--pr N]   # every check on the PR, any source
+#   wait-for-action.sh --ready [--pr N]     # --checks, then the review the repo runs
 #   wait-for-action.sh --run-id <id> [options]
 #   wait-for-action.sh                      # newest run for the current HEAD
 #   wait-for-action.sh --coderabbit         # CodeRabbit review of HEAD instead
@@ -19,8 +20,19 @@
 #                      statuses — anything `gh pr checks` reports. Use this
 #                      to confirm CI. With no flags the script still watches
 #                      only the newest Actions run for HEAD.
-#   --pr N             pull request number for --checks (default: the open PR
-#                      for the current branch)
+#   --ready            ready to merge: --checks, then, when a "CodeRabbit" check
+#                      or a pr-agent check exists, that review of the PR head.
+#                      One terminal line and one exit code for both, one --ttl
+#                      for both. CodeRabbit wins when both run. Without a
+#                      reviewer it is --checks. Review files land in
+#                      <log-dir>/review
+#   --pr N             pull request number for --checks, --ready, --coderabbit
+#                      and --pr-agent (default with --checks and --ready: the
+#                      open PR for the current branch). The review waits read
+#                      the PR's head commit from it
+#   --sha COMMIT       commit to watch, for a checkout where `git rev-parse
+#                      HEAD` fails. Applies to --coderabbit, --pr-agent,
+#                      --ready and the no-flag run lookup, not to --checks
 #   --run-id ID        workflow run to watch
 #   --repo OWNER/REPO  repository (default: the one in cwd)
 #   --ttl DURATION     total budget: 45s, 15m, 1h (default 15m)
@@ -39,8 +51,8 @@
 #                      run. PR-Agent answers with one comment, not a check run
 #                      (see pr_agent.py). A missing review is started by
 #                      commenting "/review"
-#   --no-trigger       with --coderabbit or --pr-agent: report instead of
-#                      commenting
+#   --no-trigger       with --coderabbit, --pr-agent or --ready: report instead
+#                      of commenting
 #   -h, --help         this text
 #
 # Poll schedule - dense while failures are likely, sparse once the run has
@@ -51,8 +63,8 @@
 #   5.5m+      every 3m
 #
 # Exit: 0 success  1 failed  2 ttl expired  3 usage or API error
-#       4 CodeRabbit did not review (--coderabbit only)
-#       5 no check ever appeared (--checks only)
+#       4 CodeRabbit did not review (--coderabbit and --ready)
+#       5 no check ever appeared (--checks and --ready)
 #       (--pr-agent uses 0, 2 and 3 only)
 #
 # --checks classification, from the check's own state. `gh pr checks` leaves
@@ -81,7 +93,9 @@ CODERABBIT=0
 PR_AGENT=0
 NO_TRIGGER=0
 CHECKS=0
+READY=0
 PR=""
+SHA=""
 
 die() { printf 'wait-for-action.sh: %s\n' "$*" >&2; exit 3; }
 usage() { sed -n '2,/^set -/p' "$0" | sed 's/^# \{0,1\}//; /^set -/d'; }
@@ -114,8 +128,11 @@ while [[ $# -gt 0 ]]; do
     --coderabbit) CODERABBIT=1; shift ;;
     --pr-agent)  PR_AGENT=1; shift ;;
     --checks)    CHECKS=1; shift ;;
+    --ready)     READY=1; shift ;;
     --pr)        PR="${2:?--pr needs a value}"; shift 2 ;;
     --pr=*)      PR="${1#*=}"; shift ;;
+    --sha)       SHA="${2:?--sha needs a value}"; shift 2 ;;
+    --sha=*)     SHA="${1#*=}"; shift ;;
     --no-trigger) NO_TRIGGER=1; shift ;;
     -h|--help)   usage; exit 0 ;;
     *)           die "unknown argument: $1" ;;
@@ -123,12 +140,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "$TAIL" =~ ^[0-9]+$ ]] || die "--tail must be an integer"
-(( ! NO_TRIGGER || CODERABBIT || PR_AGENT )) || die "--no-trigger only applies to --coderabbit or --pr-agent"
+(( ! NO_TRIGGER || CODERABBIT || PR_AGENT || READY )) || die "--no-trigger only applies to --coderabbit, --pr-agent or --ready"
 (( ! CODERABBIT || ! PR_AGENT )) || die "--coderabbit and --pr-agent are separate waits; run one, then the other"
 # `&&` binds tighter than `||`: checks mode excludes the review waits.
 (( CHECKS == 0 || PR_AGENT == 0 && CODERABBIT == 0 )) || die "--checks does not combine with --coderabbit or --pr-agent"
-[[ -z "$RUN_ID" || "$CHECKS" -eq 0 ]] || die "--checks does not combine with --run-id"
-[[ -z "$PR" || "$CHECKS" -eq 1 ]] || die "--pr only applies to --checks"
+(( READY == 0 || CHECKS == 0 && PR_AGENT == 0 && CODERABBIT == 0 )) || die "--ready already covers --checks, --coderabbit and --pr-agent; use it alone"
+[[ -z "$RUN_ID" || "$CHECKS" -eq 0 && "$READY" -eq 0 ]] || die "--checks and --ready do not combine with --run-id"
+(( CHECKS || READY || CODERABBIT || PR_AGENT )) || [[ -z "$PR" ]] || die "--pr only applies to --checks, --ready, --coderabbit or --pr-agent"
+[[ -z "$SHA" || "$CHECKS" -eq 0 ]] || die "--sha does not apply to --checks: the PR rollup already follows the PR head"
 command -v gh >/dev/null || die "gh CLI not found"
 command -v jq >/dev/null || die "jq not found"
 
@@ -160,25 +179,38 @@ interval_for() {
   fi
 }
 
-if (( CODERABBIT || PR_AGENT )); then
-  [[ -z "$RUN_ID$REPO" ]] || die "--coderabbit and --pr-agent watch HEAD; drop --run-id and --repo"
+# Replaces the shell, so the review wait is always the last thing a run does.
+# Needs the commit under review: --sha, else the head of --pr, else git's HEAD.
+run_review() {
+  local script=$1 ttl=$2 log_dir=$3 here args
+  if [[ -z "$SHA" && -n "$PR" ]]; then
+    [[ "$PR" =~ ^[0-9]+$ ]] || die "--pr must be numeric, got: $PR"
+    SHA=$(gh pr view "$PR" "${REPO_ARG[@]}" --json headRefOid --jq .headRefOid 2>/dev/null) \
+      || die "cannot read the head commit of PR $PR"
+  fi
   here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-  script=coderabbit.py
-  (( PR_AGENT )) && script=pr_agent.py
-  args=(--ttl "$TTL")
+  args=(--ttl "$ttl" --elapsed "$(elapsed)")
   (( QUIET )) && args+=(--quiet)
   (( NO_TRIGGER )) && args+=(--no-trigger)
-  [[ -n "$LOG_DIR" ]] && args+=(--log-dir "$LOG_DIR")
+  [[ -n "$log_dir" ]] && args+=(--log-dir "$log_dir")
+  [[ -n "$SHA" ]] && args+=(--sha "$SHA")
   if command -v uv >/dev/null; then
     exec uv run --no-project "$here/$script" "${args[@]}"
   fi
   exec python3 "$here/$script" "${args[@]}"
+}
+
+if (( CODERABBIT || PR_AGENT )); then
+  [[ -z "$RUN_ID$REPO" ]] || die "--coderabbit and --pr-agent watch HEAD; drop --run-id and --repo"
+  script=coderabbit.py
+  (( PR_AGENT )) && script=pr_agent.py
+  run_review "$script" "$TTL" "$LOG_DIR"
 fi
 
-if (( ! CHECKS )); then
+if (( ! CHECKS && ! READY )); then
   if [[ -z "$RUN_ID" ]]; then
     [[ -n "$REPO" ]] && die "--repo requires --run-id"
-    sha=$(git rev-parse HEAD 2>/dev/null) || die "not a git repository - pass --run-id"
+    sha=${SHA:-$(git rev-parse HEAD 2>/dev/null)} || die "not a git repository - pass --run-id or --sha"
     RUN_ID=$(gh run list --commit "$sha" --limit 1 --json databaseId \
       --jq '.[0].databaseId // empty' 2>/dev/null || true)
     [[ -n "$RUN_ID" ]] || die "no workflow run found for $sha - pass --run-id"
@@ -349,6 +381,15 @@ finish_checks_failed() {
   exit 1
 }
 
+# The review the repo runs, read from the check rollup: CodeRabbit posts a
+# "CodeRabbit" check, PR-Agent runs as a workflow with pr-agent in its name.
+# CodeRabbit wins when both run. Empty when the repo has neither.
+review_script() {
+  jq -r 'if any(.[]; .name == "CodeRabbit") then "coderabbit.py"
+         elif any(.[]; ((.name + " " + (.workflow // "")) | test("pr[-_ ]?agent"; "i"))) then "pr_agent.py"
+         else "" end' "$CHECKS_JSON"
+}
+
 # WFA_REGISTER_FOR, WFA_SETTLE_FOR, and WFA_INTERVAL override the 2 minute
 # registration window, the 10 second settle, and the poll interval. Tests set
 # them; a normal run leaves them unset.
@@ -415,6 +456,10 @@ wait_for_checks() {
         if (( pending == 0 && fail == 0 )); then
           now=$(date +%s)
           if (( now - stable_at >= settle_for )); then
+            if (( READY )) && [[ -n "$(review_script)" ]]; then
+              emit normal "CI passed ($pass passed, $skip skipped), waiting for the review"
+              return 0
+            fi
             if (( pass == 0 && skip > 0 )); then
               emit always "DONE skipped${PR_URL:+ $PR_URL}"
             else
@@ -450,8 +495,16 @@ wait_for_checks() {
   done
 }
 
-if (( CHECKS )); then
+if (( CHECKS || READY )); then
   wait_for_checks
+  # Only --ready with a review to wait for gets here: every other outcome exited.
+  remaining=$(( TTL - $(elapsed) ))
+  if (( remaining <= 0 )); then
+    emit always "TIMEOUT CI passed, no time left for the review after ${TTL}s${PR_URL:+ $PR_URL}"
+    exit 2
+  fi
+  [[ -z "$REPO" ]] || export GH_REPO="$REPO"
+  run_review "$(review_script)" "$remaining" "$LOG_DIR/review"
 fi
 
 errors=0

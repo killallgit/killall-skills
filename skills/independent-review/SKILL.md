@@ -40,7 +40,14 @@ independent.
 | CodeRabbit | Explicitly asked for it and code rabbit [requirements](./references/cr-requirements.md) are met | `scripts/wait-for-action.sh --coderabbit --ttl 10m` |
 | PR-Agent | `.pr_agent.toml` exists, or a workflow under `.github/workflows` uses `pr-agent` | `scripts/wait-for-action.sh --pr-agent --ttl 5m` |
 
-The script is in the `wait-for-action` skill. Run each wait with
+The script is in the `wait-for-action` skill. These waits cover the review
+only: CI is the caller's step (`--checks`, as `lets-finish` runs it). `--ready`
+is not used here because it waits for CodeRabbit whenever the repo runs it,
+and this skill runs CodeRabbit only when asked. In a checkout where
+`git rev-parse HEAD` fails, add `--pr <n>` to a wait: it reads the PR's head
+commit.
+
+Run each wait with
 `run_in_background` and continue when its completion notice arrives: Claude
 Code ends a foreground Bash call at 2 minutes by default and 10 at most, which
 cuts a review wait short and looks like a hang.
