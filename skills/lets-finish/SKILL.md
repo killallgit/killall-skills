@@ -87,7 +87,11 @@ exit 3) is `[x]` with its message. Stop.
    it and run `scripts/wait-for-action.sh --checks --pr <n>` from that skill.
    It waits for every check GitHub reports on the head: Actions runs, other
    check runs, and commit statuses. A long wait goes in the background, as
-   that skill describes.
+   that skill describes. This step waits for CI alone, with `--checks`:
+   step 2 decides whether a review is needed and which reviewer runs it, and
+   `--ready` (CI plus the CI reviewer in one wait) would wait on a reviewer
+   that step 2 may not want. In a checkout where `git rev-parse HEAD` fails,
+   `--pr <n>` already avoids `git`.
 2. **Another preferred waiter**, when that skill is not available. Look for a
    skill or tool in this session whose job is waiting for GitHub Actions or
    CI checks to finish, and use it for this PR. Map its result onto the

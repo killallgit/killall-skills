@@ -357,18 +357,22 @@ def main(argv: list[str], watcher=None, client=None, name: str = "coderabbit") -
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--no-trigger", action="store_true")
     parser.add_argument("--log-dir")
+    parser.add_argument("--sha")
+    parser.add_argument("--elapsed", type=int, default=0)
     args = parser.parse_args(argv)
-    try:
-        sha = subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
-        ).stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("wait-for-action.sh: not a git repository", file=sys.stderr)
-        return EXIT_ERROR
+    sha = args.sha
+    if not sha:
+        try:
+            sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+            ).stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("wait-for-action.sh: not a git repository - pass --sha or --pr", file=sys.stderr)
+            return EXIT_ERROR
     log_dir = Path(args.log_dir or f"/tmp/actions/{name}-{sha}")
     log_dir.mkdir(parents=True, exist_ok=True)
     (log_dir / "poll.log").write_text("")
-    start = time.time()
+    start = time.time() - args.elapsed
 
     def say(always: bool, line: str) -> None:
         stamped = f"[t={int(time.time() - start)}s] {line}"

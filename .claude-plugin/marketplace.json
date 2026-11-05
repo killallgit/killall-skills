@@ -126,7 +126,7 @@
     {
       "name": "wait-for-action",
       "source": "./",
-      "description": "Wait for every check on a pull request (--checks), a GitHub Actions run, or the CodeRabbit or PR-Agent review of HEAD. Use when later work depends on CI or a review finishing, when a run failed and you need the log, or when the user says to wait for checks, CodeRabbit, or PR-Agent.",
+      "description": "Wait for CI, PR checks, a review, or a workflow run in one blocking call. Use before a merge (\"is it ready to merge\", wait for the PR to be green, CI, then the CodeRabbit or PR-Agent review), after a push, merge or workflow dispatch, or when a run failed and you need its log. Replaces any hand-written `gh run watch`, `gh pr checks --watch` or sleep loop.",
       "strict": false,
       "skills": [
         "./skills/wait-for-action"
