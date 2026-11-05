@@ -1,15 +1,33 @@
 ---
-name: finish-up
-description: Wrap up finished work. Confirm the PR's CI passed and any required review is done, merge it, update the tickets and beads it relates to, then offer to clean up the branch and worktree. Use when the user says "finish up", "wrap this up", or invokes `/finish-up`.
-disable-model-invocation: true
+name: lets-finish
+description: Land finished work. Open the PR if there is none, wait for CI, get it independently reviewed, merge, update the tickets and beads it relates to, then clean up the branch and worktree. Use when the user says "let's finish", "lets finish", "wrap up", "finish up", "ship it", or invokes `/lets-finish`. Words after the command skip or stop steps, such as "don't review" or "stop after CI", or add one: "and release" or "and deploy" runs the project's release after the merge. Not for a question about status.
+model: haiku
+argument-hint: "[PR numbers] [what to skip or where to stop]"
 ---
 
-# Finish up
+# Let's finish
 
 Land the PR(s) for this work and close out their tickets. The user wants to read
 the run like a script, so every step prints one line when it starts and one line
 when it ends. When a `caveman` skill is available in this session, invoke it
 first.
+
+This skill runs on a small model: it waits, triggers, and merges. A code change,
+such as fixing a review finding, goes to the `builder` agent when this project
+has one. Without it, stop and tell the user what needs fixing.
+
+## Arguments
+
+Read the words after the command as plain-language overrides. Skip the step the
+user names (`don't review` skips step 2, `no tickets` skips steps 4 and 5,
+`don't clean up` skips step 7) and stop after the step they name (`stop after
+CI`, `don't merge`). Run every other step, except release (step 6), which runs
+only when the user's words name it (`and release`, `and deploy`, `release
+minor`, `deploy to staging`). PR numbers pick the PRs. When an override is
+unclear, ask once.
+
+Run only when the user is asking to finish. A question such as "are we done?"
+gets a status answer from `gh pr view`, not a merge.
 
 ## Output
 
@@ -29,7 +47,7 @@ lines stay in the transcript, so the finished run reads top to bottom:
 - `[+]` the step succeeded.
 - `[-]` nothing to do (`[-] No related tickets found`).
 - `[x]` the step failed. Print the reason and stop. With several PRs, steps 5
-  and 6 still run for the ones already merged.
+  to 7 still run for the ones already merged.
 
 No other narration between lines.
 
@@ -41,7 +59,7 @@ none, use the open PR for the current branch
 (`gh pr view --json number,title,url,headRefName,reviewDecision,body,isCrossRepository`).
 When the branch is the default branch, stop and say so. When the branch has no
 open PR, run step 0 for it first. Run steps 1 to 4 for each PR in turn; steps 5
-and 6 run once, over all of them.
+to 7 run once, over all of them.
 
 ## 0. opening PR... (only when the branch has no open PR)
 
@@ -135,7 +153,7 @@ Read the PR's current head: `gh pr view <n> --json headRefOid`. Pushes since
 the first read (review fixes, reviewer autofixes) are in it. Then
 `gh pr merge <n> --squash --match-head-commit <headRefOid>`, so a push after CI
 and review is never merged unchecked. A repo that refuses squash is an `[x]`.
-Keep that `headRefOid` for step 6. The branch is deleted in step 6, not here, because a
+Keep that `headRefOid` for step 7. The branch is deleted in step 7, not here, because a
 worktree holding it blocks the local delete. A conflict or branch-protection refusal is `[x]` with gh's message.
 Then `git fetch --prune`. `[+] merged <PR title>`.
 
@@ -178,7 +196,27 @@ explicit keyword:
 `[+] updated <id>: <title>` and the new state. A failed update is `[x]` for that
 ticket; carry on with the rest and list the failures at the end.
 
-## 6. Clean up
+## 6. releasing... (only when the user's words ask for it)
+
+Release publishes or deploys, so run it only when the user named it. Never infer
+it from a merged PR. Find the project's own way, first match wins:
+
+1. A skill or agent for it available in this session (`release`, `deploy`).
+   Invoke it.
+2. The process the repo documents: `AGENTS.md`, `CLAUDE.md`, the README, a
+   `Taskfile`, `Makefile` or `justfile` target (`release`, `tag:*`, `deploy`),
+   or a `scripts/release*` file. Run the documented command.
+3. Neither exists: `[x] no release process found`, and go to step 7. Never
+   invent one.
+
+Run it from the main checkout, on the default branch at the merge commit
+(`git checkout <default> && git pull --ff-only`). A level (`patch`, `minor`,
+`major`) or a target (`staging`, `production`) comes from the user's words. When
+the process needs one and they gave none, ask once. `[+] released <version or
+target>`. A failure is `[x]` with the command's last lines; step 7 still runs,
+because the merged branch is finished either way.
+
+## 7. Clean up
 
 Ask `Clean up branch(es) <names> and worktree(s)? [y/n]` and wait for the
 answer.

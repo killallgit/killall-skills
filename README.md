@@ -30,13 +30,6 @@ npx skills add killallgit/killall-skills
 
 Claude Code runs a skill as `/name`; Codex runs it as `$name`.
 
-## Ship
-
-`/ship` gets the branch independently reviewed through `independent-review`,
-merges, syncs main, and runs the git janitor. It stops and asks you only when
-review findings stay open. It calls the `independent-review` and `git-janitor`
-skills (and through them `wait-for-action`), so install the bundle.
-
 ## Development
 
 `.claude-plugin/marketplace.json` is generated from each skill's `SKILL.md`
@@ -93,11 +86,11 @@ resolves their comments. When the repo has none, or none reviews (rate limited,
 skipped, slow), it dispatches a local review agent with fresh context (never the
 current session) and resolves that agent's findings instead. It reports what
 was fixed and declined, and leaves the PR open. Other skills, such as `ship`
-and `finish-up`, run it too.
+and `lets-finish`, run it too.
 
-## Finish up
+## Lets finish
 
-`/finish-up` wraps up work that is ready to land. A branch with no PR gets one,
+`/lets-finish` (or "let's finish", "wrap up", "ship it") lands work that is ready. It runs on a small model, so fixes go to the `builder` agent. Words after the command skip or stop steps: `/lets-finish don't review`, `/lets-finish stop after CI`. `/lets-finish and release` also runs the project's release after the merge: its `release` or `deploy` skill, or the process its docs describe. It never releases unless you say so. A branch with no PR gets one,
 waits for CI, and goes through `independent-review` first. For each PR it confirms CI
 passed and that any required review is done (a CI reviewer or a human), then
 squash-merges. It finds the beads, Jira tickets, and GitHub issues the PR

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Let's finish"
+  short_description: "Open the PR, wait for CI and review, merge, update tickets and beads, then clean up. Words after it skip or stop steps; \"and release\" adds a release."
+policy:
+  allow_implicit_invocation: true

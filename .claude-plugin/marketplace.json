@@ -16,12 +16,11 @@
         "./skills/catch-up",
         "./skills/check-agent-docs",
         "./skills/end-session",
-        "./skills/finish-up",
         "./skills/follow-the-rules",
         "./skills/git-janitor",
         "./skills/independent-review",
+        "./skills/lets-finish",
         "./skills/session-eject",
-        "./skills/ship",
         "./skills/wait-for-action"
       ],
       "category": "workflow",
@@ -65,18 +64,6 @@
       "version": "4.3.1"
     },
     {
-      "name": "finish-up",
-      "source": "./",
-      "description": "Wrap up finished work. Confirm the PR's CI passed and any required review is done, merge it, update the tickets and beads it relates to, then offer to clean up the branch and worktree. Use when the user says \"finish up\", \"wrap this up\", or invokes `/finish-up`.",
-      "strict": false,
-      "skills": [
-        "./skills/finish-up"
-      ],
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "4.3.1"
-    },
-    {
       "name": "follow-the-rules",
       "source": "./",
       "description": "Core programming rules for all agents and users alike. The following documents contain the most important, fundamental, rules that every engineer - junior to principle - MUST follow.",
@@ -113,24 +100,24 @@
       "version": "4.3.1"
     },
     {
-      "name": "session-eject",
+      "name": "lets-finish",
       "source": "./",
-      "description": "Save all work before usage runs out \u2014 commit, push, update or open draft PRs, and stop. `now` skips waiting for subagents.",
+      "description": "Land finished work. Open the PR if there is none, wait for CI, get it independently reviewed, merge, update the tickets and beads it relates to, then clean up the branch and worktree. Use when the user says \"let's finish\", \"lets finish\", \"wrap up\", \"finish up\", \"ship it\", or invokes `/lets-finish`. Words after the command skip or stop steps, such as \"don't review\" or \"stop after CI\". Not for a question about status.",
       "strict": false,
       "skills": [
-        "./skills/session-eject"
+        "./skills/lets-finish"
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
       "version": "4.3.1"
     },
     {
-      "name": "ship",
+      "name": "session-eject",
       "source": "./",
-      "description": "Open PR, get it independently reviewed and fixed, merge, sync main, clean up. Use when the user says \"ship it\", \"ship this\", or invokes `/ship`.",
+      "description": "Save all work before usage runs out \u2014 commit, push, update or open draft PRs, and stop. `now` skips waiting for subagents.",
       "strict": false,
       "skills": [
-        "./skills/ship"
+        "./skills/session-eject"
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
