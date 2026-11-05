@@ -37,7 +37,7 @@ independent.
 
 | Reviewer | The repo runs it when | Wait |
 |---|---|---|
-| CodeRabbit | `.coderabbit.yaml` exists | `scripts/wait-for-action.sh --coderabbit --ttl 10m` |
+| CodeRabbit | Explicitly asked for it and code rabbit [requirements](./references/cr-requirements.md) are met | `scripts/wait-for-action.sh --coderabbit --ttl 10m` |
 | PR-Agent | `.pr_agent.toml` exists, or a workflow under `.github/workflows` uses `pr-agent` | `scripts/wait-for-action.sh --pr-agent --ttl 5m` |
 
 The script is in the `wait-for-action` skill. Run each wait with
