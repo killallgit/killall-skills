@@ -1,7 +1,7 @@
 {
   "name": "killallgit",
   "description": "Killallgit workflow skills for Claude Code and Codex.",
-  "version": "4.3.1",
+  "version": "5.0.0",
   "owner": {
     "name": "archae0pteryx",
     "url": "https://github.com/killallgit"
