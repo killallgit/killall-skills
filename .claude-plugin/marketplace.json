@@ -102,7 +102,7 @@
     {
       "name": "lets-finish",
       "source": "./",
-      "description": "Land finished work. Open the PR if there is none, wait for CI, get it independently reviewed, merge, update the tickets and beads it relates to, then clean up the branch and worktree. Use when the user says \"let's finish\", \"lets finish\", \"wrap up\", \"finish up\", \"ship it\", or invokes `/lets-finish`. Words after the command skip or stop steps, such as \"don't review\" or \"stop after CI\". Not for a question about status.",
+      "description": "Land finished work. Open the PR if there is none, wait for CI, get it independently reviewed, merge, update the tickets and beads it relates to, then clean up the branch and worktree. Use when the user says \"let's finish\", \"lets finish\", \"wrap up\", \"finish up\", \"ship it\", or invokes `/lets-finish`. Words after the command skip or stop steps, such as \"don't review\" or \"stop after CI\", \"and release\" or \"and deploy\" adds the project's release after the merge. Not for a question about status.",
       "strict": false,
       "skills": [
         "./skills/lets-finish"
