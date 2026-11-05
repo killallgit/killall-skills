@@ -23,8 +23,9 @@ user names (`don't review` skips step 2, `no tickets` skips steps 4 and 5,
 `don't clean up` skips step 7) and stop after the step they name (`stop after
 CI`, `don't merge`). Run every other step, except release (step 6), which runs
 only when the user's words name it (`and release`, `and deploy`, `release
-minor`, `deploy to staging`). PR numbers pick the PRs. When an override is
-unclear, ask once.
+minor`, `deploy to staging`). An override covers step 0 too: `don't review` skips
+the review step 0 would run, and `stop after CI` stops after step 0's CI wait.
+PR numbers pick the PRs. When an override is unclear, ask once.
 
 Run only when the user is asking to finish. A question such as "are we done?"
 gets a status answer from `gh pr view`, not a merge.
@@ -199,7 +200,9 @@ ticket; carry on with the rest and list the failures at the end.
 ## 6. releasing... (only when the user's words ask for it)
 
 Release publishes or deploys, so run it only when the user named it. Never infer
-it from a merged PR. Find the project's own way, first match wins:
+it from a merged PR. Skip it when any PR failed or stopped before merging, so a
+release never publishes part of the requested work; steps 4, 5 and 7 still run
+for the PRs that merged. Find the project's own way, first match wins:
 
 1. A skill or agent for it available in this session (`release`, `deploy`).
    Invoke it.
@@ -209,8 +212,10 @@ it from a merged PR. Find the project's own way, first match wins:
 3. Neither exists: `[x] no release process found`, and go to step 7. Never
    invent one.
 
-Run it from the main checkout, on the default branch at the merge commit
-(`git checkout <default> && git pull --ff-only`). A level (`patch`, `minor`,
+Run it on the default branch at the merge commit: in the worktree that has the
+default branch checked out (`git worktree list`), after `git pull --ff-only`; if
+none has it, in a detached `git worktree add --detach <dir> origin/<default>`
+that you remove afterwards. A level (`patch`, `minor`,
 `major`) or a target (`staging`, `production`) comes from the user's words. When
 the process needs one and they gave none, ask once. `[+] released <version or
 target>`. A failure is `[x]` with the command's last lines; step 7 still runs,
