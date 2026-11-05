@@ -78,7 +78,7 @@
     {
       "name": "git-janitor",
       "source": "./",
-      "description": "Clean up local Git when the user says \"clean up our local git\", prune the repo, or review stale branches and worktrees. Inspect uncommitted and unpublished work in every worktree first, discard work that is superseded or over 60 days old when justified, then remove merged and stale local worktrees and branches. Record what was discarded and why.",
+      "description": "Clean up local Git, only when the user runs /git-janitor. Inspect uncommitted and unpublished work in every worktree first, discard work that is superseded or over 60 days old when justified, then remove merged and stale local worktrees and branches. Record what was discarded and why.",
       "strict": false,
       "skills": [
         "./skills/git-janitor"
