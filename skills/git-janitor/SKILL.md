@@ -1,22 +1,19 @@
 ---
 name: git-janitor
 description: >
-  Clean up local Git when the user says "clean up our local git", prune the
-  repo, or review stale branches and worktrees. Inspect uncommitted and
-  unpublished work in every worktree first, discard work that is superseded
+  Clean up local Git, only when the user runs /git-janitor. Inspect uncommitted
+  and unpublished work in every worktree first, discard work that is superseded
   or over 60 days old when justified, then remove merged and stale local
   worktrees and branches. Record what was discarded and why.
+disable-model-invocation: true
 ---
 
 # Git janitor
 
-`/git-janitor` runs full local cleanup in the current repository. Command
-arguments can name another repository or narrow the request to an audit. The
-same workflow applies when the user asks in plain language or delegates to
-the `git-janitor` agent. "Clean up local git" authorizes the local cleanup
-policy below. The invoking agent owns cleanup decisions and checks any
-read-only findings from `killall-agents:git-janitor-investigator` when available.
-Follow any more specific instruction in the user's request.
+`/git-janitor` runs full local cleanup in the current repository. It runs only
+when the user invokes it; no agent starts it. Command arguments can name another
+repository or narrow the request to an audit. Invoking it authorizes the local
+cleanup policy below. Follow any more specific instruction in the user's request.
 
 ## 1. Set the scope
 
@@ -57,13 +54,10 @@ does not make changes disposable. Classify local work as **landed or clearly
 superseded**, **disposable after inspecting its purpose**, or **valuable /
 uncertain**; note the evidence for each classification.
 
-Delegate read-only investigation of unmerged branches to
-`killall-agents:git-janitor-investigator` from the optional agents plugin in
-bounded parallel calls when available. Give it the expected tip OID, default
-ref, upstream, and linked worktree path. If it is unavailable, inspect those
-signals inline and query PRs with
+Inspect unmerged branches yourself, read-only: the expected tip OID, default
+ref, upstream, and linked worktree path, and query PRs with
 `gh pr list --state all --head "$short_branch"`. A failed PR lookup is
-unknown, not no PR. Recheck pivotal agent findings yourself.
+unknown, not no PR.
 
 ## 3. Decide and clean without repeated prompts
 

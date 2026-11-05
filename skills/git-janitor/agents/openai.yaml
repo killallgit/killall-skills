@@ -1,0 +1,5 @@
+interface:
+  display_name: "Git janitor"
+  short_description: "Clean up local Git: inspect every worktree, then remove merged and stale local worktrees and branches."
+policy:
+  allow_implicit_invocation: false

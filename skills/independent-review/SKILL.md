@@ -11,7 +11,7 @@ front of a reviewer with no part in writing it, then resolve what it finds. When
 a `caveman` skill is available in this session, invoke it first.
 
 An agent may run this skill itself, including from another skill such as
-`finish-up` or `ship`. A CI reviewer is optional and never worth a long wait:
+`lets-finish`. A CI reviewer is optional and never worth a long wait:
 when the repo has none, or it is rate limited, skipped, slow or broken, step 4
 runs a local review agent, so the review never waits on a bot.
 
