@@ -71,20 +71,31 @@ def test_read_skills_rejects_name_that_differs_from_directory(tmp_path):
         read_skills(tmp_path / "skills")
 
 
-def test_marketplace_lists_bundle_first_then_each_skill():
+def test_marketplace_lists_each_skill_then_bundle():
     plugins = build_marketplace(CONFIG, SKILLS)["plugins"]
 
-    assert [p["name"] for p in plugins] == ["bundle", "alpha", "beta"]
+    assert [p["name"] for p in plugins] == ["alpha", "beta", "bundle"]
+
+
+def test_skills_cli_last_matching_plugin_groups_every_skill_under_bundle():
+    plugins = build_marketplace(CONFIG, SKILLS)["plugins"]
+    groups = {
+        path: plugin["name"]
+        for plugin in plugins
+        for path in plugin["skills"]
+    }
+
+    assert groups == {"./skills/alpha": "bundle", "./skills/beta": "bundle"}
 
 
 def test_bundle_entry_exposes_every_skill_path():
-    bundle = build_marketplace(CONFIG, SKILLS)["plugins"][0]
+    bundle = build_marketplace(CONFIG, SKILLS)["plugins"][-1]
 
     assert bundle["skills"] == ["./skills/alpha", "./skills/beta"]
 
 
 def test_skill_entry_exposes_only_its_own_path():
-    alpha = build_marketplace(CONFIG, SKILLS)["plugins"][1]
+    alpha = build_marketplace(CONFIG, SKILLS)["plugins"][0]
 
     assert alpha["skills"] == ["./skills/alpha"]
 
@@ -102,7 +113,7 @@ def test_marketplace_entries_carry_no_version():
 
 
 def test_skill_entry_description_comes_from_frontmatter():
-    alpha = build_marketplace(CONFIG, SKILLS)["plugins"][1]
+    alpha = build_marketplace(CONFIG, SKILLS)["plugins"][0]
 
     assert alpha["description"] == "first"
 
@@ -158,12 +169,12 @@ def test_skill_with_hooks_inlines_them_in_its_entry():
     hooked = (Skill("alpha", "first", hooks=ALPHA_HOOKS), SKILLS[1])
     plugins = build_marketplace(CONFIG, hooked)["plugins"]
 
-    assert plugins[1]["hooks"] == ALPHA_HOOKS
+    assert plugins[0]["hooks"] == ALPHA_HOOKS
 
 
 def test_bundle_merges_the_hooks_of_every_skill_by_event():
     hooked = (Skill("alpha", "first", hooks=ALPHA_HOOKS), Skill("beta", "second", hooks=BETA_HOOKS))
-    bundle = build_marketplace(CONFIG, hooked)["plugins"][0]
+    bundle = build_marketplace(CONFIG, hooked)["plugins"][-1]
 
     assert bundle["hooks"] == {
         "PreToolUse": ALPHA_HOOKS["PreToolUse"] + BETA_HOOKS["PreToolUse"],

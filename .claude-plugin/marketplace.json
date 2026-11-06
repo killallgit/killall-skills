@@ -8,44 +8,12 @@
   },
   "plugins": [
     {
-      "name": "killall-skills",
-      "source": "./",
-      "description": "Helpful agent skills.",
-      "strict": false,
-      "skills": [
-        "./skills/catch-up",
-        "./skills/check-agent-docs",
-        "./skills/end-session",
-        "./skills/follow-the-rules",
-        "./skills/git-janitor",
-        "./skills/independent-review",
-        "./skills/lets-finish",
-        "./skills/session-eject",
-        "./skills/wait-for-action"
-      ],
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.1.0"
-    },
-    {
       "name": "catch-up",
       "source": "./",
       "description": "Rebuild a human's lost context on the work in flight after reconciling the current checkout's dangling changes \u2014 commit what belongs to an open PR, discard what already landed, sync the branch \u2014 then summarize the state of play, decisions, live PRs and tickets, and the single next step. Use when the user says \"catch me up\", \"where were we\", \"what's the state of this\", \"get back on track\", or invokes `/catch-up` after time away.",
       "strict": false,
       "skills": [
         "./skills/catch-up"
-      ],
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.1.0"
-    },
-    {
-      "name": "check-agent-docs",
-      "source": "./",
-      "description": "Review and clean up a project whose root has both AGENTS.md and CLAUDE.md \u2014 shared instructions live once in AGENTS.md, CLAUDE.md imports them with `@AGENTS.md` instead of repeating them, and every checkable claim in either file still matches the repo. Use when the user says \"check the agent docs\", \"check project\", \"dedupe CLAUDE.md and AGENTS.md\", or invokes `/check-agent-docs`. Does nothing unless both files exist.",
-      "strict": false,
-      "skills": [
-        "./skills/check-agent-docs"
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
@@ -124,11 +92,43 @@
       "version": "5.1.0"
     },
     {
+      "name": "setup-agents-md",
+      "source": "./",
+      "description": "Set up and review root AGENTS.md and CLAUDE.md. Merge shared instructions from both into AGENTS.md without losing unique or tool-generated guidance, simplify the combined instructions, verify them against the repo, and make CLAUDE.md import AGENTS.md with @AGENTS.md. Create missing files as needed. Use for \"setup agents md\", \"check the agent docs\", \"check project\", \"dedupe CLAUDE.md and AGENTS.md\", or /setup-agents-md.",
+      "strict": false,
+      "skills": [
+        "./skills/setup-agents-md"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.1.0"
+    },
+    {
       "name": "wait-for-action",
       "source": "./",
       "description": "Wait for CI, PR checks, a review, or a workflow run in one blocking call. Use before a merge (\"is it ready to merge\", wait for the PR to be green, CI, then the CodeRabbit or PR-Agent review), after a push, merge or workflow dispatch, or when a run failed and you need its log. Replaces any hand-written `gh run watch`, `gh pr checks --watch` or sleep loop.",
       "strict": false,
       "skills": [
+        "./skills/wait-for-action"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.1.0"
+    },
+    {
+      "name": "killall-skills",
+      "source": "./",
+      "description": "Helpful agent skills.",
+      "strict": false,
+      "skills": [
+        "./skills/catch-up",
+        "./skills/end-session",
+        "./skills/follow-the-rules",
+        "./skills/git-janitor",
+        "./skills/independent-review",
+        "./skills/lets-finish",
+        "./skills/session-eject",
+        "./skills/setup-agents-md",
         "./skills/wait-for-action"
       ],
       "category": "workflow",
