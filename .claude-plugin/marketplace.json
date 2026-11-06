@@ -8,26 +8,6 @@
   },
   "plugins": [
     {
-      "name": "killall-skills",
-      "source": "./",
-      "description": "Helpful agent skills.",
-      "strict": false,
-      "skills": [
-        "./skills/catch-up",
-        "./skills/check-agent-docs",
-        "./skills/end-session",
-        "./skills/follow-the-rules",
-        "./skills/git-janitor",
-        "./skills/independent-review",
-        "./skills/lets-finish",
-        "./skills/session-eject",
-        "./skills/wait-for-action"
-      ],
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.1.0"
-    },
-    {
       "name": "catch-up",
       "source": "./",
       "description": "Rebuild a human's lost context on the work in flight after reconciling the current checkout's dangling changes \u2014 commit what belongs to an open PR, discard what already landed, sync the branch \u2014 then summarize the state of play, decisions, live PRs and tickets, and the single next step. Use when the user says \"catch me up\", \"where were we\", \"what's the state of this\", \"get back on track\", or invokes `/catch-up` after time away.",
@@ -129,6 +109,26 @@
       "description": "Wait for CI, PR checks, a review, or a workflow run in one blocking call. Use before a merge (\"is it ready to merge\", wait for the PR to be green, CI, then the CodeRabbit or PR-Agent review), after a push, merge or workflow dispatch, or when a run failed and you need its log. Replaces any hand-written `gh run watch`, `gh pr checks --watch` or sleep loop.",
       "strict": false,
       "skills": [
+        "./skills/wait-for-action"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.1.0"
+    },
+    {
+      "name": "killall-skills",
+      "source": "./",
+      "description": "Helpful agent skills.",
+      "strict": false,
+      "skills": [
+        "./skills/catch-up",
+        "./skills/check-agent-docs",
+        "./skills/end-session",
+        "./skills/follow-the-rules",
+        "./skills/git-janitor",
+        "./skills/independent-review",
+        "./skills/lets-finish",
+        "./skills/session-eject",
         "./skills/wait-for-action"
       ],
       "category": "workflow",

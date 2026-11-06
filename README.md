@@ -44,6 +44,8 @@ CI fails when the committed file is out of date.
 
 A skill can ship hooks in `skills/<name>/hooks/hooks.json`; the generator inlines
 them into that skill's entry and into the `killall-skills` bundle.
+The bundle is listed last so the skills CLI groups all skills under
+`Killall Skills` instead of repeating each skill name as a group heading.
 
 To release, run one of these from anywhere in the checkout. The release runs in
 a temporary worktree off `origin/main`, so your checkout is never switched. It

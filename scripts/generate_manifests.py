@@ -93,7 +93,7 @@ def build_marketplace(config: dict, skills: tuple[Skill, ...]) -> dict:
         "name": config["name"],
         "description": config["description"],
         "owner": config["owner"],
-        "plugins": [bundle, *singles],
+        "plugins": [*singles, bundle],
     }
 
 
