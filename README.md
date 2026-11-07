@@ -87,7 +87,11 @@ exists, PR-Agent when `.pr_agent.toml` or a `pr-agent` workflow does) and
 resolves their comments. When the repo has none, or none reviews (rate limited,
 skipped, slow), it dispatches a local review agent with fresh context (never the
 current session) and resolves that agent's findings instead. It reports what
-was fixed and declined, and leaves the PR open. Other skills, such as `ship`
+was fixed and declined, and leaves the PR open. If a local reviewer fails, it
+tries other viable independent routes. If none works, it reports **BLOCKED**
+and stops the calling workflow before merge or release unless the user
+explicitly waives review. Self-review and passing tests are not substitutes;
+a waiver is reported as **WAIVED**, not reviewed. Other skills, such as `ship`
 and `lets-finish`, run it too.
 
 ## Lets finish

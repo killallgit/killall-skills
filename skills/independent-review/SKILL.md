@@ -13,7 +13,17 @@ a `caveman` skill is available in this session, invoke it first.
 An agent may run this skill itself, including from another skill such as
 `lets-finish`. A CI reviewer is optional and never worth a long wait:
 when the repo has none, or it is rate limited, skipped, slow or broken, step 4
-runs a local review agent, so the review never waits on a bot.
+tries a local review agent rather than waiting longer on a bot. If no
+independent route works, review is BLOCKED and the calling workflow stops.
+
+A failed reviewer invocation is **not a completed review**. Authentication,
+quota, provider, tool or process failures trigger another available independent
+route, not a downgrade to the author's manual review or passing tests. Those
+checks are useful, but neither substitutes for independent review. This rule
+also binds callers such as `lets-finish` and repository shipping workflows.
+An explicit user instruction such as `don't review` is a waiver. A caller's
+docs-only exemption may skip invoking this skill, but is not a waiver once
+independent review has been requested or attempted.
 
 ## 1. Get a PR
 
@@ -104,6 +114,27 @@ the PR body is the author's conclusion, and a reviewer handed it confirms it.
 It returns findings as `file:line`, severity, and the failure scenario, ranked
 most-severe first, or states that it found none.
 
+If dispatch fails, or its response contains neither a findings list nor an
+explicit statement that it found no issues (including empty or truncated
+responses without either verdict):
+
+1. Check the other installed review skills and supported agents/processes for
+   an independent route that is actually available. A different skill using the
+   same failing provider is not a fallback; do not repeat an unchanged auth or
+   quota failure.
+2. Attempt another available route with fresh context and the same neutral
+   brief. Continue through viable alternatives until one returns a review or
+   none remain. Never change credentials or install tooling without authority.
+3. If none works, mark independent review **BLOCKED**, list the failed routes
+   and concrete errors, and stop the calling workflow before merge, release or
+   deployment. Ask the user to restore a review route or explicitly waive
+   independent review. Routine permission to ship is not a review waiver.
+
+A successful process exit, an attempted dispatch, or the author's own review
+cannot satisfy this step; an independent reviewer must return findings or an
+explicit no-findings verdict. A waiver permits proceeding but does not turn a
+blocked review into a completed one.
+
 Rule on each finding as in step 3, then push. Local findings have no thread, so
 the report in step 5 is their record. Each further round dispatches a new
 reviewer.
@@ -120,4 +151,9 @@ check in `references/cr-requirements.md` ruled it out. Then one bullet per findi
 sentences each: what the reviewer found, and what happened to it (fixed,
 declined with the reason, or still open). Group bullets by reviewer when
 several ran. Cut praise, process narration, and anything that is not a finding.
+If blocked, lead with **Independent review BLOCKED**, the failed routes and
+errors, and what the user must unblock or explicitly waive. If waived, label
+it **WAIVED**, never reviewed or passed. Always distinguish an attempted
+review from a completed independent verdict.
+
 Leave the PR open; merging is the user's call.

@@ -67,8 +67,16 @@ to 7 run once, over all of them.
 1. Push the branch with `-u` and `gh pr create` with a title and body in the
    repository's convention. `[+] opened <PR title>`.
 2. Wait for CI as in step 1. A failure is `[x]` and stops here.
-3. Invoke the `independent-review` skill and let it finish.
-   `[+] independent review done` with its fixed and declined counts.
+3. Apply step 2's review-needed criteria first. When review is not needed,
+   print `[-] no review needed`. Otherwise invoke `independent-review` and
+   inspect its outcome:
+   - Completed with no findings left to fix: `[+] independent review done`
+     with fixed and declined counts.
+   - Findings still open: `[x] review not done`; stop before merge.
+   - BLOCKED: `[x] review blocked` with the failed routes; stop before merge.
+   - Explicitly waived by the user: `[+] review waived` with the waiver; do
+     not report review as completed. Carry this waiver into step 2 within the
+     scope the user authorized.
 
 Its fixes are new pushes, so step 1 runs again afterwards.
 
@@ -133,24 +141,31 @@ Outcomes:
 
 ## 2. confirming review...
 
-A review is needed only when the changes warrant one: the diff touches
-executable code (scripts, hooks, CI config), or `reviewDecision` is
-`REVIEW_REQUIRED` or `CHANGES_REQUESTED`. A PR of docs and skill text alone
-needs none: `[-] no review needed`.
+A review is needed when explicitly requested, when the diff touches executable
+code (scripts, hooks, CI config), or when `reviewDecision` is `REVIEW_REQUIRED`
+or `CHANGES_REQUESTED`. Otherwise a PR of docs and skill text alone needs none:
+`[-] no review needed`.
 
 When one is needed:
 
-- **Already reviewed**: step 0 ran `independent-review` on this PR, or a
-  reviewer already covered the current head. Name them.
-- **Otherwise** invoke the `independent-review` skill. It waits for the repo's
-  CI reviewers (CodeRabbit, PR-Agent) and uses a fresh-context local review
-  agent when none of them reviews, so a reviewer outage never blocks the run.
-  Findings it leaves open are `[x] review not done`.
+- **Explicitly waived**: honor a user waiver already recorded in step 0 or the
+  arguments, within its authorized scope. Print `[+] review waived`; do not
+  invoke independent review again. This does not bypass required human approval.
+- **Already reviewed**: step 0 completed independent review of the current
+  head, or another reviewer already covered it. An attempted or blocked review
+  does not count. Name the reviewer.
+- **Otherwise** invoke the `independent-review` skill. It tries CI reviewers
+  and viable fresh-context local alternatives. If all routes fail, print
+  `[x] review blocked` with the failures and stop before merge; self-review and
+  passing tests cannot substitute. Proceed without independent review only
+  with an explicit user waiver, reported as `[+] review waived`, not reviewed.
+  Findings it leaves open are `[x] review not done` and stop the run.
 - **Human approval**: when `reviewDecision` asks for it, it must be `APPROVED`,
   else `[x] awaiting approval`.
 
 Name every reviewer: `[+] reviewed by <ci reviewer>, <login>` or
-`[+] reviewed by local agent`.
+`[+] reviewed by local agent`. For a waiver, report `[+] review waived`
+instead; do not name a reviewer that never completed a review.
 
 ## 3. merging <PR title>...
 
