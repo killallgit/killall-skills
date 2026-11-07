@@ -35,15 +35,20 @@ This step is done when the pushed `HEAD` has an open, non-draft PR.
 Find which reviewers this repo runs. Start every one that applies; the waits are
 independent.
 
+Read `references/cr-requirements.md` before deciding on CodeRabbit, and decide by
+its checks. A repo instruction that calls for CodeRabbit on some changes, such as
+substantial ones, counts as being asked: do not skip it for want of a request in
+the user's message.
+
 | Reviewer | The repo runs it when | Wait |
 |---|---|---|
-| CodeRabbit | Explicitly asked for it and code rabbit [requirements](./references/cr-requirements.md) are met | `scripts/wait-for-action.sh --coderabbit --ttl 10m` |
+| CodeRabbit | The user or the repo's instructions call for it, and its [requirements](./references/cr-requirements.md) are met | `scripts/wait-for-action.sh --coderabbit --ttl 10m` |
 | PR-Agent | `.pr_agent.toml` exists, or a workflow under `.github/workflows` uses `pr-agent` | `scripts/wait-for-action.sh --pr-agent --ttl 5m` |
 
 The script is in the `wait-for-action` skill. These waits cover the review
 only: CI is the caller's step (`--checks`, as `lets-finish` runs it). `--ready`
 is not used here because it waits for CodeRabbit whenever the repo runs it,
-and this skill runs CodeRabbit only when asked. In a checkout where
+and this skill runs CodeRabbit only when it is called for. In a checkout where
 `git rev-parse HEAD` fails, add `--pr <n>` to a wait: it reads the PR's head
 commit.
 
@@ -110,7 +115,8 @@ what is still open.
 
 End with a summary the user reads in seconds. Lead with the PR URL and who
 reviewed (CodeRabbit, PR-Agent, the local agent, or a mix), and name any CI
-reviewer that gave nothing and why. Then one bullet per finding, one or two
+reviewer that gave nothing and why. When CodeRabbit did not run, say which
+check in `references/cr-requirements.md` ruled it out. Then one bullet per finding, one or two
 sentences each: what the reviewer found, and what happened to it (fixed,
 declined with the reason, or still open). Group bullets by reviewer when
 several ran. Cut praise, process narration, and anything that is not a finding.
