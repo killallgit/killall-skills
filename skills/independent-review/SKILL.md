@@ -13,13 +13,17 @@ a `caveman` skill is available in this session, invoke it first.
 An agent may run this skill itself, including from another skill such as
 `lets-finish`. A CI reviewer is optional and never worth a long wait:
 when the repo has none, or it is rate limited, skipped, slow or broken, step 4
-runs a local review agent, so the review never waits on a bot.
+tries a local review agent rather than waiting longer on a bot. If no
+independent route works, review is BLOCKED and the calling workflow stops.
 
 A failed reviewer invocation is **not a completed review**. Authentication,
 quota, provider, tool or process failures trigger another available independent
 route, not a downgrade to the author's manual review or passing tests. Those
 checks are useful, but neither substitutes for independent review. This rule
 also binds callers such as `lets-finish` and repository shipping workflows.
+An explicit user instruction such as `don't review` is a waiver. A caller's
+docs-only exemption may skip invoking this skill, but is not a waiver once
+independent review has been requested or attempted.
 
 ## 1. Get a PR
 
@@ -103,7 +107,9 @@ a fork, and never this session. Where the host has no subagents, a headless
 `claude -p` or `codex exec` process serves. Pick the best fit installed: a
 `reviewer` agent, else a general-purpose subagent.
 
-If dispatch fails or returns no substantive review:
+If dispatch fails, or its response contains neither a findings list nor an
+explicit statement that it found no issues (including empty or truncated
+responses without either verdict):
 
 1. Check the other installed review skills and supported agents/processes for
    an independent route that is actually available. A different skill using the
