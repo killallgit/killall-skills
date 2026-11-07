@@ -107,6 +107,13 @@ a fork, and never this session. Where the host has no subagents, a headless
 `claude -p` or `codex exec` process serves. Pick the best fit installed: a
 `reviewer` agent, else a general-purpose subagent.
 
+The brief names the base branch, tells the reviewer to diff `base...HEAD`, and
+asks for a review only: no edits, no commits, no PR comments. Leave out the PR
+number, the author's reasoning, the task history, and any verdict on the code;
+the PR body is the author's conclusion, and a reviewer handed it confirms it.
+It returns findings as `file:line`, severity, and the failure scenario, ranked
+most-severe first, or states that it found none.
+
 If dispatch fails, or its response contains neither a findings list nor an
 explicit statement that it found no issues (including empty or truncated
 responses without either verdict):
@@ -127,13 +134,6 @@ A successful process exit, an attempted dispatch, or the author's own review
 cannot satisfy this step; an independent reviewer must return findings or an
 explicit no-findings verdict. A waiver permits proceeding but does not turn a
 blocked review into a completed one.
-
-The brief names the base branch, tells the reviewer to diff `base...HEAD`, and
-asks for a review only: no edits, no commits, no PR comments. Leave out the PR
-number, the author's reasoning, the task history, and any verdict on the code;
-the PR body is the author's conclusion, and a reviewer handed it confirms it.
-It returns findings as `file:line`, severity, and the failure scenario, ranked
-most-severe first, or states that it found none.
 
 Rule on each finding as in step 3, then push. Local findings have no thread, so
 the report in step 5 is their record. Each further round dispatches a new

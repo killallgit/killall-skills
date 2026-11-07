@@ -67,11 +67,16 @@ to 7 run once, over all of them.
 1. Push the branch with `-u` and `gh pr create` with a title and body in the
    repository's convention. `[+] opened <PR title>`.
 2. Wait for CI as in step 1. A failure is `[x]` and stops here.
-3. Invoke the `independent-review` skill and inspect its outcome.
-   - Completed: `[+] independent review done` with fixed and declined counts.
+3. Apply step 2's review-needed criteria first. When review is not needed,
+   print `[-] no review needed`. Otherwise invoke `independent-review` and
+   inspect its outcome:
+   - Completed with no findings left to fix: `[+] independent review done`
+     with fixed and declined counts.
+   - Findings still open: `[x] review not done`; stop before merge.
    - BLOCKED: `[x] review blocked` with the failed routes; stop before merge.
    - Explicitly waived by the user: `[+] review waived` with the waiver; do
-     not report review as completed.
+     not report review as completed. Carry this waiver into step 2 within the
+     scope the user authorized.
 
 Its fixes are new pushes, so step 1 runs again afterwards.
 
@@ -136,13 +141,16 @@ Outcomes:
 
 ## 2. confirming review...
 
-A review is needed only when the changes warrant one: the diff touches
-executable code (scripts, hooks, CI config), or `reviewDecision` is
-`REVIEW_REQUIRED` or `CHANGES_REQUESTED`. A PR of docs and skill text alone
-needs none: `[-] no review needed`.
+A review is needed when explicitly requested, when the diff touches executable
+code (scripts, hooks, CI config), or when `reviewDecision` is `REVIEW_REQUIRED`
+or `CHANGES_REQUESTED`. Otherwise a PR of docs and skill text alone needs none:
+`[-] no review needed`.
 
 When one is needed:
 
+- **Explicitly waived**: honor a user waiver already recorded in step 0 or the
+  arguments, within its authorized scope. Print `[+] review waived`; do not
+  invoke independent review again. This does not bypass required human approval.
 - **Already reviewed**: step 0 completed independent review of the current
   head, or another reviewer already covered it. An attempted or blocked review
   does not count. Name the reviewer.
