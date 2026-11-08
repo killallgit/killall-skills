@@ -62,6 +62,32 @@ When the branch is the default branch, stop and say so. When the branch has no
 open PR, run step 0 for it first. Run steps 1 to 4 for each PR in turn; steps 5
 to 7 run once, over all of them.
 
+### Check the PR itself before step 1
+
+A green CI and a review say nothing about whether the PR describes the work it
+holds. For each PR, before step 1 (and again after any later push), read the
+title and body and compare them with the diff and the commits:
+
+- **Title.** It names what the PR now does, in the repository's convention, not
+  what it did when it was opened.
+- **Description.** It matches the final scope. Remove or rewrite stale text: a
+  "do not merge yet" or "work in progress" note, a "to test" or "still open"
+  list for work that is done or dropped, claims the diff no longer supports.
+  Record what was tested and what was not. A statement the repository requires
+  (client impact, migration, linked issue) is present and still true after the
+  review fixes.
+- **Rebased.** The branch contains the default branch's latest commit:
+  `git fetch origin <default>`, then `git merge-base --is-ancestor
+  origin/<default> HEAD`. When it does not, rebase onto `origin/<default>`
+  (`git rebase origin/<default>`), run the project's tests, and push with
+  `git push --force-with-lease`. Never merge the default branch in, and never
+  rebase a branch that is not yours. A rebase is a new head, so CI and the
+  review run on it.
+
+Fix the title and body with `gh pr edit`. Print `[+] pr text and base current`,
+or `[x]` with what is wrong when the fix is not yours to make (a statement
+only a human can make, or a conflict you cannot resolve), and stop.
+
 ## 0. opening PR... (only when the branch has no open PR)
 
 1. Push the branch with `-u` and `gh pr create` with a title and body in the
@@ -169,7 +195,9 @@ instead; do not name a reviewer that never completed a review.
 
 ## 3. merging <PR title>...
 
-Read the PR's current head: `gh pr view <n> --json headRefOid`. Pushes since
+Check the PR's title and body once more against its final diff, and that the
+branch still contains the default branch's latest commit (above). Then read the
+PR's current head: `gh pr view <n> --json headRefOid`. Pushes since
 the first read (review fixes, reviewer autofixes) are in it. Then
 `gh pr merge <n> --squash --match-head-commit <headRefOid>`, so a push after CI
 and review is never merged unchecked. A repo that refuses squash is an `[x]`.
