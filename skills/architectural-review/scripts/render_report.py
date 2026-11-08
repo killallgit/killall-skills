@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Render an architectural-review findings JSON file as a self-contained HTML report.
+"""Render an architectural-review findings JSON file as a single-file HTML report.
+
+Mermaid diagrams load from the jsdelivr CDN; offline, they show as source.
 
 Usage: render_report.py FINDINGS.json [--out PATH]
 Prints the report path, then the bd commands for the suggested beads.
@@ -11,6 +13,7 @@ import argparse
 import json
 import os
 import shlex
+import sys
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime
@@ -18,7 +21,9 @@ from html import escape
 from pathlib import Path
 
 STRENGTHS = {"strong": "Strong", "worth-exploring": "Worth exploring", "speculative": "Speculative"}
+TOP_KEYS = ("repo", "scope", "top", "top_reason", "candidates")
 CANDIDATE_KEYS = ("id", "title", "strength", "files", "problem", "solution", "benefits", "before", "after", "bead")
+BEAD_TYPES = ("task", "feature", "bug", "chore", "spike", "story", "decision")
 
 
 class InvalidFindings(ValueError):
@@ -34,15 +39,39 @@ class Bead:
     parent: str | None = None
 
 
+def is_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def validate_bead(candidate_id: int, bead: dict) -> None:
+    if not bead.get("title"):
+        raise InvalidFindings(f"candidate {candidate_id} bead needs a title")
+    if bead.get("type") not in BEAD_TYPES:
+        raise InvalidFindings(f"candidate {candidate_id} bead type must be one of {list(BEAD_TYPES)}")
+    if not is_int(bead.get("priority")) or not 0 <= bead["priority"] <= 4:
+        raise InvalidFindings(f"candidate {candidate_id} bead priority must be an integer from 0 to 4")
+
+
+def validate_candidate(candidate: dict) -> None:
+    missing = [key for key in CANDIDATE_KEYS if key not in candidate]
+    if missing:
+        raise InvalidFindings(f"candidate {candidate.get('id')} is missing {missing}")
+    if not is_int(candidate["id"]):
+        raise InvalidFindings(f"candidate id {candidate['id']!r} must be an integer")
+    if candidate["strength"] not in STRENGTHS:
+        raise InvalidFindings(f"candidate {candidate['id']} strength must be one of {list(STRENGTHS)}")
+    validate_bead(candidate["id"], candidate["bead"])
+
+
 def validate(findings: dict) -> None:
-    ids = set()
+    missing = [key for key in TOP_KEYS if key not in findings]
+    if missing:
+        raise InvalidFindings(f"findings are missing {missing}")
     for candidate in findings["candidates"]:
-        missing = [key for key in CANDIDATE_KEYS if key not in candidate]
-        if missing:
-            raise InvalidFindings(f"candidate {candidate.get('id')} is missing {missing}")
-        if candidate["strength"] not in STRENGTHS:
-            raise InvalidFindings(f"candidate {candidate['id']} strength must be one of {list(STRENGTHS)}")
-        ids.add(candidate["id"])
+        validate_candidate(candidate)
+    ids = [candidate["id"] for candidate in findings["candidates"]]
+    if len(ids) != len(set(ids)):
+        raise InvalidFindings(f"candidate ids must be unique: {ids}")
     if findings["top"] not in ids:
         raise InvalidFindings(f"top {findings['top']} is not a candidate id")
 
@@ -57,7 +86,7 @@ def bead_plan(findings: dict, date: str) -> tuple[Bead, ...]:
 
 
 def bead_command(bead: Bead) -> str:
-    flags = f"-t {bead.type} -p {bead.priority} --title {shlex.quote(bead.title)} -d {shlex.quote(bead.description)}"
+    flags = f"-t {shlex.quote(bead.type)} -p {int(bead.priority)} --title {shlex.quote(bead.title)} -d {shlex.quote(bead.description)}"
     if bead.parent is None:
         return f"EPIC=$(bd create --silent {flags})"
     return f'bd create --parent "$EPIC" {flags}'
@@ -144,8 +173,12 @@ def main() -> None:
 
     findings = json.loads(args.findings.read_text())
     date = datetime.now().strftime("%Y-%m-%d")
+    try:
+        html = render(findings, date)
+    except InvalidFindings as error:
+        sys.exit(f"invalid findings: {error}")
     out = args.out or default_out()
-    out.write_text(render(findings, date))
+    out.write_text(html)
     print(out)
     print("\n".join(bead_command(bead) for bead in bead_plan(findings, date)))
 

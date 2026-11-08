@@ -44,3 +44,24 @@ def test_bead_plan_is_one_epic_with_a_child_per_candidate():
 
     assert epic.type == "epic"
     assert children == [Bead("Deepen Order intake", "task", 2, "s", parent="epic")]
+
+
+def candidate(**changes):
+    return {**FINDINGS["candidates"][0], **changes}
+
+
+@pytest.mark.parametrize(
+    "findings",
+    [
+        {"repo": "acme"},
+        {**FINDINGS, "candidates": [candidate(), candidate()]},
+        {**FINDINGS, "candidates": [candidate(), candidate(id='2"><script>')]},
+        {**FINDINGS, "candidates": [candidate(bead={"title": "t", "type": "task; touch x", "priority": 2})]},
+        {**FINDINGS, "candidates": [candidate(bead={"title": "t", "type": "task", "priority": None})]},
+        {**FINDINGS, "candidates": [candidate(bead={"title": "t", "type": "task", "priority": 7})]},
+    ],
+    ids=["missing-top-level-key", "duplicate-id", "non-int-id", "unknown-bead-type", "null-priority", "priority-out-of-range"],
+)
+def test_render_rejects_malformed_findings(findings):
+    with pytest.raises(InvalidFindings):
+        render(findings, date="2026-11-08")

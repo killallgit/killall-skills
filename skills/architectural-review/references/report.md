@@ -1,7 +1,8 @@
 # Findings shape
 
-`render_report.py` reads this JSON and rejects a missing key, an unknown
-`strength`, or a `top` that names no candidate.
+`render_report.py` reads this JSON and rejects a missing key, a duplicate or
+non-integer `id`, an unknown `strength` or bead `type`, a `priority` outside
+0-4, or a `top` that names no candidate.
 
 ```json
 {
@@ -37,9 +38,12 @@
 - `rules`, `adr_conflict`, `glossary`: optional.
 - `before`/`after`: Mermaid, graph-shaped (dependencies, calls, sequences).
   Draw the same scope in both so the change is visible.
-- `bead.type`: a `bd` type (`task`, `feature`, `bug`, `chore`, `spike`);
-  `bead.priority`: 0 (highest) to 4. Use `spike` for `speculative` candidates.
+- `id`: an integer, unique.
+- `bead.type`: `task`, `feature`, `bug`, `chore`, `spike`, `story`, or
+  `decision`; `bead.priority`: an integer, 0 (highest) to 4. Use `spike` for
+  `speculative` candidates.
 
 The script prints the `bd create` commands (one epic, then a child per
-candidate) after the report path. Run the epic line first so `$EPIC` is set,
-then only the children the user chose.
+candidate) after the report path. Run the epic line and the chosen children
+in one shell call: shell state does not carry between calls, so `$EPIC` would
+be empty.

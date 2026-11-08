@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from itertools import combinations
 from pathlib import Path, PurePath
 
-NOISE = ("*.lock", "*-lock.json", "*.lockb", "go.sum", "*.min.*", "*.map", "*.snap", "CHANGELOG*")
+NOISE = ("*.lock", "*-lock.json", "*-lock.yaml", "*.lockb", "go.sum", "*.min.*", "*.map", "*.snap", "CHANGELOG*")
 
 
 @dataclass(frozen=True)
@@ -73,11 +73,17 @@ def change_coupling(commits: tuple[Commit, ...], min_shared: int = 3, max_files:
     return tuple(sorted(pairs, key=lambda p: (-p.degree, -p.shared)))
 
 
+def git(repo: Path, *args: str) -> str:
+    command = ["git", "-C", str(repo), "-c", "core.quotePath=false", *args]
+    return subprocess.run(command, check=True, capture_output=True, text=True).stdout
+
+
 def git_log(repo: Path, since: str) -> str:
-    return subprocess.run(
-        ["git", "-C", str(repo), "log", "--no-merges", f"--since={since}", "--name-only", "--format=%x00%H"],
-        check=True, capture_output=True, text=True,
-    ).stdout
+    return git(repo, "log", "--no-merges", f"--since={since}", "--name-only", "--format=%x00%H")
+
+
+def repo_root(path: Path) -> Path:
+    return Path(git(path, "rev-parse", "--show-toplevel").strip())
 
 
 def line_counts(repo: Path, paths: set[str]) -> dict[str, int]:
@@ -92,9 +98,10 @@ def main() -> None:
     parser.add_argument("--top", type=int, default=15)
     args = parser.parse_args()
 
-    commits = parse_log(git_log(args.repo, args.since))
+    root = repo_root(args.repo)
+    commits = parse_log(git_log(root, args.since))
     revisions = churn(commits)
-    sizes = line_counts(args.repo, set(revisions))
+    sizes = line_counts(root, set(revisions))
     hotspots = rank_hotspots(revisions, sizes)
     coupled = tuple(p for p in change_coupling(commits) if p.left in sizes and p.right in sizes)
 
