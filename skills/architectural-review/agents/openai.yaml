@@ -1,0 +1,5 @@
+interface:
+  display_name: "Architectural review"
+  short_description: "Find architecture hotspots, report deepening candidates as HTML with before/after diagrams, and suggest beads for the work."
+policy:
+  allow_implicit_invocation: false

@@ -123,3 +123,16 @@ what is left; a branch without one gets a draft PR titled
 commits, pushes, and opens the draft PR at once. Work on the default branch
 moves to an `eject/` branch first. It ends by printing a handoff paragraph to
 paste into a fresh agent so it can resume. User-invoked only.
+
+## Architectural review
+
+`/architectural-review` reviews a codebase's architecture. A script ranks
+hotspots (churn × size) and change-coupled files from git history; a
+fresh-context agent walks them for friction, judged against a fixed design
+vocabulary (module, interface, depth, seam, adapter, locality, leverage) and
+the `follow-the-rules` lenses. It renders an HTML report of deepening
+candidates with before/after Mermaid diagrams and proposed glossary terms, and
+prints the `bd create` commands for an epic plus one bead per candidate, which
+it runs only for the candidates you pick. It keeps `GLOSSARY.md`,
+`ARCHITECTURE.md`, and `docs/adr/` current as decisions land. Words after the
+command name a direction. User-invoked only.

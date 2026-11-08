@@ -8,6 +8,18 @@
   },
   "plugins": [
     {
+      "name": "architectural-review",
+      "source": "./",
+      "description": "Review a codebase's architecture. Finds hotspots in git history, walks them for friction, writes an HTML report of deepening candidates with before/after diagrams, proposes glossary terms, and suggests beads for the work. Words after the command name a direction (a module, a subsystem, a pain point).",
+      "strict": false,
+      "skills": [
+        "./skills/architectural-review"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.3.0"
+    },
+    {
       "name": "catch-up",
       "source": "./",
       "description": "Rebuild a human's lost context on the work in flight after reconciling the current checkout's dangling changes \u2014 commit what belongs to an open PR, discard what already landed, sync the branch \u2014 then summarize the state of play, decisions, live PRs and tickets, and the single next step. Use when the user says \"catch me up\", \"where were we\", \"what's the state of this\", \"get back on track\", or invokes `/catch-up` after time away.",
@@ -121,6 +133,7 @@
       "description": "Helpful agent skills.",
       "strict": false,
       "skills": [
+        "./skills/architectural-review",
         "./skills/catch-up",
         "./skills/end-session",
         "./skills/follow-the-rules",
