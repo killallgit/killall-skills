@@ -35,7 +35,8 @@ non-integer `id`, an unknown `strength` or bead `type`, a `priority` outside
 - `strength`: `strong`, `worth-exploring`, or `speculative`.
 - `files`: modules or directories, coarse enough to stay true for a while.
 - `benefits`: in terms of locality, leverage, and what tests would look like.
-- `rules`, `adr_conflict`, `glossary`: optional.
+- `rules`, `adr_conflict`, `glossary`: optional. A glossary entry needs
+  `term` and `definition`.
 - `before`/`after`: Mermaid, graph-shaped (dependencies, calls, sequences).
   Draw the same scope in both so the change is visible.
 - `id`: an integer, unique.
@@ -44,6 +45,6 @@ non-integer `id`, an unknown `strength` or bead `type`, a `priority` outside
   `speculative` candidates.
 
 The script prints the `bd create` commands (one epic, then a child per
-candidate) after the report path. Run the epic line and the chosen children
-in one shell call: shell state does not carry between calls, so `$EPIC` would
-be empty.
+candidate, each under `# candidate <id>`) after the report path. Run the epic
+command and the chosen children in one shell call: shell state does not carry
+between calls, so `$EPIC` would be empty.

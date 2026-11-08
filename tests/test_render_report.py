@@ -59,9 +59,26 @@ def candidate(**changes):
         {**FINDINGS, "candidates": [candidate(bead={"title": "t", "type": "task; touch x", "priority": 2})]},
         {**FINDINGS, "candidates": [candidate(bead={"title": "t", "type": "task", "priority": None})]},
         {**FINDINGS, "candidates": [candidate(bead={"title": "t", "type": "task", "priority": 7})]},
+        {**FINDINGS, "top": True},
+        {**FINDINGS, "candidates": [candidate(files="src/ordering")]},
+        {**FINDINGS, "glossary": [{"term": "Order"}]},
     ],
-    ids=["missing-top-level-key", "duplicate-id", "non-int-id", "unknown-bead-type", "null-priority", "priority-out-of-range"],
+    ids=["missing-top-level-key", "duplicate-id", "non-int-id", "unknown-bead-type", "null-priority", "priority-out-of-range", "bool-top", "files-not-a-list", "glossary-without-definition"],
 )
 def test_render_rejects_malformed_findings(findings):
     with pytest.raises(InvalidFindings):
         render(findings, date="2026-11-08")
+
+
+def test_render_accepts_null_optional_fields():
+    findings = {**FINDINGS, "candidates": [candidate(rules=None, adr_conflict=None)]}
+
+    render(findings, date="2026-11-08")
+
+
+def test_bead_plan_collapses_multiline_text_to_one_line():
+    findings = {**FINDINGS, "candidates": [candidate(solution="merge\nthem")]}
+
+    _, child = bead_plan(findings, date="2026-11-08")
+
+    assert child.description == "merge them"

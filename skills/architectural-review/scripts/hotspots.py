@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
 from collections import Counter
 from dataclasses import dataclass
 from itertools import combinations
@@ -75,7 +76,10 @@ def change_coupling(commits: tuple[Commit, ...], min_shared: int = 3, max_files:
 
 def git(repo: Path, *args: str) -> str:
     command = ["git", "-C", str(repo), "-c", "core.quotePath=false", *args]
-    return subprocess.run(command, check=True, capture_output=True, text=True).stdout
+    try:
+        return subprocess.run(command, check=True, capture_output=True, text=True).stdout
+    except subprocess.CalledProcessError as error:
+        sys.exit(error.stderr.strip())
 
 
 def git_log(repo: Path, since: str) -> str:

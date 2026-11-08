@@ -52,8 +52,8 @@ yet. Ask: "Which candidates should we pursue?"
 
 ## 5. Follow through
 
-- **Beads**: with `.beads/` and `bd` present, run the epic line and the chosen
-  candidates' lines in one shell call, after the user confirms. Otherwise list
+- **Beads**: with `.beads/` and `bd` present, run the epic command and the chosen
+  candidates' commands in one shell call, after the user confirms. Otherwise list
   them as tasks.
 - **Glossary and ADRs**: follow [docs.md](references/docs.md) when a term
   settles or a candidate is rejected for a reason a future review would need.

@@ -58,6 +58,8 @@ def validate_candidate(candidate: dict) -> None:
         raise InvalidFindings(f"candidate {candidate.get('id')} is missing {missing}")
     if not is_int(candidate["id"]):
         raise InvalidFindings(f"candidate id {candidate['id']!r} must be an integer")
+    if not isinstance(candidate["files"], list):
+        raise InvalidFindings(f"candidate {candidate['id']} files must be a list")
     if candidate["strength"] not in STRENGTHS:
         raise InvalidFindings(f"candidate {candidate['id']} strength must be one of {list(STRENGTHS)}")
     validate_bead(candidate["id"], candidate["bead"])
@@ -69,17 +71,24 @@ def validate(findings: dict) -> None:
         raise InvalidFindings(f"findings are missing {missing}")
     for candidate in findings["candidates"]:
         validate_candidate(candidate)
+    for term in findings.get("glossary") or []:
+        if not term.get("term") or not term.get("definition"):
+            raise InvalidFindings(f"glossary entry {term} needs a term and a definition")
     ids = [candidate["id"] for candidate in findings["candidates"]]
     if len(ids) != len(set(ids)):
         raise InvalidFindings(f"candidate ids must be unique: {ids}")
-    if findings["top"] not in ids:
+    if not is_int(findings["top"]) or findings["top"] not in ids:
         raise InvalidFindings(f"top {findings['top']} is not a candidate id")
 
 
+def one_line(text: str) -> str:
+    return " ".join(text.split())
+
+
 def bead_plan(findings: dict, date: str) -> tuple[Bead, ...]:
-    epic = Bead(f"Architecture review {date}: {findings['scope']}", "epic", 2, findings["top_reason"])
+    epic = Bead(one_line(f"Architecture review {date}: {findings['scope']}"), "epic", 2, one_line(findings["top_reason"]))
     children = (
-        Bead(c["bead"]["title"], c["bead"]["type"], c["bead"]["priority"], c["solution"], parent="epic")
+        Bead(one_line(c["bead"]["title"]), c["bead"]["type"], c["bead"]["priority"], one_line(c["solution"]), parent="epic")
         for c in findings["candidates"]
     )
     return (epic, *children)
@@ -98,7 +107,7 @@ def paragraph(label: str, text: str) -> str:
 
 def candidate_card(c: dict) -> str:
     files = "".join(f"<code>{escape(f)}</code> " for f in c["files"])
-    rules = "".join(f"<li>{escape(r)}</li>" for r in c.get("rules", []))
+    rules = "".join(f"<li>{escape(r)}</li>" for r in c.get("rules") or [])
     adr = f'<p class="warn">{escape(c["adr_conflict"])}</p>' if c.get("adr_conflict") else ""
     return f"""<article id="c{c['id']}">
 <header><h3>{c['id']}. {escape(c['title'])}</h3><span class="badge {c['strength']}">{STRENGTHS[c['strength']]}</span></header>
@@ -113,7 +122,7 @@ def candidate_card(c: dict) -> str:
 def glossary_rows(terms: list[dict]) -> str:
     return "".join(
         f"<tr><td><b>{escape(t['term'])}</b></td><td>{escape(t['definition'])}</td>"
-        f"<td>{escape(', '.join(t.get('avoid', [])))}</td></tr>"
+        f"<td>{escape(', '.join(t.get('avoid') or []))}</td></tr>"
         for t in terms
     )
 
@@ -171,16 +180,19 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
 
-    findings = json.loads(args.findings.read_text())
+    findings = json.loads(args.findings.read_text(encoding="utf-8"))
     date = datetime.now().strftime("%Y-%m-%d")
     try:
         html = render(findings, date)
     except InvalidFindings as error:
         sys.exit(f"invalid findings: {error}")
     out = args.out or default_out()
-    out.write_text(html)
+    out.write_text(html, encoding="utf-8")
     print(out)
-    print("\n".join(bead_command(bead) for bead in bead_plan(findings, date)))
+    epic, *children = bead_plan(findings, date)
+    print(bead_command(epic))
+    for candidate, bead in zip(findings["candidates"], children):
+        print(f"# candidate {candidate['id']}\n{bead_command(bead)}")
 
 
 if __name__ == "__main__":
