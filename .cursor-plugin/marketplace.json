@@ -1,0 +1,100 @@
+{
+  "name": "killallgit",
+  "owner": {
+    "name": "archae0pteryx"
+  },
+  "metadata": {
+    "description": "Killallgit workflow skills.",
+    "version": "5.4.1"
+  },
+  "plugins": [
+    {
+      "name": "architectural-review",
+      "source": "./skills/architectural-review",
+      "description": "Review a codebase's architecture. Finds hotspots in git history, walks them for friction, writes an HTML report of deepening candidates with before/after diagrams, proposes glossary terms, and suggests beads for the work. Words after the command name a direction (a module, a subsystem, a pain point).",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "catch-up",
+      "source": "./skills/catch-up",
+      "description": "Rebuild a human's lost context on the work in flight after reconciling the current checkout's dangling changes \u2014 commit what belongs to an open PR, discard what already landed, sync the branch \u2014 then summarize the state of play, decisions, live PRs and tickets, and the single next step. Use when the user says \"catch me up\", \"where were we\", \"what's the state of this\", \"get back on track\", or invokes `/catch-up` after time away.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "end-session",
+      "source": "./skills/end-session",
+      "description": "Bring this session's branch up to date, land or discard its work, and archive the session.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "follow-the-rules",
+      "source": "./skills/follow-the-rules",
+      "description": "Core programming rules for all agents and users alike. The following documents contain the most important, fundamental, rules that every engineer - junior to principle - MUST follow.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "git-janitor",
+      "source": "./skills/git-janitor",
+      "description": "Clean up local Git, only when the user runs /git-janitor. Inspect uncommitted and unpublished work in every worktree first, discard work that is superseded or over 60 days old when justified, then remove merged and stale local worktrees and branches. Record what was discarded and why.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "independent-review",
+      "source": "./skills/independent-review",
+      "description": "Get the current branch reviewed by a reviewer that did not write it. Opens a PR if none exists, waits for the repo's CI reviewers (CodeRabbit, PR-Agent) when it has any, otherwise runs a fresh-context local review agent, then resolves the findings. Use when the user asks for an independent review, or when another skill calls for one.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "lets-finish",
+      "source": "./skills/lets-finish",
+      "description": "Land finished work. Open the PR if there is none, wait for CI, get it independently reviewed, merge, update the tickets and beads it relates to, then clean up the branch and worktree. Use when the user says \"let's finish\", \"lets finish\", \"wrap up\", \"finish up\", \"ship it\", or invokes `/lets-finish`. Words after the command skip or stop steps, such as \"don't review\" or \"stop after CI\", \"and release\" or \"and deploy\" adds the project's release after the merge. Not for a question about status.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "session-eject",
+      "source": "./skills/session-eject",
+      "description": "Save all work before usage runs out \u2014 commit, push, update or open draft PRs, and stop. `now` skips waiting for subagents.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "setup-agents-md",
+      "source": "./skills/setup-agents-md",
+      "description": "Set up and review root AGENTS.md and CLAUDE.md. Merge shared instructions from both into AGENTS.md without losing unique or tool-generated guidance, simplify the combined instructions, verify them against the repo, and make CLAUDE.md import AGENTS.md with @AGENTS.md. Create missing files as needed. Use for \"setup agents md\", \"check the agent docs\", \"check project\", \"dedupe CLAUDE.md and AGENTS.md\", or /setup-agents-md.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "wait-for-action",
+      "source": "./skills/wait-for-action",
+      "description": "Wait for CI, PR checks, a review, or a workflow run in one blocking call. Use before a merge (\"is it ready to merge\", wait for the PR to be green, CI, then the CodeRabbit or PR-Agent review), after a push, merge or workflow dispatch, or when a run failed and you need its log. Replaces any hand-written `gh run watch`, `gh pr checks --watch` or sleep loop.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    },
+    {
+      "name": "killall-skills",
+      "source": "./skills",
+      "description": "Helpful agent skills.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.4.1"
+    }
+  ]
+}

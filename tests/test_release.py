@@ -78,8 +78,8 @@ def checkout(tmp_path, monkeypatch):
         "category": "c",
         "bundle": {"name": "b", "description": "d"},
     }
-    (clone / "marketplace.config.json").write_text(json.dumps(config))
     (clone / "scripts").mkdir()
+    (clone / "scripts" / "marketplace.config.json").write_text(json.dumps(config))
     (clone / "scripts" / "generate_manifests.py").write_text(generator.read_text())
     skill = clone / "skills" / "one"
     skill.mkdir(parents=True)

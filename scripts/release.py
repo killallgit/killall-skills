@@ -11,7 +11,12 @@ from pathlib import Path
 
 SEMVER = re.compile(r"\A(\d+)\.(\d+)\.(\d+)\Z")
 LEVELS = ("patch", "minor", "major")
-RELEASE_FILES = [".claude-plugin/marketplace.json", "marketplace.config.json"]
+RELEASE_FILES = [
+    ".claude-plugin/marketplace.json",
+    ".cursor-plugin/marketplace.json",
+    ".github/plugin/marketplace.json",
+    "scripts/marketplace.config.json",
+]
 
 
 def bump_version(current: str, level: str) -> str:
@@ -70,7 +75,7 @@ def output(step: list[str], cwd: Path) -> str:
 def release_from(work: Path, level: str) -> str:
     for step in check_steps():
         run(step, work)
-    config_path = work / "marketplace.config.json"
+    config_path = work / "scripts" / "marketplace.config.json"
     config = json.loads(config_path.read_text())
     config["version"] = bump_version(config["version"], level)
     tag = f"v{config['version']}"
