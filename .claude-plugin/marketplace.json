@@ -44,18 +44,6 @@
       "version": "5.4.1"
     },
     {
-      "name": "follow-the-rules",
-      "source": "./",
-      "description": "Core programming rules for all agents and users alike. The following documents contain the most important, fundamental, rules that every engineer - junior to principle - MUST follow.",
-      "strict": false,
-      "skills": [
-        "./skills/follow-the-rules"
-      ],
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
-    },
-    {
       "name": "git-janitor",
       "source": "./",
       "description": "Clean up local Git, only when the user runs /git-janitor. Inspect uncommitted and unpublished work in every worktree first, discard work that is superseded or over 60 days old when justified, then remove merged and stale local worktrees and branches. Record what was discarded and why.",
@@ -136,7 +124,6 @@
         "./skills/architectural-review",
         "./skills/catch-up",
         "./skills/end-session",
-        "./skills/follow-the-rules",
         "./skills/git-janitor",
         "./skills/independent-review",
         "./skills/lets-finish",
