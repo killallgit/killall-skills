@@ -17,7 +17,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
     },
     {
       "name": "catch-up",
@@ -29,7 +29,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
     },
     {
       "name": "end-session",
@@ -41,19 +41,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
-    },
-    {
-      "name": "follow-the-rules",
-      "source": "./",
-      "description": "Core programming rules for all agents and users alike. The following documents contain the most important, fundamental, rules that every engineer - junior to principle - MUST follow.",
-      "strict": false,
-      "skills": [
-        "./skills/follow-the-rules"
-      ],
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
     },
     {
       "name": "git-janitor",
@@ -65,7 +53,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
     },
     {
       "name": "independent-review",
@@ -77,7 +65,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
     },
     {
       "name": "lets-finish",
@@ -89,7 +77,19 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
+    },
+    {
+      "name": "restate",
+      "source": "./",
+      "description": "Restate the request and scope before acting, then wait for approval",
+      "strict": false,
+      "skills": [
+        "./skills/restate"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.5.0"
     },
     {
       "name": "session-eject",
@@ -101,7 +101,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
     },
     {
       "name": "setup-agents-md",
@@ -113,7 +113,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
     },
     {
       "name": "wait-for-action",
@@ -125,7 +125,7 @@
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
     },
     {
       "name": "killall-skills",
@@ -136,17 +136,17 @@
         "./skills/architectural-review",
         "./skills/catch-up",
         "./skills/end-session",
-        "./skills/follow-the-rules",
         "./skills/git-janitor",
         "./skills/independent-review",
         "./skills/lets-finish",
+        "./skills/restate",
         "./skills/session-eject",
         "./skills/setup-agents-md",
         "./skills/wait-for-action"
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.5.0"
     }
   ]
 }

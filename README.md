@@ -151,7 +151,8 @@ paste into a fresh agent so it can resume. User-invoked only.
 hotspots (churn × size) and change-coupled files from git history; a
 fresh-context agent walks them for friction, judged against a fixed design
 vocabulary (module, interface, depth, seam, adapter, locality, leverage) and
-the `follow-the-rules` lenses. It renders an HTML report of deepening
+the `house-rules` lenses from
+[killall-craft](https://github.com/killallgit/killall-craft). It renders an HTML report of deepening
 candidates with before/after Mermaid diagrams and proposed glossary terms, and
 prints the `bd create` commands for an epic plus one bead per candidate, which
 it runs only for the candidates you pick. It keeps `GLOSSARY.md`,

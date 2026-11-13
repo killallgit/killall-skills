@@ -46,7 +46,7 @@ form, and keep strong forms inside one module.
 
 ## Friction signals
 
-Each signal comes from `follow-the-rules`; cite it in a candidate's `rules`.
+Each signal comes from the `house-rules` skill in killall-craft; cite it in a candidate's `rules`.
 
 - Understanding one concept means bouncing between many small modules.
 - Pure functions extracted only for tests, while bugs hide in how they're
