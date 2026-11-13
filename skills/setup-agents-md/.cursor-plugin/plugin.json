@@ -1,0 +1,4 @@
+{
+  "name": "setup-agents-md",
+  "description": "Set up and review root AGENTS.md and CLAUDE.md. Merge shared instructions from both into AGENTS.md without losing unique or tool-generated guidance, simplify the combined instructions, verify them against the repo, and make CLAUDE.md import AGENTS.md with @AGENTS.md. Create missing files as needed. Use for \"setup agents md\", \"check the agent docs\", \"check project\", \"dedupe CLAUDE.md and AGENTS.md\", or /setup-agents-md."
+}

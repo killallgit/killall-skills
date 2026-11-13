@@ -1,5 +1,4 @@
 import pytest
-
 from render_report import Bead, InvalidFindings, bead_plan, render
 
 FINDINGS = {
@@ -21,7 +20,9 @@ FINDINGS = {
             "bead": {"title": "Deepen Order intake", "type": "task", "priority": 2},
         }
     ],
-    "glossary": [{"term": "Order", "definition": "A request to buy.", "avoid": ["Purchase"]}],
+    "glossary": [
+        {"term": "Order", "definition": "A request to buy.", "avoid": ["Purchase"]}
+    ],
 }
 
 
@@ -33,7 +34,10 @@ def test_render_escapes_candidate_text():
 
 
 def test_render_rejects_an_unknown_strength():
-    bad = {**FINDINGS, "candidates": [{**FINDINGS["candidates"][0], "strength": "maybe"}]}
+    bad = {
+        **FINDINGS,
+        "candidates": [{**FINDINGS["candidates"][0], "strength": "maybe"}],
+    }
 
     with pytest.raises(InvalidFindings):
         render(bad, date="2026-11-08")
@@ -56,14 +60,39 @@ def candidate(**changes):
         {"repo": "acme"},
         {**FINDINGS, "candidates": [candidate(), candidate()]},
         {**FINDINGS, "candidates": [candidate(), candidate(id='2"><script>')]},
-        {**FINDINGS, "candidates": [candidate(bead={"title": "t", "type": "task; touch x", "priority": 2})]},
-        {**FINDINGS, "candidates": [candidate(bead={"title": "t", "type": "task", "priority": None})]},
-        {**FINDINGS, "candidates": [candidate(bead={"title": "t", "type": "task", "priority": 7})]},
+        {
+            **FINDINGS,
+            "candidates": [
+                candidate(bead={"title": "t", "type": "task; touch x", "priority": 2})
+            ],
+        },
+        {
+            **FINDINGS,
+            "candidates": [
+                candidate(bead={"title": "t", "type": "task", "priority": None})
+            ],
+        },
+        {
+            **FINDINGS,
+            "candidates": [
+                candidate(bead={"title": "t", "type": "task", "priority": 7})
+            ],
+        },
         {**FINDINGS, "top": True},
         {**FINDINGS, "candidates": [candidate(files="src/ordering")]},
         {**FINDINGS, "glossary": [{"term": "Order"}]},
     ],
-    ids=["missing-top-level-key", "duplicate-id", "non-int-id", "unknown-bead-type", "null-priority", "priority-out-of-range", "bool-top", "files-not-a-list", "glossary-without-definition"],
+    ids=[
+        "missing-top-level-key",
+        "duplicate-id",
+        "non-int-id",
+        "unknown-bead-type",
+        "null-priority",
+        "priority-out-of-range",
+        "bool-top",
+        "files-not-a-list",
+        "glossary-without-definition",
+    ],
 )
 def test_render_rejects_malformed_findings(findings):
     with pytest.raises(InvalidFindings):

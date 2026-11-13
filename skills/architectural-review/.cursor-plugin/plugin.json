@@ -1,0 +1,4 @@
+{
+  "name": "architectural-review",
+  "description": "Review a codebase's architecture. Finds hotspots in git history, walks them for friction, writes an HTML report of deepening candidates with before/after diagrams, proposes glossary terms, and suggests beads for the work. Words after the command name a direction (a module, a subsystem, a pain point)."
+}

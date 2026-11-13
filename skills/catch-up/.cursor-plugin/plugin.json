@@ -1,0 +1,4 @@
+{
+  "name": "catch-up",
+  "description": "Rebuild a human's lost context on the work in flight after reconciling the current checkout's dangling changes \u2014 commit what belongs to an open PR, discard what already landed, sync the branch \u2014 then summarize the state of play, decisions, live PRs and tickets, and the single next step. Use when the user says \"catch me up\", \"where were we\", \"what's the state of this\", \"get back on track\", or invokes `/catch-up` after time away."
+}

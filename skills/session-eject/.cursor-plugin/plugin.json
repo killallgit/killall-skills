@@ -1,0 +1,4 @@
+{
+  "name": "session-eject",
+  "description": "Save all work before usage runs out \u2014 commit, push, update or open draft PRs, and stop. `now` skips waiting for subagents."
+}

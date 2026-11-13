@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "killallgit",
-  "description": "Killallgit workflow skills for Claude Code and Codex.",
+  "description": "Killallgit workflow skills.",
   "owner": {
     "name": "archae0pteryx",
     "url": "https://github.com/killallgit"

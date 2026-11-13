@@ -1,6 +1,6 @@
 {
   "name": "killallgit",
-  "description": "Killallgit workflow skills for Claude Code and Codex.",
+  "description": "Killallgit workflow skills.",
   "version": "5.5.0",
   "owner": {
     "name": "archae0pteryx",

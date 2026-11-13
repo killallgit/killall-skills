@@ -1,0 +1,4 @@
+{
+  "name": "restate",
+  "description": "Restate the request and scope before acting, then wait for approval"
+}

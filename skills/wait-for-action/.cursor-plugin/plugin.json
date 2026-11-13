@@ -1,0 +1,4 @@
+{
+  "name": "wait-for-action",
+  "description": "Wait for CI, PR checks, a review, or a workflow run in one blocking call. Use before a merge (\"is it ready to merge\", wait for the PR to be green, CI, then the CodeRabbit or PR-Agent review), after a push, merge or workflow dispatch, or when a run failed and you need its log. Replaces any hand-written `gh run watch`, `gh pr checks --watch` or sleep loop."
+}

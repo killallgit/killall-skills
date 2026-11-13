@@ -74,7 +74,7 @@ def build_entry(
     return {**entry, **{key: value for key, value in optional.items() if value}}
 
 
-def build_marketplace(config: dict, skills: tuple[Skill, ...]) -> dict:
+def plugin_entries(config: dict, skills: tuple[Skill, ...]) -> list[dict]:
     bundle = build_entry(
         config,
         config["bundle"]["name"],
@@ -88,11 +88,61 @@ def build_marketplace(config: dict, skills: tuple[Skill, ...]) -> dict:
         )
         for skill in skills
     ]
+    return [*singles, bundle]
+
+
+def build_marketplace(config: dict, skills: tuple[Skill, ...]) -> dict:
     return {
         "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
         "name": config["name"],
         "description": config["description"],
         "owner": config["owner"],
+        "plugins": plugin_entries(config, skills),
+    }
+
+
+def host_metadata(config: dict) -> dict:
+    metadata = {"description": config["description"]}
+    if version := config.get("version"):
+        metadata["version"] = version
+    return metadata
+
+
+def host_owner(config: dict) -> dict:
+    return {"name": config["owner"]["name"]}
+
+
+def build_copilot_marketplace(config: dict, skills: tuple[Skill, ...]) -> dict:
+    return {
+        "name": config["name"],
+        "owner": host_owner(config),
+        "metadata": host_metadata(config),
+        "plugins": plugin_entries(config, skills),
+    }
+
+
+def build_cursor_marketplace(config: dict, skills: tuple[Skill, ...]) -> dict:
+    def entry(name: str, description: str, source: str) -> dict:
+        plugin = {
+            "name": name,
+            "source": source,
+            "description": description,
+            "category": config["category"],
+            "homepage": config["homepage"],
+        }
+        if version := config.get("version"):
+            plugin["version"] = version
+        return plugin
+
+    singles = [
+        entry(skill.name, skill.description, f"./skills/{skill.name}") for skill in skills
+    ]
+    bundle = entry(config["bundle"]["name"], config["bundle"]["description"], "./skills")
+    bundle["skills"] = [f"./{skill.name}" for skill in skills]
+    return {
+        "name": config["name"],
+        "owner": host_owner(config),
+        "metadata": host_metadata(config),
         "plugins": [*singles, bundle],
     }
 
@@ -102,13 +152,22 @@ def render(data: dict) -> str:
 
 
 def generated_files(root: Path) -> dict[Path, str]:
-    config = json.loads((root / "marketplace.config.json").read_text())
+    config = json.loads((root / "scripts" / "marketplace.config.json").read_text())
     skills = read_skills(root / "skills")
-    return {
+    cursor = build_cursor_marketplace(config, skills)
+    files = {
         root / ".claude-plugin" / "marketplace.json": render(
             build_marketplace(config, skills)
         ),
+        root / ".cursor-plugin" / "marketplace.json": render(cursor),
+        root / ".github" / "plugin" / "marketplace.json": render(
+            build_copilot_marketplace(config, skills)
+        ),
     }
+    for plugin in cursor["plugins"]:
+        manifest = {key: plugin[key] for key in ("name", "description", "skills") if key in plugin}
+        files[root / plugin["source"] / ".cursor-plugin" / "plugin.json"] = render(manifest)
+    return files
 
 
 def drifted_files(files: dict[Path, str]) -> list[Path]:
@@ -126,13 +185,14 @@ def write_files(files: dict[Path, str]) -> None:
 
 
 def main(argv: list[str]) -> int:
-    files = generated_files(Path(__file__).resolve().parent.parent)
+    root = Path(__file__).resolve().parent.parent
+    files = generated_files(root)
     if "--check" not in argv:
         write_files(files)
         return 0
     drifted = drifted_files(files)
     for path in drifted:
-        print(f"out of date: {path.name}", file=sys.stderr)
+        print(f"out of date: {path.relative_to(root)}", file=sys.stderr)
     return 1 if drifted else 0
 
 

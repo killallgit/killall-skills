@@ -18,6 +18,23 @@ codex plugin marketplace add killallgit/killall-skills
 codex plugin add killall-skills@killallgit
 ```
 
+GitHub Copilot CLI:
+
+```
+copilot plugin marketplace add killallgit/killall-skills
+copilot plugin install killall-skills@killallgit
+```
+
+Cursor, from the agent chat:
+
+```
+/plugin marketplace add killallgit/killall-skills
+```
+
+Then install `killall-skills` from the Marketplace tab. The Cursor CLI can add
+the marketplace with `cursor-agent plugin marketplace add`, and the install
+step stays in that tab.
+
 `killall-skills` installs every skill. To install one, use its name instead,
 for example `git-janitor@killallgit`. Pick either the bundle or individual
 skills, not both.
@@ -32,8 +49,12 @@ Claude Code runs a skill as `/name`; Codex runs it as `$name`.
 
 ## Development
 
-`.claude-plugin/marketplace.json` is generated from each skill's `SKILL.md`
-frontmatter and `marketplace.config.json`; Claude Code and Codex both read it.
+`task manifests` regenerates the catalogs from each skill's `SKILL.md`
+frontmatter and `scripts/marketplace.config.json`:
+
+- `.claude-plugin/marketplace.json` for Claude Code, Codex, and `npx skills`
+- `.cursor-plugin/marketplace.json` for Cursor
+- `.github/plugin/marketplace.json` for GitHub Copilot CLI
 After adding, renaming, or editing a skill description:
 
 ```
@@ -47,7 +68,11 @@ them into that skill's entry and into the `killall-skills` bundle.
 The bundle is listed last so the skills CLI groups all skills under
 `Killall Skills` instead of repeating each skill name as a group heading.
 
-To release, run one of these from anywhere in the checkout. The release runs in
+Before releasing, update your checkout to the latest `main`: the release runner
+is loaded from your checkout, not the temporary worktree. Older runners do not
+support the relocated `scripts/marketplace.config.json`.
+
+Then run one of these from anywhere in the checkout. The release runs in
 a temporary worktree off `origin/main`, so your checkout is never switched. It
 runs the tests and `generate_manifests.py --check` first, and on a failed push
 it removes the tag it created:
@@ -58,7 +83,7 @@ task tag:minor
 task tag:major
 ```
 
-It bumps `version` in `marketplace.config.json`, regenerates the manifest,
+It bumps `version` in `scripts/marketplace.config.json`, regenerates the manifest,
 commits, tags `vX.Y.Z`, and pushes the commit and tag together. The release is
 built from `origin/main`, so uncommitted changes in your checkout are ignored
 and never released.
