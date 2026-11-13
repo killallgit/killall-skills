@@ -6,12 +6,17 @@ import argparse
 import json
 import os
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 
 from coderabbit import GhError, classify, interval_for
 
 GOOD = {"success", "neutral", "skipped"}
+
+
+def identity(login):
+    return (login or "").lower().removesuffix("[bot]")
 
 
 def bot(login):
@@ -77,7 +82,11 @@ def latest_by(rows, key):
 def summarize(snapshot):
     head = snapshot["head"]
     pending, failed, observations = [], [], []
-    checks = latest_by(snapshot["checks"], lambda c: ((c.get("app") or {}).get("id"), c["name"]))
+    # Job names are not unique across workflows/apps. Only supersede checks
+    # within one suite; missing suite metadata must not hide a distinct check.
+    checks = latest_by(snapshot["checks"], lambda c: (
+        (c.get("app") or {}).get("id"),
+        (c.get("check_suite") or {}).get("id", ("check", c["id"])), c["name"]))
     for c in checks:
         name = c["name"]
         if name == "CodeRabbit":
@@ -114,19 +123,20 @@ def summarize(snapshot):
             observations.append(f"workflow {r['name']}: {r['conclusion']}")
     reviews = [r for r in snapshot["reviews"] if bot((r.get("user") or {}).get("login"))]
     current = {r["user"]["login"] for r in reviews if r.get("commit_id") == head["headRefOid"] and r.get("submitted_at")}
+    current_identities = {identity(login) for login in current}
     for login in sorted(current):
         observations.append(f"{login}: review submitted for current head (not a findings verdict)")
-    for login in sorted({r["user"]["login"] for r in reviews} - current):
+    for login in sorted({r["user"]["login"] for r in reviews if identity(r["user"]["login"]) not in current_identities}):
         observations.append(f"{login}: older-head review only; current activity unknown")
     for request in head.get("reviewRequests", []):
         login = request.get("login", "")
-        if bot(login) and login not in current:
+        if bot(login) and identity(login) not in current_identities:
             observations.append(f"{login}: requested, start unconfirmed")
     # A comment alone cannot establish which commit was reviewed, nor prove a
     # reviewer is still running. Keep only each bot's latest informational signal.
     for c in latest_by(snapshot["comments"], lambda c: (c.get("user") or {}).get("login")):
         login = (c.get("user") or {}).get("login")
-        if not bot(login) or login in current:
+        if not bot(login) or identity(login) in current_identities:
             continue
         body = c.get("body", "").lower()
         if "rate limit" in body:
@@ -137,6 +147,7 @@ def summarize(snapshot):
             state = "comment observed"
         observations.append(f"{login}: {state}; current-head activity unconfirmed")
     return dict(head=head["headRefOid"], url=head["url"], pending=sorted(set(pending)),
+                observed=bool(checks or snapshot["statuses"] or snapshot["workflows"] or current),
                 failed=sorted(set(failed)), observations=sorted(set(observations)))
 
 
@@ -158,6 +169,7 @@ def watch(client, pr, ttl, log_dir, quiet=False, fail_fast=True, clock=time, set
         if not quiet or kind != "PENDING":
             print(line, flush=True)
 
+    emit("ARTIFACTS", str(log_dir))
     while clock.monotonic() < client.deadline:
         try:
             snapshot = client.snapshot(pr)
@@ -182,6 +194,10 @@ def watch(client, pr, ttl, log_dir, quiet=False, fail_fast=True, clock=time, set
                     # to running work or to a successful independent review.
                     for observation in report["observations"]:
                         emit("OBSERVED", observation)
+                    if not report["observed"]:
+                        emit("NONE", f"no current-head execution or submitted bot review observed; work may not have registered yet {report['url']}")
+                        return 5
+                    emit("NOTE", "Late-registering work may still appear; enforce required checks/reviews separately")
                     emit("DONE", f"no observable work pending; not a merge/review approval {report['url']}")
                     return 0
         except TimeoutError:
@@ -214,9 +230,11 @@ def main():
     args = parser.parse_args()
     if args.ttl <= 0:
         parser.error("--ttl must be positive")
-    return watch(Client(args.repo), args.pr, args.ttl,
-                 args.log_dir or f"/tmp/actions/activity-{args.pr or 'current'}", args.quiet,
-                 not args.no_fail_fast)
+    log_dir = args.log_dir
+    if not log_dir:
+        Path("/tmp/actions").mkdir(parents=True, exist_ok=True)
+        log_dir = tempfile.mkdtemp(prefix=f"activity-{args.pr or 'current'}-", dir="/tmp/actions")
+    return watch(Client(args.repo), args.pr, args.ttl, log_dir, args.quiet, not args.no_fail_fast)
 
 
 if __name__ == "__main__":

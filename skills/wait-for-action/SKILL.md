@@ -33,13 +33,20 @@ With no explicit wait mode, resolve the current branch's PR (or `--pr`) and:
   before returning. Unknown/unacknowledged reviewers do not extend the wait.
 
 Exit 0 means **no observable work pending**, NOT merge approval, required-check
-satisfaction, or a completed independent review. Even a PR with no activity can
-settle. Exit 1 means observed CI/check failure; 2 means TTL expired; 3 means
-persistent discovery/API failure. Missing API access is never silently treated
-as success. Calls are noninteractive and bounded by the remaining TTL.
+satisfaction, or a completed independent review. Exit 5 (`NONE`) means no
+current-head execution or submitted bot review was observed after settling;
+review requests/comments alone do not prove either. This is not a missing-review
+failure. Immediately after a push, work may not have registered yet, even if
+other fast checks have already finished. A 10-second quiet period is not a
+registration guarantee; enforce required checks/reviews separately.
+
+Exit 1 means observed CI/check failure; 2 means TTL expired; 3 means persistent
+discovery/API failure. Missing API access is never silently treated as success.
+Calls are noninteractive and bounded by the remaining TTL.
 
 Artifacts: `activity.json`, `summary.json`, and `poll.log` under
-`/tmp/actions/activity-<pr-or-current>/` (or `--log-dir`). Failure logs can be
+a unique `/tmp/actions/activity-<pr-or-current>-<suffix>/` (or `--log-dir`),
+printed as `ARTIFACTS` at startup. Failure logs can be
 fetched separately with the explicit workflow mode below. Project instructions
 and the calling workflow, not discovery, decide which reviews are required.
 

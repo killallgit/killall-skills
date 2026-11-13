@@ -50,9 +50,9 @@ def run(tmp_path, *snapshots, ttl=40, **kwargs):
 
 def test_no_activity_settles_without_inventing_a_requirement(tmp_path):
     code, clock, log = run(tmp_path, snapshot())
-    assert code == 0
+    assert code == 5
     assert clock.t == 10
-    assert "not a merge/review approval" in log
+    assert "work may not have registered yet" in log
 
 
 def test_queued_workflow_without_checks_is_running(tmp_path):
@@ -87,7 +87,7 @@ def test_non_running_coderabbit_does_not_burn_ttl(tmp_path, title):
 
 def test_copilot_request_without_acknowledgement_is_unconfirmed(tmp_path):
     code, clock, log = run(tmp_path, snapshot(requests=[dict(login="copilot-pull-request-reviewer[bot]")]))
-    assert code == 0
+    assert code == 5
     assert clock.t == 10
     assert "requested, start unconfirmed" in log
 
@@ -100,10 +100,19 @@ def test_current_and_old_reviews_are_distinguished():
     assert any("review submitted for current head" in o for o in observations)
 
 
+def test_review_request_and_submitted_review_normalize_bot_suffix():
+    report = activity.summarize(snapshot(
+        requests=[dict(login="coderabbitai")],
+        reviews=[dict(user=dict(login="coderabbitai[bot]"), commit_id="abc", submitted_at="today")],
+    ))
+    assert not any("start unconfirmed" in o for o in report["observations"])
+    assert report["observed"] is True
+
+
 def test_comment_is_not_proof_of_current_head_or_running_activity(tmp_path):
     comment = dict(id=1, user=dict(login="coderabbitai[bot]"), body="Review in progress")
     code, clock, log = run(tmp_path, snapshot(comments=[comment]))
-    assert code == 0
+    assert code == 5
     assert clock.t == 10
     assert "current-head activity unconfirmed" in log
 
@@ -131,7 +140,7 @@ def test_newest_workflow_and_status_supersede_old_failures():
 
 def test_changed_head_restarts_settle(tmp_path):
     code, clock, log = run(tmp_path, snapshot(), None, snapshot(head="new"))
-    assert code == 0
+    assert code == 5
     assert clock.t == 20
     assert "PR head changed" in log
     assert json.loads((tmp_path / "summary.json").read_text())["head"] == "new"
@@ -146,7 +155,7 @@ def test_api_errors_are_bounded_and_never_a_pass(tmp_path):
 
 def test_a_discovery_error_breaks_the_stability_window(tmp_path):
     code, clock, _ = run(tmp_path, snapshot(), activity.GhError("offline"), snapshot())
-    assert code == 0
+    assert code == 5
     assert clock.t == 20
 
 
@@ -236,8 +245,32 @@ else:
 ])
 def test_nullable_github_actors_and_apps_do_not_break_discovery(tmp_path, payload):
     code, _, log = run(tmp_path, payload)
-    assert code == 0
+    assert code == (0 if payload["checks"] else 5)
     assert "discovery error" not in log
+
+
+def test_same_named_checks_from_different_suites_cannot_hide_failure():
+    checks = [dict(check(id=1, name="lint", conclusion="failure"), app=dict(id=10), check_suite=dict(id=20)),
+              dict(check(id=2, name="lint"), app=dict(id=10), check_suite=dict(id=30))]
+    assert activity.summarize(snapshot(checks=checks))["failed"] == ["lint: failure"]
+
+
+def test_check_rerun_in_same_suite_supersedes_prior_failure():
+    checks = [dict(check(id=1, conclusion="failure"), app=dict(id=10), check_suite=dict(id=20)),
+              dict(check(id=2), app=dict(id=10), check_suite=dict(id=20))]
+    assert activity.summarize(snapshot(checks=checks))["failed"] == []
+
+
+def test_missing_suite_metadata_does_not_hide_distinct_checks():
+    checks = [check(id=1, name="lint", conclusion="failure"), check(id=2, name="lint")]
+    assert activity.summarize(snapshot(checks=checks))["failed"] == ["lint: failure"]
+
+
+def test_completion_warns_about_late_registration(tmp_path):
+    code, _, log = run(tmp_path, snapshot(checks=[check()]))
+    assert code == 0
+    assert "Late-registering work may still appear" in log
+    assert "not a merge/review approval" in log
 
 
 def test_legacy_sha_lookup_cannot_silently_ignore_pr():

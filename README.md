@@ -124,7 +124,9 @@ and `lets-finish`, run it too.
 `skills/wait-for-action/scripts/wait-for-action.sh [--pr N]` now defaults to
 read-only PR activity discovery: checks, statuses, Actions runs, and bot-review
 signals. It never triggers or requires reviews. Exit 0 means no observable work
-is pending, not merge approval or a completed independent review.
+is pending, not merge approval or a completed independent review. Exit 5 means
+no current-head execution/review was observed; newly pushed work may not have
+registered yet, even after other fast checks have completed.
 
 This changes the old bare invocation, which watched one workflow on `HEAD`.
 Without a PR, or for post-merge workflows and failure logs, pass `--run-id ID`
