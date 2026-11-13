@@ -82,12 +82,24 @@ def latest_by(rows, key):
 def summarize(snapshot):
     head = snapshot["head"]
     pending, failed, observations = [], [], []
+    workflows = snapshot["workflows"]
+    workflow_key = lambda r: (r.get("workflow_id"), r.get("event"))
+    newest_workflows = {workflow_key(r): r for r in latest_by(workflows, workflow_key)}
+    # A completed old run's checks must not fail a replacement run before its
+    # own checks register. Suppress only when suite metadata proves the link.
+    superseded_suites = {
+        r["check_suite_id"] for r in workflows
+        if r["status"] == "completed" and r.get("check_suite_id") is not None
+        and r["id"] != newest_workflows[workflow_key(r)]["id"]
+    }
     # Job names are not unique across workflows/apps. Only supersede checks
     # within one suite; missing suite metadata must not hide a distinct check.
     checks = latest_by(snapshot["checks"], lambda c: (
         (c.get("app") or {}).get("id"),
         (c.get("check_suite") or {}).get("id", ("check", c["id"])), c["name"]))
     for c in checks:
+        if c["status"] == "completed" and (c.get("check_suite") or {}).get("id") in superseded_suites:
+            continue
         name = c["name"]
         if name == "CodeRabbit":
             verdict = classify(c, None)
@@ -112,9 +124,12 @@ def summarize(snapshot):
             failed.append(f"{s['context']}: {s['state']}")
         else:
             observations.append(f"{s['context']}: success")
-    # Workflows may be queued before their first job/check exists. Only the
-    # newest run of each workflow counts; old failed runs are not new failures.
-    for r in latest_by(snapshot["workflows"], lambda r: (r.get("workflow_id"), r.get("event"))):
+    # Workflows may be queued before their first job/check exists. Retain every
+    # incomplete run, even when a newer run has finished. Only completed results
+    # can be superseded by a newer run of the same workflow/event.
+    for r in workflows:
+        if r["status"] == "completed" and r["id"] != newest_workflows[workflow_key(r)]["id"]:
+            continue
         if r["status"] != "completed":
             pending.append(f"workflow {r['name']}: {r['status']}")
         elif r.get("conclusion") not in GOOD:

@@ -109,8 +109,9 @@ a fork, and never this session. Where the host has no subagents, a headless
 Use the user's previously stated reviewer choice for this project when it is
 available; check project instructions and relevant saved project preferences.
 Otherwise, pick an available agent explicitly defined for code review. If no
-such agent is defined and no project choice has been stated, ask the user which
-agent or process to use and wait for their answer before dispatching. Do not
+such agent is available and no available project choice exists (including when
+a previously stated choice is unavailable), ask the user which agent or process
+to use and wait for their answer before dispatching. Do not
 silently default to a general-purpose subagent or headless process. If no user
 can answer (for example, in a noninteractive workflow), mark independent review
 **BLOCKED** and stop the calling workflow. A previous choice applies only to

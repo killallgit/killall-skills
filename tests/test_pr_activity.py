@@ -138,6 +138,36 @@ def test_newest_workflow_and_status_supersede_old_failures():
     assert activity.summarize(snapshot(workflows=workflows, statuses=statuses))["failed"] == []
 
 
+def test_completed_old_checks_cannot_fail_a_queued_replacement(tmp_path):
+    workflows = [
+        dict(id=1, workflow_id=2, event="push", name="CI", check_suite_id=10, status="completed", conclusion="failure"),
+        dict(id=2, workflow_id=2, event="push", name="CI", check_suite_id=20, status="queued", conclusion=None),
+    ]
+    old_check = dict(check(conclusion="failure"), check_suite=dict(id=10))
+    report = activity.summarize(snapshot(checks=[old_check], workflows=workflows))
+    assert report["failed"] == []
+    assert report["pending"] == ["workflow CI: queued"]
+    code, _, _ = run(tmp_path, snapshot(checks=[old_check], workflows=workflows), ttl=20)
+    assert code == 2
+
+
+def test_unlinked_check_failure_is_not_assumed_superseded():
+    workflows = [dict(id=2, workflow_id=2, event="push", name="CI", status="queued", conclusion=None)]
+    report = activity.summarize(snapshot(checks=[check(conclusion="failure")], workflows=workflows))
+    assert report["failed"] == ["CodeRabbit: failure"]
+
+
+def test_older_incomplete_workflows_remain_observable(tmp_path):
+    workflows = [
+        dict(id=1, workflow_id=2, event="push", name="CI", status="queued", conclusion=None),
+        dict(id=2, workflow_id=2, event="push", name="CI", status="completed", conclusion="success"),
+    ]
+    report = activity.summarize(snapshot(workflows=workflows))
+    assert report["pending"] == ["workflow CI: queued"]
+    code, _, _ = run(tmp_path, snapshot(workflows=workflows), ttl=20)
+    assert code == 2
+
+
 def test_changed_head_restarts_settle(tmp_path):
     code, clock, log = run(tmp_path, snapshot(), None, snapshot(head="new"))
     assert code == 5

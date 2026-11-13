@@ -39,10 +39,14 @@ Codex does not take invocation policy from `SKILL.md`. That lives in `agents/ope
 
 | Field | Required | Purpose |
 | --- | --- | --- |
-| `interface.display_name` | yes | Name shown in the UI |
-| `interface.short_description` | yes | Short UI description |
-| `interface.default_prompt` | yes | Prompt the skill-creator writes when it generates the file |
+| `interface.display_name` | no | Name shown in the UI |
+| `interface.short_description` | no | Short UI description |
+| `interface.default_prompt` | no | Suggested prompt inserted when the skill is invoked |
 | `policy.allow_implicit_invocation` | no | `false` keeps the skill from running unless the user invokes it |
+
+The interface metadata is optional at runtime; a policy-only file is valid.
+Plugin-submission checks may impose additional requirements and should be checked
+separately from runtime parsing.
 
 `metadata.short-description` in `SKILL.md` is the one metadata key the Codex parser reads. `allow_implicit_invocation: false` is the Codex counterpart of `disable-model-invocation: true`.
 
@@ -68,9 +72,12 @@ Codex does not take invocation policy from `SKILL.md`. That lives in `agents/ope
 
 ## What the checkers reject
 
-A file that stays inside the spec's six fields loads everywhere those checkers run:
+The spec defines six fields:
 
 `name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`.
+
+When Codex's bundled `quick_validate.py` must also pass, use the five-field
+intersection: omit `compatibility`. The six-field set does not pass every checker.
 
 These checkers fail the file when any other key is present:
 
@@ -117,7 +124,11 @@ From the [tools reference](https://code.claude.com/docs/en/tools). Permission ru
 | MCP | `ListMcpResourcesTool`, `ReadMcpResourceTool`, `WaitForMcpServers` |
 | Account | `Artifact`, `RemoteTrigger`, `ShareOnboardingGuide` |
 
-`Read`, `Grep`, and `Glob` do not prompt inside the working directory. `Bash`, `PowerShell`, `Edit`, `Write`, `NotebookEdit`, `WebFetch`, and `WebSearch` do.
+Prompting depends on permission modes and configured rules, not only the tool.
+`Read`, `Grep`, and `Glob` normally do not prompt inside the working directory.
+Other tools may require approval, but some read-only `Bash` commands and
+preapproved `WebFetch` domains can run without a prompt. Do not rely on a
+confirmation always appearing for shell, editing, or web tools.
 
 ### Cursor
 
