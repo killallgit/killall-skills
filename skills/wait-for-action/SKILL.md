@@ -43,6 +43,11 @@ Artifacts: `activity.json`, `summary.json`, and `poll.log` under
 fetched separately with the explicit workflow mode below. Project instructions
 and the calling workflow, not discovery, decide which reviews are required.
 
+**Compatibility change:** bare invocation now requires a resolvable PR instead
+of watching the newest workflow on local `HEAD`. For branches without a PR and
+post-merge runs, use `--run-id ID` or `--sha COMMIT`. Default discovery does not
+fetch job logs; `--tail` only affects explicit checks/workflow modes.
+
 The following explicit modes retain their specialized behavior for compatibility.
 In particular, legacy `--ready`, `--coderabbit`, and `--pr-agent` may trigger
 reviews unless `--no-trigger` is supplied. **Do not use those to implement the
@@ -342,7 +347,7 @@ Monitor pattern: ^\[t=\d+s\] (DONE|FAILED|TIMEOUT|ERROR|NOT_REVIEWED|NONE)
 
 ## Notes
 
-- Default discovery requires authenticated `gh` and `python3` or `uv`. Legacy checks/workflow waits also require `jq`.
+- Default discovery requires authenticated `gh` **2.48+** (`gh api --slurp`) and `python3` or `uv`. Legacy checks/workflow waits also require `jq`.
 - A run created seconds ago can 404 until GitHub catches up; the script retries
   through that for the first minute before giving up with exit 3.
 - Each poll is one API call, plus one per job at the moment it completes.

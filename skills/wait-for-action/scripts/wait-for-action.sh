@@ -150,6 +150,8 @@ done
 [[ -z "$RUN_ID" || "$CHECKS" -eq 0 && "$READY" -eq 0 ]] || die "--checks and --ready do not combine with --run-id"
 [[ -z "$PR" || -z "$RUN_ID" ]] || die "--pr does not combine with --run-id"
 [[ -z "$SHA" || "$CHECKS" -eq 0 ]] || die "--sha does not apply to --checks: the PR rollup already follows the PR head"
+(( CHECKS || READY || CODERABBIT || PR_AGENT )) || [[ -z "$PR" || -z "$SHA" ]] \
+  || die "--pr does not combine with the legacy --sha workflow lookup"
 command -v gh >/dev/null || die "gh CLI not found"
 
 REPO_ARG=()
@@ -218,11 +220,11 @@ if (( ! CHECKS && ! READY )) && [[ -z "$RUN_ID$SHA" ]]; then
   [[ -n "$LOG_DIR" ]] && args+=(--log-dir "$LOG_DIR")
   (( QUIET )) && args+=(--quiet)
   (( FAIL_FAST )) || args+=(--no-fail-fast)
-  if command -v python3 >/dev/null; then
-    exec python3 "$here/pr_activity.py" "${args[@]}"
+  if command -v uv >/dev/null; then
+    exec uv run --no-project "$here/pr_activity.py" "${args[@]}"
   fi
-  command -v uv >/dev/null || die "PR discovery requires python3 or uv"
-  exec uv run --no-project "$here/pr_activity.py" "${args[@]}"
+  command -v python3 >/dev/null || die "PR discovery requires python3 or uv"
+  exec python3 "$here/pr_activity.py" "${args[@]}"
 fi
 
 command -v jq >/dev/null || die "jq not found"

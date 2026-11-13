@@ -10,11 +10,13 @@ import time
 from pathlib import Path
 
 from coderabbit import GhError, classify, interval_for
+
 GOOD = {"success", "neutral", "skipped"}
 
 
 def bot(login):
     """Known bot identities plus GitHub's general bot suffix."""
+    login = login or ""
     return login.endswith("[bot]") or login.lower() in {"coderabbitai", "copilot", "copilot-pull-request-reviewer", "github-copilot"}
 
 
@@ -75,7 +77,7 @@ def latest_by(rows, key):
 def summarize(snapshot):
     head = snapshot["head"]
     pending, failed, observations = [], [], []
-    checks = latest_by(snapshot["checks"], lambda c: (c.get("app", {}).get("id"), c["name"]))
+    checks = latest_by(snapshot["checks"], lambda c: ((c.get("app") or {}).get("id"), c["name"]))
     for c in checks:
         name = c["name"]
         if name == "CodeRabbit":
@@ -110,7 +112,7 @@ def summarize(snapshot):
             failed.append(f"workflow {r['name']}: {r.get('conclusion') or 'unknown conclusion'}")
         else:
             observations.append(f"workflow {r['name']}: {r['conclusion']}")
-    reviews = [r for r in snapshot["reviews"] if bot(r["user"]["login"])]
+    reviews = [r for r in snapshot["reviews"] if bot((r.get("user") or {}).get("login"))]
     current = {r["user"]["login"] for r in reviews if r.get("commit_id") == head["headRefOid"] and r.get("submitted_at")}
     for login in sorted(current):
         observations.append(f"{login}: review submitted for current head (not a findings verdict)")
@@ -122,8 +124,8 @@ def summarize(snapshot):
             observations.append(f"{login}: requested, start unconfirmed")
     # A comment alone cannot establish which commit was reviewed, nor prove a
     # reviewer is still running. Keep only each bot's latest informational signal.
-    for c in latest_by(snapshot["comments"], lambda c: c["user"]["login"]):
-        login = c["user"]["login"]
+    for c in latest_by(snapshot["comments"], lambda c: (c.get("user") or {}).get("login")):
+        login = (c.get("user") or {}).get("login")
         if not bot(login) or login in current:
             continue
         body = c.get("body", "").lower()

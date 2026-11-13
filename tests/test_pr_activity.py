@@ -229,6 +229,25 @@ else:
     assert (tmp_path / "logs/summary.json").exists()
 
 
+@pytest.mark.parametrize("payload", [
+    snapshot(checks=[dict(check(), app=None)]),
+    snapshot(reviews=[dict(user=None, commit_id="abc", submitted_at="today")]),
+    snapshot(comments=[dict(id=1, user=None, body="old comment")]),
+])
+def test_nullable_github_actors_and_apps_do_not_break_discovery(tmp_path, payload):
+    code, _, log = run(tmp_path, payload)
+    assert code == 0
+    assert "discovery error" not in log
+
+
+def test_legacy_sha_lookup_cannot_silently_ignore_pr():
+    script = Path(__file__).resolve().parents[1] / "skills/wait-for-action/scripts/wait-for-action.sh"
+    result = subprocess.run(["bash", str(script), "--pr", "7", "--sha", "abc"],
+                            capture_output=True, text=True, timeout=10)
+    assert result.returncode == 3
+    assert "--pr does not combine" in result.stderr
+
+
 def test_transport_timeout_at_deadline_is_ttl_not_success(monkeypatch):
     client = activity.Client()
     client.deadline = activity.time.monotonic() - 1

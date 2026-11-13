@@ -119,6 +119,19 @@ explicitly waives review. Self-review and passing tests are not substitutes;
 a waiver is reported as **WAIVED**, not reviewed. Other skills, such as `ship`
 and `lets-finish`, run it too.
 
+## Wait for action
+
+`skills/wait-for-action/scripts/wait-for-action.sh [--pr N]` now defaults to
+read-only PR activity discovery: checks, statuses, Actions runs, and bot-review
+signals. It never triggers or requires reviews. Exit 0 means no observable work
+is pending, not merge approval or a completed independent review.
+
+This changes the old bare invocation, which watched one workflow on `HEAD`.
+Without a PR, or for post-merge workflows and failure logs, pass `--run-id ID`
+(or `--sha COMMIT` for the newest workflow on that commit). Default discovery
+requires `gh` 2.48+ and Python 3 or `uv`. Explicit legacy reviewer modes may still
+trigger reviews unless `--no-trigger` is supplied.
+
 ## Lets finish
 
 `/lets-finish` (or "let's finish", "wrap up", "ship it") lands work that is ready. It runs on a small model, so fixes go to the `builder` agent. Words after the command skip or stop steps: `/lets-finish don't review`, `/lets-finish stop after CI`. `/lets-finish and release` also runs the project's release after the merge: its `release` or `deploy` skill, or the process its docs describe. It never releases unless you say so. A branch with no PR gets one,
