@@ -104,8 +104,18 @@ in a reply. Stop after three rounds and report what is still open.
 
 Dispatch one reviewer that starts with **fresh context**: a new subagent, never
 a fork, and never this session. Where the host has no subagents, a headless
-`claude -p` or `codex exec` process serves. Pick the best fit installed: a
-`reviewer` agent, else a general-purpose subagent.
+`claude -p` or `codex exec` process serves.
+
+Use the user's previously stated reviewer choice for this project when it is
+available; check project instructions and relevant saved project preferences.
+Otherwise, pick an available agent explicitly defined for code review. If no
+such agent is available and no available project choice exists (including when
+a previously stated choice is unavailable), ask the user which agent or process
+to use and wait for their answer before dispatching. Do not
+silently default to a general-purpose subagent or headless process. If no user
+can answer (for example, in a noninteractive workflow), mark independent review
+**BLOCKED** and stop the calling workflow. A previous choice applies only to
+its stated project and scope, not every project.
 
 The brief names the base branch, tells the reviewer to diff `base...HEAD`, and
 asks for a review only: no edits, no commits, no PR comments. Leave out the PR
@@ -122,9 +132,12 @@ responses without either verdict):
    an independent route that is actually available. A different skill using the
    same failing provider is not a fallback; do not repeat an unchanged auth or
    quota failure.
-2. Attempt another available route with fresh context and the same neutral
-   brief. Continue through viable alternatives until one returns a review or
-   none remain. Never change credentials or install tooling without authority.
+2. Apply the reviewer-selection rule above to each fallback: use an available
+   previously stated project choice or an explicitly defined review agent;
+   otherwise ask which agent or process to use and wait. Attempt the selected
+   route with fresh context and the same neutral brief. Continue through viable
+   alternatives until one returns a review or none remain. Never change
+   credentials or install tooling without authority.
 3. If none works, mark independent review **BLOCKED**, list the failed routes
    and concrete errors, and stop the calling workflow before merge, release or
    deployment. Ask the user to restore a review route or explicitly waive

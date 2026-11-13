@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Block until a GitHub Actions run reaches a terminal state, then report.
+# Discover PR activity read-only by default; explicit modes target individual waits.
 #
 # One blocking call. While the run is healthy this prints a line per state
 # change and nothing else; logs never reach the caller unless the run fails.
@@ -10,7 +10,8 @@
 #   wait-for-action.sh --checks [--pr N]   # every check on the PR, any source
 #   wait-for-action.sh --ready [--pr N]     # --checks, then the review the repo runs
 #   wait-for-action.sh --run-id <id> [options]
-#   wait-for-action.sh                      # newest run for the current HEAD
+#   wait-for-action.sh [--pr N] [--repo O/R] # read-only PR activity discovery
+#   wait-for-action.sh --sha COMMIT          # newest Actions run for that commit
 #   wait-for-action.sh --coderabbit         # CodeRabbit review of HEAD instead
 #   wait-for-action.sh --pr-agent           # PR-Agent review of HEAD instead
 #
@@ -18,16 +19,16 @@
 #   --checks           wait until every check on the PR head has finished.
 #                      That is Actions runs, other check runs, and commit
 #                      statuses — anything `gh pr checks` reports. Use this
-#                      to confirm CI. With no flags the script still watches
-#                      only the newest Actions run for HEAD.
+#                      to confirm CI. With no mode flags, discover PR activity
+#                      including bot reviews; never trigger or require a review.
 #   --ready            ready to merge: --checks, then, when a "CodeRabbit" check
 #                      or a pr-agent check exists, that review of the PR head.
 #                      One terminal line and one exit code for both, one --ttl
 #                      for both. CodeRabbit wins when both run. Without a
 #                      reviewer it is --checks. Review files land in
 #                      <log-dir>/review
-#   --pr N             pull request number for --checks, --ready, --coderabbit
-#                      and --pr-agent (default with --checks and --ready: the
+#   --pr N             pull request number for discovery, --checks, --ready,
+#                      --coderabbit and --pr-agent (default: the
 #                      open PR for the current branch). The review waits read
 #                      the PR's head commit from it
 #   --sha COMMIT       commit to watch, for a checkout where `git rev-parse
@@ -62,7 +63,8 @@
 #   3.5m-5.5m  every 60s
 #   5.5m+      every 3m
 #
-# Exit: 0 success  1 failed  2 ttl expired  3 usage or API error
+# Exit: 0 settled (NOT merge/review approval)  1 failed  2 ttl expired
+#       3 usage or API error
 #       4 CodeRabbit did not review (--coderabbit and --ready)
 #       5 no check ever appeared (--checks and --ready)
 #       (--pr-agent uses 0, 2 and 3 only)
@@ -146,10 +148,11 @@ done
 (( CHECKS == 0 || PR_AGENT == 0 && CODERABBIT == 0 )) || die "--checks does not combine with --coderabbit or --pr-agent"
 (( READY == 0 || CHECKS == 0 && PR_AGENT == 0 && CODERABBIT == 0 )) || die "--ready already covers --checks, --coderabbit and --pr-agent; use it alone"
 [[ -z "$RUN_ID" || "$CHECKS" -eq 0 && "$READY" -eq 0 ]] || die "--checks and --ready do not combine with --run-id"
-(( CHECKS || READY || CODERABBIT || PR_AGENT )) || [[ -z "$PR" ]] || die "--pr only applies to --checks, --ready, --coderabbit or --pr-agent"
+[[ -z "$PR" || -z "$RUN_ID" ]] || die "--pr does not combine with --run-id"
 [[ -z "$SHA" || "$CHECKS" -eq 0 ]] || die "--sha does not apply to --checks: the PR rollup already follows the PR head"
+(( CHECKS || READY || CODERABBIT || PR_AGENT )) || [[ -z "$PR" || -z "$SHA" ]] \
+  || die "--pr does not combine with the legacy --sha workflow lookup"
 command -v gh >/dev/null || die "gh CLI not found"
-command -v jq >/dev/null || die "jq not found"
 
 REPO_ARG=()
 [[ -n "$REPO" ]] && REPO_ARG=(--repo "$REPO")
@@ -206,6 +209,25 @@ if (( CODERABBIT || PR_AGENT )); then
   (( PR_AGENT )) && script=pr_agent.py
   run_review "$script" "$TTL" "$LOG_DIR"
 fi
+
+# With no explicit wait mode, discover PR activity without triggering anything.
+# --sha retains the historical single-workflow lookup for compatibility.
+if (( ! CHECKS && ! READY )) && [[ -z "$RUN_ID$SHA" ]]; then
+  here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  args=(--ttl "$TTL")
+  [[ -n "$PR" ]] && args+=(--pr "$PR")
+  [[ -n "$REPO" ]] && args+=(--repo "$REPO")
+  [[ -n "$LOG_DIR" ]] && args+=(--log-dir "$LOG_DIR")
+  (( QUIET )) && args+=(--quiet)
+  (( FAIL_FAST )) || args+=(--no-fail-fast)
+  if command -v uv >/dev/null; then
+    exec uv run --no-project "$here/pr_activity.py" "${args[@]}"
+  fi
+  command -v python3 >/dev/null || die "PR discovery requires python3 or uv"
+  exec python3 "$here/pr_activity.py" "${args[@]}"
+fi
+
+command -v jq >/dev/null || die "jq not found"
 
 if (( ! CHECKS && ! READY )); then
   if [[ -z "$RUN_ID" ]]; then
