@@ -129,6 +129,8 @@ def test_generated_files_cover_claude_cursor_and_copilot(tmp_path):
         tmp_path / ".claude-plugin" / "marketplace.json",
         tmp_path / ".cursor-plugin" / "marketplace.json",
         tmp_path / ".github" / "plugin" / "marketplace.json",
+        tmp_path / "skills" / "alpha" / ".cursor-plugin" / "plugin.json",
+        tmp_path / "skills" / ".cursor-plugin" / "plugin.json",
     }
 
 
@@ -146,7 +148,42 @@ def test_cursor_catalog_points_each_plugin_at_its_skill_directory(tmp_path):
         ("beta", "./skills/beta"),
         ("bundle", "./skills"),
     ]
-    assert all("strict" not in p and "skills" not in p for p in plugins)
+    assert all("strict" not in p for p in plugins)
+    assert all("skills" not in p for p in plugins[:-1])
+    assert plugins[-1]["skills"] == ["./alpha", "./beta"]
+
+
+def test_cursor_sources_have_manifests_and_discover_every_skill(tmp_path):
+    write_repo(tmp_path)
+    write_skill(tmp_path, "beta", "name: beta\ndescription: second")
+    write_files(generated_files(tmp_path))
+    marketplace = json.loads((tmp_path / ".cursor-plugin" / "marketplace.json").read_text())
+
+    for plugin in marketplace["plugins"]:
+        source = tmp_path / plugin["source"]
+        manifest = json.loads((source / ".cursor-plugin" / "plugin.json").read_text())
+        assert manifest["name"] == plugin["name"]
+        assert manifest["description"] == plugin["description"]
+        if plugin["name"] == "bundle":
+            assert manifest["skills"] == ["./alpha", "./beta"]
+            assert all((source / path / "SKILL.md").is_file() for path in manifest["skills"])
+        else:
+            assert "skills" not in manifest
+            assert not (source / "skills").exists()
+            assert (source / "SKILL.md").is_file()
+
+
+def test_cursor_manifests_inherit_version_from_the_marketplace(tmp_path):
+    write_repo(tmp_path)
+    config_path = tmp_path / "scripts" / "marketplace.config.json"
+    config_path.write_text(json.dumps({**CONFIG, "version": "1.2.3"}))
+    files = generated_files(tmp_path)
+    marketplace = json.loads(files[tmp_path / ".cursor-plugin" / "marketplace.json"])
+
+    for plugin in marketplace["plugins"]:
+        manifest = json.loads(files[tmp_path / plugin["source"] / ".cursor-plugin" / "plugin.json"])
+        assert plugin["version"] == "1.2.3"
+        assert "version" not in manifest
 
 
 def test_copilot_catalog_selects_skills_from_the_repo_root(tmp_path):

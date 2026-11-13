@@ -1,0 +1,4 @@
+{
+  "name": "git-janitor",
+  "description": "Clean up local Git, only when the user runs /git-janitor. Inspect uncommitted and unpublished work in every worktree first, discard work that is superseded or over 60 days old when justified, then remove merged and stale local worktrees and branches. Record what was discarded and why."
+}

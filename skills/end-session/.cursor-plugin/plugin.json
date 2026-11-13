@@ -1,0 +1,4 @@
+{
+  "name": "end-session",
+  "description": "Bring this session's branch up to date, land or discard its work, and archive the session."
+}

@@ -1,0 +1,16 @@
+{
+  "name": "killall-skills",
+  "description": "Helpful agent skills.",
+  "skills": [
+    "./architectural-review",
+    "./catch-up",
+    "./end-session",
+    "./follow-the-rules",
+    "./git-janitor",
+    "./independent-review",
+    "./lets-finish",
+    "./session-eject",
+    "./setup-agents-md",
+    "./wait-for-action"
+  ]
+}

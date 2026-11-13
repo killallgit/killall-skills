@@ -138,6 +138,7 @@ def build_cursor_marketplace(config: dict, skills: tuple[Skill, ...]) -> dict:
         entry(skill.name, skill.description, f"./skills/{skill.name}") for skill in skills
     ]
     bundle = entry(config["bundle"]["name"], config["bundle"]["description"], "./skills")
+    bundle["skills"] = [f"./{skill.name}" for skill in skills]
     return {
         "name": config["name"],
         "owner": host_owner(config),
@@ -153,17 +154,20 @@ def render(data: dict) -> str:
 def generated_files(root: Path) -> dict[Path, str]:
     config = json.loads((root / "scripts" / "marketplace.config.json").read_text())
     skills = read_skills(root / "skills")
-    return {
+    cursor = build_cursor_marketplace(config, skills)
+    files = {
         root / ".claude-plugin" / "marketplace.json": render(
             build_marketplace(config, skills)
         ),
-        root / ".cursor-plugin" / "marketplace.json": render(
-            build_cursor_marketplace(config, skills)
-        ),
+        root / ".cursor-plugin" / "marketplace.json": render(cursor),
         root / ".github" / "plugin" / "marketplace.json": render(
             build_copilot_marketplace(config, skills)
         ),
     }
+    for plugin in cursor["plugins"]:
+        manifest = {key: plugin[key] for key in ("name", "description", "skills") if key in plugin}
+        files[root / plugin["source"] / ".cursor-plugin" / "plugin.json"] = render(manifest)
+    return files
 
 
 def drifted_files(files: dict[Path, str]) -> list[Path]:

@@ -94,7 +94,19 @@
       "description": "Helpful agent skills.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.4.1"
+      "version": "5.4.1",
+      "skills": [
+        "./architectural-review",
+        "./catch-up",
+        "./end-session",
+        "./follow-the-rules",
+        "./git-janitor",
+        "./independent-review",
+        "./lets-finish",
+        "./session-eject",
+        "./setup-agents-md",
+        "./wait-for-action"
+      ]
     }
   ]
 }
