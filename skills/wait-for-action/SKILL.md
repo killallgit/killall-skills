@@ -1,19 +1,57 @@
 ---
 name: wait-for-action
-description: Wait for CI, PR checks, a review, or a workflow run in one blocking call. Use before a merge ("is it ready to merge", wait for the PR to be green, CI, then the CodeRabbit or PR-Agent review), after a push, merge or workflow dispatch, or when a run failed and you need its log. Replaces any hand-written `gh run watch`, `gh pr checks --watch` or sleep loop.
+description: Discover and wait for observable PR activity in one read-only blocking call, including CI and bot reviewers outside Actions. Use after a push or to check what is still running. Reports unknown reviewer activity without requiring or triggering reviews. Also supports targeted checks, reviews, and workflow waits.
 ---
 
 # wait-for-action
 
-One blocking Bash call that polls until a workflow run, every check on a pull
-request, or the CodeRabbit or PR-Agent review reaches a terminal state. Costs no
-conversation tokens while the wait is in flight, and pulls logs to disk instead
-of into context.
+Default: one read-only blocking call discovers observable PR activity across
+GitHub checks, commit statuses, Actions workflows, submitted bot reviews, review
+requests, and bot comments. It never posts comments, requests reviews, or infers
+that an installed reviewer is required. Costs no conversation tokens while the
+wait is in flight.
+
+## Default: discover PR activity
+
+```bash
+./scripts/wait-for-action.sh [--pr N] [--repo OWNER/REPO] [--ttl 15m]
+```
+
+With no explicit wait mode, resolve the current branch's PR (or `--pr`) and:
+
+- Wait for queued/running checks, commit statuses, and workflows on the PR head.
+- Discover external Apps through check runs, not just Actions. Track updates to
+  existing check IDs as well as new ones; use the newest run/status per source.
+- Report current-head bot reviews separately from older-head reviews. A submitted
+  review is activity evidence, not proof that its findings have been resolved.
+- Report bot review requests without acknowledgement as **start unconfirmed**.
+  Comments, including rate-limit/skip notices, are informational: without a
+  commit association they cannot prove a current-head review or running work.
+- Report skipped/rate-limited CodeRabbit checks without triggering or waiting
+  for a review that has not started. Observable running work still gets waited on.
+- Rediscover if the PR head changes. Require a 10-second stable activity snapshot
+  before returning. Unknown/unacknowledged reviewers do not extend the wait.
+
+Exit 0 means **no observable work pending**, NOT merge approval, required-check
+satisfaction, or a completed independent review. Even a PR with no activity can
+settle. Exit 1 means observed CI/check failure; 2 means TTL expired; 3 means
+persistent discovery/API failure. Missing API access is never silently treated
+as success. Calls are noninteractive and bounded by the remaining TTL.
+
+Artifacts: `activity.json`, `summary.json`, and `poll.log` under
+`/tmp/actions/activity-<pr-or-current>/` (or `--log-dir`). Failure logs can be
+fetched separately with the explicit workflow mode below. Project instructions
+and the calling workflow, not discovery, decide which reviews are required.
+
+The following explicit modes retain their specialized behavior for compatibility.
+In particular, legacy `--ready`, `--coderabbit`, and `--pr-agent` may trigger
+reviews unless `--no-trigger` is supplied. **Do not use those to implement the
+default read-only discovery workflow.**
 
 ## When to use
 
-- A pull request has to be ready to merge: CI green and, where the repo runs
-  one, the review done. That wait is `--ready`
+- Discover what is running on a PR: no mode flag. Before merging, separately
+  enforce the project's required checks/reviews; discovery is not that policy
 - CI on a pull request has to finish before the next step. That wait is
   `--checks`, which covers every check on the head
 - Only the CodeRabbit or PR-Agent review matters: `--coderabbit` or `--pr-agent`
@@ -28,16 +66,17 @@ the wait to the script.
 ## How
 
 ```bash
-./scripts/wait-for-action.sh --ready [--pr N] [--repo OWNER/REPO] [--ttl 15m]
+./scripts/wait-for-action.sh [--pr N] [--repo OWNER/REPO] [--ttl 15m]
+./scripts/wait-for-action.sh --ready [--pr N] [--repo OWNER/REPO] [--ttl 15m] [--no-trigger]
 ./scripts/wait-for-action.sh --checks [--pr N] [--repo OWNER/REPO] [--ttl 15m]
 ./scripts/wait-for-action.sh --run-id <id> [--repo OWNER/REPO] [--ttl 15m]
 ```
 
 `--ready` waits for CI, then the review. `--checks` waits for the whole PR
-rollup. With no `--run-id`, `--checks` or `--ready`, the script resolves the
-newest Actions run for the current `HEAD` commit. That is one workflow, right
-after a push, and wrong after any later commit — pass the id when you have it.
-Confirming CI uses `--checks`; confirming a merge is safe uses `--ready`.
+rollup. With no explicit mode (including no `--sha`), the script discovers PR
+activity as described above. `--sha COMMIT` alone retains the historical lookup
+of the newest Actions run for that commit; use `--run-id` for a specific run.
+Neither discovery nor the legacy `--ready` wait replaces merge/review policy.
 
 | Flag | Default | Notes |
 |---|---|---|
@@ -45,7 +84,7 @@ Confirming CI uses `--checks`; confirming a merge is safe uses `--ready`.
 | `--checks` | off | every check on the PR head; see below |
 | `--pr N` | open PR for the current branch | with `--checks`, `--ready`, `--coderabbit`, `--pr-agent`; the review waits read the PR's head commit from it |
 | `--sha COMMIT` | `git rev-parse HEAD` | the commit for `--coderabbit`, `--pr-agent`, `--ready` and the no-flag run lookup; see below |
-| `--run-id ID` | newest run for `HEAD` | |
+| `--run-id ID` | off | explicit single-workflow wait |
 | `--repo OWNER/REPO` | repo in cwd | with `--run-id`, `--checks` or `--ready` |
 | `--ttl DURATION` | `15m` | `45s`, `15m`, `1h`; raise it for known-slow pipelines |
 | `--tail N` | `40` | log lines echoed on failure |
@@ -54,7 +93,7 @@ Confirming CI uses `--checks`; confirming a merge is safe uses `--ready`.
 | `--quiet` | off | only the terminal line and any failure log |
 | `--coderabbit` | off | wait for the CodeRabbit review of `HEAD` instead; see below |
 | `--pr-agent` | off | wait for the PR-Agent review of `HEAD` instead; see below |
-| `--no-trigger` | off | with `--coderabbit`, `--pr-agent` or `--ready`: report instead of commenting |
+| `--no-trigger` | off | legacy `--coderabbit`, `--pr-agent` or `--ready`: report instead of commenting; default discovery never triggers |
 
 Getting a run id: `gh run list --limit 5 --json databaseId,workflowName,status`,
 or `--json databaseId --jq '.[0].databaseId'` right after triggering.
@@ -303,7 +342,7 @@ Monitor pattern: ^\[t=\d+s\] (DONE|FAILED|TIMEOUT|ERROR|NOT_REVIEWED|NONE)
 
 ## Notes
 
-- Requires `gh` (authenticated) and `jq`. `--ready`, `--coderabbit` and `--pr-agent` also need `uv` or `python3`.
+- Default discovery requires authenticated `gh` and `python3` or `uv`. Legacy checks/workflow waits also require `jq`.
 - A run created seconds ago can 404 until GitHub catches up; the script retries
   through that for the first minute before giving up with exit 3.
 - Each poll is one API call, plus one per job at the moment it completes.
