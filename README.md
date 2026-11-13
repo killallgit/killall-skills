@@ -68,7 +68,11 @@ them into that skill's entry and into the `killall-skills` bundle.
 The bundle is listed last so the skills CLI groups all skills under
 `Killall Skills` instead of repeating each skill name as a group heading.
 
-To release, run one of these from anywhere in the checkout. The release runs in
+Before releasing, update your checkout to the latest `main`: the release runner
+is loaded from your checkout, not the temporary worktree. Older runners do not
+support the relocated `scripts/marketplace.config.json`.
+
+Then run one of these from anywhere in the checkout. The release runs in
 a temporary worktree off `origin/main`, so your checkout is never switched. It
 runs the tests and `generate_manifests.py --check` first, and on a failed push
 it removes the tag it created:
