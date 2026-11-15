@@ -43,7 +43,7 @@
     {
       "name": "independent-review",
       "source": "./skills/independent-review",
-      "description": "Get the current branch reviewed by a reviewer that did not write it. Opens a PR if none exists, waits for the repo's CI reviewers (CodeRabbit, PR-Agent) when it has any, otherwise runs a fresh-context local review agent, then resolves the findings. Use when the user asks for an independent review, or when another skill calls for one.",
+      "description": "Get the current branch reviewed by someone who did not write it. Opens a PR if needed, observes existing bot-review activity without triggering it, uses a fresh-context local review agent when no independent verdict is available, and resolves findings. Use when the user asks for an independent review or another skill calls for one.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
       "version": "5.5.0"

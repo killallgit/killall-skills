@@ -319,6 +319,26 @@ def test_invalid_duration(value):
         activity.duration(value)
 
 
+def test_default_artifacts_use_a_private_system_temp_directory(monkeypatch, tmp_path):
+    mkdtemp = activity.tempfile.mkdtemp
+    options = {}
+
+    def private_directory(**kwargs):
+        options.update(kwargs)
+        return mkdtemp(dir=tmp_path, **kwargs)
+
+    def watch(client, pr, ttl, log_dir):
+        assert pr == 7 and ttl == 3600
+        assert Path(log_dir).stat().st_mode & 0o777 == 0o700
+        return 0
+
+    monkeypatch.setattr(sys, "argv", ["wait_for_action.py", "--pr", "7", "--ttl", "1h"])
+    monkeypatch.setattr(activity.tempfile, "mkdtemp", private_directory)
+    monkeypatch.setattr(activity, "watch", watch)
+    assert activity.main() == 0
+    assert options == {"prefix": "activity-7-"}
+
+
 def test_transport_timeout_at_deadline_is_ttl_not_success(monkeypatch):
     client = activity.Client()
     client.deadline = activity.time.monotonic() - 1

@@ -243,8 +243,7 @@ def main():
         parser.error("--pr must be positive")
     log_dir = args.log_dir
     if not log_dir:
-        Path("/tmp/actions").mkdir(parents=True, exist_ok=True)
-        log_dir = tempfile.mkdtemp(prefix=f"activity-{args.pr or 'current'}-", dir="/tmp/actions")
+        log_dir = tempfile.mkdtemp(prefix=f"activity-{args.pr or 'current'}-")
     return watch(Client(args.repo), args.pr, args.ttl, log_dir)
 
 
