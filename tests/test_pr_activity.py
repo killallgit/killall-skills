@@ -3,12 +3,16 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 from types import SimpleNamespace
 
 import pytest
 
-import pr_activity as activity
-from test_coderabbit import check
+import wait_for_action as activity
+
+
+def check(id=1, status="completed", conclusion="success", title="Review completed", name="CodeRabbit"):
+    return dict(id=id, name=name, status=status, conclusion=conclusion, output=dict(title=title))
 
 
 class Clock:
@@ -41,10 +45,10 @@ class Client:
         return value
 
 
-def run(tmp_path, *snapshots, ttl=40, **kwargs):
+def run(tmp_path, *snapshots, ttl=40):
     clock = Clock()
     client = Client(*snapshots)
-    code = activity.watch(client, 7, ttl, tmp_path, clock=clock, settle=10, interval=5, **kwargs)
+    code = activity.watch(client, 7, ttl, tmp_path, clock=clock)
     return code, clock, (tmp_path / "poll.log").read_text()
 
 
@@ -121,14 +125,6 @@ def test_failure_is_not_hidden_by_pending_work(tmp_path):
     code, clock, _ = run(tmp_path, snapshot(checks=[check(conclusion="failure"), check(id=2, name="CI", status="queued")]))
     assert code == 1
     assert clock.t == 0
-
-
-def test_no_fail_fast_waits_for_pending_work(tmp_path):
-    failed = check(conclusion="failure")
-    code, clock, _ = run(tmp_path, snapshot(checks=[failed, check(id=2, name="CI", status="queued")]),
-                         snapshot(checks=[failed]), fail_fast=False)
-    assert code == 1
-    assert clock.t == 5
 
 
 def test_newest_workflow_and_status_supersede_old_failures():
@@ -235,7 +231,7 @@ def test_snapshot_fetches_paginated_sources_and_rechecks_head():
 
 
 @pytest.mark.parametrize("options", [[], ["--pr", "7", "--repo", "owner/repo"]])
-def test_default_shell_routes_to_read_only_discovery(tmp_path, options):
+def test_monitor_is_read_only(tmp_path, options):
     gh = tmp_path / "gh"
     gh.write_text('''#!/usr/bin/env python3
 import json, os, sys
@@ -256,8 +252,8 @@ else:
 ''')
     gh.chmod(0o755)
     calls = tmp_path / "calls.jsonl"
-    script = Path(__file__).resolve().parents[1] / "skills/wait-for-action/scripts/wait-for-action.sh"
-    result = subprocess.run(["bash", str(script), *options, "--ttl", "10s", "--log-dir", str(tmp_path / "logs")],
+    script = Path(__file__).resolve().parents[1] / "skills/wait-for-action/scripts/wait_for_action.py"
+    result = subprocess.run([sys.executable, str(script), *options, "--ttl", "10s", "--log-dir", str(tmp_path / "logs")],
                             env=dict(os.environ, PATH=f"{tmp_path}:{os.environ['PATH']}", CALLS=str(calls)),
                             capture_output=True, text=True, timeout=15)
     assert result.returncode == 1, result.stdout + result.stderr
@@ -303,12 +299,24 @@ def test_completion_warns_about_late_registration(tmp_path):
     assert "not a merge/review approval" in log
 
 
-def test_legacy_sha_lookup_cannot_silently_ignore_pr():
-    script = Path(__file__).resolve().parents[1] / "skills/wait-for-action/scripts/wait-for-action.sh"
-    result = subprocess.run(["bash", str(script), "--pr", "7", "--sha", "abc"],
-                            capture_output=True, text=True, timeout=10)
-    assert result.returncode == 3
-    assert "--pr does not combine" in result.stderr
+@pytest.mark.parametrize("flag", ["--checks", "--ready", "--coderabbit", "--pr-agent", "--run-id", "--sha", "--no-trigger", "--quiet", "--no-fail-fast", "--tail"])
+def test_removed_modes_and_tuning_flags_are_rejected(flag):
+    script = Path(__file__).resolve().parents[1] / "skills/wait-for-action/scripts/wait_for_action.py"
+    result = subprocess.run([sys.executable, str(script), flag], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 2
+    assert "unrecognized arguments" in result.stderr
+
+
+@pytest.mark.parametrize(("value", "seconds"), [("45s", 45), ("15m", 900), ("1h", 3600), ("30", 30)])
+def test_duration(value, seconds):
+    assert activity.duration(value) == seconds
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "1d", "bad", "0m"])
+def test_invalid_duration(value):
+    import argparse
+    with pytest.raises(argparse.ArgumentTypeError):
+        activity.duration(value)
 
 
 def test_transport_timeout_at_deadline_is_ttl_not_success(monkeypatch):

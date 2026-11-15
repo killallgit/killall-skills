@@ -118,14 +118,13 @@ Use the first waiter that exists. An error from the one you chose (`ERROR`,
 exit 3) is `[x]` with its message. Stop.
 
 1. **`wait-for-action`**, when that skill is available in this session. Read
-   it and run `scripts/wait-for-action.sh --checks --pr <n>` from that skill.
-   It waits for every check GitHub reports on the head: Actions runs, other
-   check runs, and commit statuses. A long wait goes in the background, as
-   that skill describes. This step waits for CI alone, with `--checks`:
-   step 2 decides whether a review is needed and which reviewer runs it, and
-   `--ready` (CI plus the CI reviewer in one wait) would wait on a reviewer
-   that step 2 may not want. In a checkout where `git rev-parse HEAD` fails,
-   `--pr <n>` already avoids `git`.
+   it and run `python3 scripts/wait_for_action.py --pr <n>` from that skill.
+   It discovers running checks, workflows, statuses, and bot-review activity
+   without triggering anything. Use a background call when needed. Its `DONE`
+   means activity settled, not CI approval: read `gh pr checks <n> --json
+   name,state,bucket` afterwards and enforce the outcomes below. An empty
+   check list is still no checks started, even if a submitted review made the
+   monitor return 0. Step 2 independently decides whether review is required.
 2. **Another preferred waiter**, when that skill is not available. Look for a
    skill or tool in this session whose job is waiting for GitHub Actions or
    CI checks to finish, and use it for this PR. Map its result onto the

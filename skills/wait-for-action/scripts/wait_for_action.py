@@ -5,14 +5,24 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 
-from coderabbit import GhError, classify, interval_for
-
 GOOD = {"success", "neutral", "skipped"}
+
+
+class GhError(Exception):
+    pass
+
+
+def duration(value):
+    match = re.fullmatch(r"([1-9]\d*)([smh]?)", value)
+    if not match:
+        raise argparse.ArgumentTypeError("use a positive duration such as 45s, 15m, or 1h")
+    return int(match[1]) * {"": 1, "s": 1, "m": 60, "h": 3600}[match[2]]
 
 
 def identity(login):
@@ -101,29 +111,21 @@ def summarize(snapshot):
         if c["status"] == "completed" and (c.get("check_suite") or {}).get("id") in superseded_suites:
             continue
         name = c["name"]
-        if name == "CodeRabbit":
-            verdict = classify(c, None)
-            if verdict.kind in {"SKIPPED", "RATE_LIMITED"}:
-                observations.append(f"CodeRabbit: {verdict.kind.lower()} ({verdict.detail})")
-                continue
         if c["status"] != "completed":
             pending.append(f"{name}: {c['status']}")
         elif c.get("conclusion") not in GOOD:
             failed.append(f"{name}: {c.get('conclusion') or 'unknown conclusion'}")
         else:
-            observations.append(f"{name}: {c['conclusion']}")
+            title = (c.get("output") or {}).get("title")
+            observations.append(f"{name}: {c['conclusion']}" + (f" ({title})" if title else ""))
     for s in latest_by(snapshot["statuses"], lambda s: s["context"]):
-        if s["context"] == "CodeRabbit":
-            verdict = classify(None, s)
-            if verdict.kind in {"SKIPPED", "RATE_LIMITED"}:
-                observations.append(f"CodeRabbit: {verdict.kind.lower()} ({verdict.detail})")
-                continue
         if s["state"] == "pending":
             pending.append(f"{s['context']}: pending")
         elif s["state"] != "success":
             failed.append(f"{s['context']}: {s['state']}")
         else:
-            observations.append(f"{s['context']}: success")
+            description = s.get("description")
+            observations.append(f"{s['context']}: success" + (f" ({description})" if description else ""))
     # Workflows may be queued before their first job/check exists. Retain every
     # incomplete run, even when a newer run has finished. Only completed results
     # can be superseded by a newer run of the same workflow/event.
@@ -166,7 +168,7 @@ def summarize(snapshot):
                 failed=sorted(set(failed)), observations=sorted(set(observations)))
 
 
-def watch(client, pr, ttl, log_dir, quiet=False, fail_fast=True, clock=time, settle=10, interval=None):
+def watch(client, pr, ttl, log_dir, clock=time, settle=10):
     start = clock.monotonic()
     client.deadline = start + ttl
     log_dir = Path(log_dir)
@@ -175,14 +177,12 @@ def watch(client, pr, ttl, log_dir, quiet=False, fail_fast=True, clock=time, set
     last = None
     stable_at = start
     errors = 0
-    report = None
 
     def emit(kind, text):
         line = f"[t={int(clock.monotonic() - start)}s] {kind} {text}"
         with (log_dir / "poll.log").open("a") as f:
             f.write(line + "\n")
-        if not quiet or kind != "PENDING":
-            print(line, flush=True)
+        print(line, flush=True)
 
     emit("ARTIFACTS", str(log_dir))
     while clock.monotonic() < client.deadline:
@@ -201,7 +201,7 @@ def watch(client, pr, ttl, log_dir, quiet=False, fail_fast=True, clock=time, set
                 if key != last:
                     last, stable_at = key, clock.monotonic()
                     emit("PENDING", "; ".join(report["pending"] + report["failed"] + report["observations"]) or "no observable activity")
-                if report["failed"] and (fail_fast or not report["pending"]):
+                if report["failed"]:
                     emit("FAILED", "; ".join(report["failed"]))
                     return 1
                 if not report["pending"] and clock.monotonic() - stable_at >= settle:
@@ -227,29 +227,25 @@ def watch(client, pr, ttl, log_dir, quiet=False, fail_fast=True, clock=time, set
                 return 3
         remaining = client.deadline - clock.monotonic()
         if remaining > 0:
-            nap = interval if interval is not None else (
-                interval_for(int(clock.monotonic() - start)) if report and report["pending"] else 5)
-            clock.sleep(min(nap, remaining))
+            clock.sleep(min(5, remaining))
     emit("TIMEOUT", f"activity not settled within {ttl}s; see {log_dir}")
     return 2
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pr")
-    parser.add_argument("--repo")
-    parser.add_argument("--ttl", type=int, default=900)
-    parser.add_argument("--log-dir")
-    parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--no-fail-fast", action="store_true")
+    parser.add_argument("--pr", type=int, help="PR number; defaults to the current branch's PR")
+    parser.add_argument("--repo", help="OWNER/REPO; defaults to the current repository")
+    parser.add_argument("--ttl", type=duration, default="15m", metavar="DURATION")
+    parser.add_argument("--log-dir", help="artifact directory; defaults to a private temporary directory")
     args = parser.parse_args()
-    if args.ttl <= 0:
-        parser.error("--ttl must be positive")
+    if args.pr is not None and args.pr <= 0:
+        parser.error("--pr must be positive")
     log_dir = args.log_dir
     if not log_dir:
         Path("/tmp/actions").mkdir(parents=True, exist_ok=True)
         log_dir = tempfile.mkdtemp(prefix=f"activity-{args.pr or 'current'}-", dir="/tmp/actions")
-    return watch(Client(args.repo), args.pr, args.ttl, log_dir, args.quiet, not args.no_fail_fast)
+    return watch(Client(args.repo), args.pr, args.ttl, log_dir)
 
 
 if __name__ == "__main__":

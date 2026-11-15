@@ -119,7 +119,7 @@
     {
       "name": "wait-for-action",
       "source": "./",
-      "description": "Discover and wait for observable PR activity in one read-only blocking call, including CI and bot reviewers outside Actions. Use after a push or to check what is still running. Reports unknown reviewer activity without requiring or triggering reviews. Also supports targeted checks, reviews, and workflow waits.",
+      "description": "Wait for observable GitHub PR activity to settle in one read-only call. Discovers CI and bot reviewers, including activity outside Actions. Never triggers reviews or decides what is required. Use after a push or when checking what is still running.",
       "strict": false,
       "skills": [
         "./skills/wait-for-action"

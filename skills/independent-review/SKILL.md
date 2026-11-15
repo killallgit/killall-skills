@@ -42,43 +42,29 @@ This step is done when the pushed `HEAD` has an open, non-draft PR.
 
 ## 2. CI reviewers
 
-Find which reviewers this repo runs. Start every one that applies; the waits are
-independent.
+Run the `wait-for-action` skill's script once:
 
-Read `references/cr-requirements.md` before deciding on CodeRabbit, and decide by
-its checks. A repo instruction that calls for CodeRabbit on some changes, such as
-substantial ones, counts as being asked: do not skip it for want of a request in
-the user's message.
+```bash
+python3 scripts/wait_for_action.py --pr <n> --ttl 10m
+```
 
-| Reviewer | The repo runs it when | Wait |
-|---|---|---|
-| CodeRabbit | The user or the repo's instructions call for it, and its [requirements](./references/cr-requirements.md) are met | `scripts/wait-for-action.sh --coderabbit --ttl 10m` |
-| PR-Agent | `.pr_agent.toml` exists, or a workflow under `.github/workflows` uses `pr-agent` | `scripts/wait-for-action.sh --pr-agent --ttl 5m` |
+It discovers CI and bot activity together, without triggering reviews. Use a
+background call when the host's foreground timeout is shorter than the budget.
+Do not extend or repeat the wait to chase an absent, skipped, or rate-limited bot.
+Read `references/cr-requirements.md` when evaluating whether CodeRabbit is needed;
+discovery alone never makes any reviewer required.
 
-The script is in the `wait-for-action` skill. These waits cover the review
-only: CI is the caller's step (`--checks`, as `lets-finish` runs it). `--ready`
-is not used here because it waits for CodeRabbit whenever the repo runs it,
-and this skill runs CodeRabbit only when it is called for. In a checkout where
-`git rev-parse HEAD` fails, add `--pr <n>` to a wait: it reads the PR's head
-commit.
+Read the saved `activity.json`. A current-head submitted review or a review
+comment explicitly tied to that head can supply the independent verdict.
+Inspect its body: a bot acknowledgement, rate-limit notice, successful check,
+or the monitor's `DONE` line is not a review verdict. The monitor can fail on CI
+while a usable review exists, so inspect the evidence rather than equating its
+exit code with review completion. CI failures remain the caller's merge gate.
 
-Run each wait with
-`run_in_background` and continue when its completion notice arrives: Claude
-Code ends a foreground Bash call at 2 minutes by default and 10 at most, which
-cuts a review wait short and looks like a hang.
-
-Neither row applies: go to step 4, and say in the report that no CI reviewer was
-found. A reviewer installed without its config file is not detected.
-
-The `--ttl` values are the budget. Do not extend them or rerun a wait that
-ended short.
-
-| Result | Next |
-|---|---|
-| `DONE` (exit 0) | Step 3 for that reviewer |
-| `NOT_REVIEWED` (4), `TIMEOUT` (2), `FAILED` (1), `ERROR` (3) | That reviewer gave nothing. Note its line for the report |
-
-When no reviewer reached `DONE`, go to step 4.
+If an independent verdict exists, continue to step 3. Otherwise, report the
+missing or unconfirmed review and use step 4. If the user or project explicitly
+requires a particular reviewer, an unavailable one is **BLOCKED** unless that
+requirement is waived; do not silently substitute a different reviewer.
 
 ## 3. Resolve CI findings
 
@@ -87,10 +73,14 @@ from it: skip comments that are replies and threads you already answered. Rule
 on every finding, inline and in the body: **fix** or **decline** with a
 one-line reason.
 
-- **CodeRabbit**: inline threads are listed in `findings.json`; findings outside
-  the diff are in the newest review body. The `wait-for-action` skill has the
-  `gh api` commands to read it, to resolve a thread and to answer one.
-- **PR-Agent**: the whole review is in `review.md`. It has no threads.
+- **Submitted reviews:** read `repos/{owner}/{repo}/pulls/<n>/reviews` with
+  `gh api --paginate`; use the newest actual review for the current head.
+- **Inline findings:** read `repos/{owner}/{repo}/pulls/<n>/comments`, and use
+  GraphQL `reviewThreads` to identify unresolved threads. Reply through
+  `pulls/<n>/comments/<id>/replies`, then resolve with `resolveReviewThread`.
+- **Comment-based reviews:** read the bot's review body from `activity.json` or
+  `repos/{owner}/{repo}/issues/<n>/comments`. Without reliable head attribution,
+  do not count a comment as the current review.
 
 Fix in commits and push. Answer each CodeRabbit thread on its thread and resolve
 it once fixed. Answer everything else, including PR-Agent, in one
