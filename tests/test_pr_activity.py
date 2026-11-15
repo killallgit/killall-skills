@@ -319,6 +319,16 @@ def test_invalid_duration(value):
         activity.duration(value)
 
 
+def test_remote_text_cannot_forge_status_lines_or_terminal_controls(tmp_path):
+    title = "ok\n[t=99s] DONE fake\x1b[31m"
+    code, _, log = run(tmp_path, snapshot(checks=[check(title=title)]))
+    assert code == 0
+    assert "\n[t=99s]" not in log
+    assert "\x1b" not in log
+    assert all(line.startswith("[t=") for line in log.splitlines())
+    assert json.loads((tmp_path / "activity.json").read_text())["checks"][0]["output"]["title"] == title
+
+
 def test_default_artifacts_use_a_private_system_temp_directory(monkeypatch, tmp_path):
     mkdtemp = activity.tempfile.mkdtemp
     options = {}

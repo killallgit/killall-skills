@@ -179,6 +179,9 @@ def watch(client, pr, ttl, log_dir, clock=time, settle=10):
     errors = 0
 
     def emit(kind, text):
+        # Remote names/titles must not forge status lines or terminal controls.
+        text = " ".join(str(text).split())
+        text = "".join(char for char in text if char.isprintable())
         line = f"[t={int(clock.monotonic() - start)}s] {kind} {text}"
         with (log_dir / "poll.log").open("a") as f:
             f.write(line + "\n")
