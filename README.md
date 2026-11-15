@@ -107,9 +107,8 @@ Its context is separate; it operates on the repository's actual worktrees.
 
 `/independent-review` gets the current branch reviewed by something that did
 not write it. It opens a PR if the branch has none, then waits, within a fixed
-budget, for the CI reviewers the repo runs (CodeRabbit when `.coderabbit.yaml`
-exists, PR-Agent when `.pr_agent.toml` or a `pr-agent` workflow does) and
-resolves their comments. When the repo has none, or none reviews (rate limited,
+budget, for observable CI and bot-review activity without triggering reviews.
+It reads actual current-head review verdicts and resolves their findings. When the repo has none, or none reviews (rate limited,
 skipped, slow), it dispatches a local review agent with fresh context (never the
 current session) and resolves that agent's findings instead. It reports what
 was fixed and declined, and leaves the PR open. If a local reviewer fails, it
@@ -121,18 +120,17 @@ and `lets-finish`, run it too.
 
 ## Wait for action
 
-`skills/wait-for-action/scripts/wait-for-action.sh [--pr N]` now defaults to
-read-only PR activity discovery: checks, statuses, Actions runs, and bot-review
-signals. It never triggers or requires reviews. Exit 0 means no observable work
+`python3 skills/wait-for-action/scripts/wait_for_action.py [--pr N]` does one thing:
+wait for observable PR activity to settle. It discovers checks, statuses,
+Actions workflows, and bot-review signals in a single read-only loop. It never triggers or requires reviews. Exit 0 means no observable work
 is pending, not merge approval or a completed independent review. Exit 5 means
 no current-head execution/review was observed; newly pushed work may not have
 registered yet, even after other fast checks have completed.
 
-This changes the old bare invocation, which watched one workflow on `HEAD`.
-Without a PR, or for post-merge workflows and failure logs, pass `--run-id ID`
-(or `--sha COMMIT` for the newest workflow on that commit). Default discovery
-requires `gh` 2.48+ and Python 3 or `uv`. Explicit legacy reviewer modes may still
-trigger reviews unless `--no-trigger` is supplied.
+Only `--pr`, `--repo`, `--ttl`, and `--log-dir` are supported. Polling is fixed
+at five seconds, failures stop immediately, and API calls share the total budget.
+There are no reviewer-specific modes, triggers, or workflow-only waits. Requires
+a resolvable PR, authenticated `gh` 2.48+, and Python 3.10+.
 
 ## Lets finish
 
