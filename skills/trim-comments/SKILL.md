@@ -23,8 +23,10 @@ the only thing that sees them, and only in the session's own repo.
 
 Run it by hand:
 
+From the checkout to review:
+
 ```bash
-uv run --python 3.12 scripts/trim_comments.py
+uv run --python 3.12 <skill-dir>/scripts/trim_comments.py
 ```
 
 `--dry-run` prints the flagged comments and the reviewer prompt without calling it.
@@ -33,7 +35,7 @@ uv run --python 3.12 scripts/trim_comments.py
 
 - The reviewer is `haiku`, or `sonnet` when the working agent ran on haiku, read
   from the session transcript. `TRIM_COMMENTS_MODEL` overrides it.
-- The reviewer gets `Read` and `Edit` only, through `claude -p`.
+- The reviewer gets `Read` and `Edit` only (`--tools`, no MCP servers), through `claude -p`.
 - Shebangs, license headers, lint and type directives, and PEP 723 script
   blocks never reach the reviewer.
 - A file is reviewed once per content: the post-review hash lives in
@@ -69,5 +71,6 @@ nothing there; an empty file enables the defaults. Every key is optional:
 - Globs match repo-relative paths: `*` stays within a directory, `**` crosses them.
 - An invalid config shows a warning and skips the run.
 
-Plugin installs register the hook. `npx skills add` installs skills only, so
+Plugin installs register the hook on Claude Code. A host that does not set
+`CLAUDE_PLUGIN_ROOT` runs the hook command as a no-op. `npx skills add` installs skills only, so
 the hook never runs there.

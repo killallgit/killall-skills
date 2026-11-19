@@ -132,7 +132,7 @@
             "hooks": [
               {
                 "type": "command",
-                "command": "uv run --python 3.12 \"${CLAUDE_PLUGIN_ROOT}/skills/trim-comments/scripts/trim_comments.py\"",
+                "command": "[ -z \"${CLAUDE_PLUGIN_ROOT}\" ] || uv run --python 3.12 \"${CLAUDE_PLUGIN_ROOT}/skills/trim-comments/scripts/trim_comments.py\"",
                 "timeout": 300
               }
             ]
@@ -179,7 +179,7 @@
             "hooks": [
               {
                 "type": "command",
-                "command": "uv run --python 3.12 \"${CLAUDE_PLUGIN_ROOT}/skills/trim-comments/scripts/trim_comments.py\"",
+                "command": "[ -z \"${CLAUDE_PLUGIN_ROOT}\" ] || uv run --python 3.12 \"${CLAUDE_PLUGIN_ROOT}/skills/trim-comments/scripts/trim_comments.py\"",
                 "timeout": 300
               }
             ]

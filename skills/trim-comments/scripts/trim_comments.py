@@ -107,9 +107,18 @@ def hash_comments(source: str) -> list[Comment]:
 def slash_comments(source: str) -> list[Comment]:
     found = []
     in_block = False
+    pending = 0
     for number, line in enumerate(source.splitlines(), 1):
         if in_block:
             in_block = "*/" not in line
+            if pending:
+                text = line.replace("*/", "").strip().lstrip("*").strip()
+                if text:
+                    if not is_directive(text):
+                        found.append(Comment(pending, text))
+                    pending = 0
+                elif not in_block:
+                    pending = 0
             continue
         match = SLASH_COMMENT.search(line) or BLOCK_OPEN.search(line)
         if not match:
@@ -117,8 +126,11 @@ def slash_comments(source: str) -> list[Comment]:
         if BLOCK_OPEN.search(line) and not SLASH_COMMENT.search(line):
             in_block = "*/" not in line
         text = match.group(1).replace("*/", "").strip()
-        if text and not is_directive(text):
-            found.append(Comment(number, text))
+        if text:
+            if not is_directive(text):
+                found.append(Comment(number, text))
+        elif in_block:
+            pending = number
     return found
 
 
@@ -168,20 +180,35 @@ class Scope:
         )
 
 
+def string_list(config: dict, key: str) -> list[str]:
+    value = config.get(key, [])
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ValueError(f"{CONFIG_FILE}: {key} must be a list of strings")
+    return value
+
+
 def load_scope(root: str) -> Scope | None:
     try:
         text = Path(root, CONFIG_FILE).read_text()
     except OSError:
         return None
     config = json.loads(text) if text.strip() else {}
-    styles = {**DEFAULT_STYLES, **config.get("extensions", {})}
+    if not isinstance(config, dict):
+        raise ValueError(f"{CONFIG_FILE}: expected a JSON object")
+    extensions = config.get("extensions", {})
+    if not isinstance(extensions, dict) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in extensions.items()
+    ):
+        raise ValueError(f"{CONFIG_FILE}: extensions must map suffixes to style names")
+    include, exclude = string_list(config, "include"), string_list(config, "exclude")
+    styles = {**DEFAULT_STYLES, **extensions}
     unknown = {ext: style for ext, style in styles.items() if style not in FINDERS}
     if unknown:
         raise ValueError(f"{CONFIG_FILE}: unknown style in extensions {unknown}")
     return Scope(
         styles,
-        tuple(glob_regex(g) for g in config.get("include", [])),
-        tuple(glob_regex(g) for g in [*DEFAULT_EXCLUDE, *config.get("exclude", [])]),
+        tuple(glob_regex(g) for g in include),
+        tuple(glob_regex(g) for g in [*DEFAULT_EXCLUDE, *exclude]),
     )
 
 
@@ -190,10 +217,21 @@ def git(root: str, *args: str) -> list[str]:
     return result.stdout.splitlines() if result.returncode == 0 else []
 
 
+def git_files(root: str, command: str, *args: str) -> list[str]:
+    result = subprocess.run(
+        ["git", "-C", root, command, "-z", *args], capture_output=True, text=True
+    )
+    return [name for name in result.stdout.split("\0") if name] if result.returncode == 0 else []
+
+
 def touched_files(root: str) -> list[str]:
-    changed = git(root, "diff", "--name-only", "--diff-filter=d", "HEAD")
-    untracked = git(root, "ls-files", "--others", "--exclude-standard")
-    return sorted({*changed, *untracked})
+    changed = ("--name-only", "--diff-filter=d")
+    return sorted({
+        *git_files(root, "diff", *changed, "HEAD"),
+        *git_files(root, "diff", *changed, "--cached"),
+        *git_files(root, "diff", *changed),
+        *git_files(root, "ls-files", "--others", "--exclude-standard"),
+    })
 
 
 def digest(path: Path) -> str:
@@ -253,7 +291,9 @@ def run_reviewer(root: str, model: str, prompt: str, timeout: float) -> subproce
     return subprocess.run(
         [
             "claude", "-p", "--model", model,
+            "--tools", "Read,Edit",
             "--allowedTools", "Read,Edit",
+            "--strict-mcp-config",
             "--permission-mode", "acceptEdits",
             "--no-session-persistence",
         ],

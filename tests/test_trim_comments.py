@@ -4,7 +4,8 @@ import subprocess
 import pytest
 
 from trim_comments import (
-    Comment, edited_paths, find_comments, is_generated, load_scope, reviewer_model, targets, worker_model,
+    Comment, edited_paths, find_comments, is_generated, load_scope, reviewer_model, targets, touched_files,
+    worker_model,
 )
 
 PY = '''#!/usr/bin/env python3
@@ -90,7 +91,7 @@ def test_python_docstrings_are_flagged_by_first_line_except_when_they_are_the_wh
 
 
 def scope_in(tmp_path, config=None):
-    (tmp_path / ".commentrc").write_text(json.dumps(config or {}))
+    (tmp_path / ".commentrc").write_text(json.dumps({} if config is None else config))
     return load_scope(str(tmp_path))
 
 
@@ -191,3 +192,26 @@ def test_targets_group_session_dirty_files_and_edited_files_by_repo(tmp_path):
         str(base / "home"): {"dirty.py"},
         str(base / "sdk"): {"src/edited.py"},
     }
+
+
+def test_jsdoc_block_with_an_empty_opening_line_is_collected_at_the_opener():
+    source = "/**\n * Increment x.\n * More.\n */\nrun();\n/*\n * eslint-disable\n */\n"
+
+    assert find_comments("a.ts", source) == [Comment(1, "Increment x.")]
+
+
+@pytest.mark.parametrize("config", [
+    [], {"extensions": []}, {"extensions": {".x": ["slash"]}}, {"include": "src/**"}, {"exclude": [1]},
+])
+def test_wrong_config_shapes_raise_value_error(tmp_path, config):
+    with pytest.raises(ValueError):
+        scope_in(tmp_path, config)
+
+
+def test_touched_files_include_staged_files_before_the_first_commit_and_unquoted_names(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / "staged.py").write_text("x = 1\n")
+    (tmp_path / "café.py").write_text("x = 1\n")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "staged.py"], check=True)
+
+    assert touched_files(str(tmp_path)) == ["café.py", "staged.py"]
