@@ -237,6 +237,8 @@ def fake_claude(tmp_path, monkeypatch, mode):
         "    lines = [l.replace('return x', 'return 0') for l in lines if '# note' not in l]\n"
         "if mode == 'stray':\n"
         "    open('other.py', 'a').write('x = 2\\n')\n"
+        "if mode == 'create':\n"
+        "    open('made.py', 'w').write('z = 1\\n')\n"
         "open('a.py', 'w').write(''.join(lines))\n"
     )
     script.chmod(0o755)
@@ -279,7 +281,8 @@ def test_review_reports_files_changed_outside_the_flagged_set(tmp_path, monkeypa
     repo_with_comment(tmp_path)
     fake_claude(tmp_path, monkeypatch, "stray")
 
-    assert "reviewer also changed other.py" in review(tmp_path)
+    assert "reverted reviewer edits to other.py" in review(tmp_path)
+    assert (tmp_path / "other.py").read_text() == "y = 1\n"
 
 
 def test_review_reports_a_failing_reviewer_and_leaves_files_alone(tmp_path, monkeypatch):
@@ -323,3 +326,53 @@ def test_a_stray_script_marker_does_not_swallow_later_comments():
     source = "# /// note\nx = 1  # real\n"
 
     assert find_comments("a.py", source) == [Comment(1, "/// note"), Comment(2, "real")]
+
+
+def test_review_restores_a_clean_tracked_file_the_reviewer_changed(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    subprocess.run(["git", "-C", str(tmp_path), "add", "other.py"], check=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "-c", "user.email=a@b", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+    fake_claude(tmp_path, monkeypatch, "stray")
+
+    assert "reverted reviewer edits to other.py" in review(tmp_path)
+    assert (tmp_path / "other.py").read_text() == "y = 1\n"
+
+
+def test_revert_keeps_crlf_line_endings(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    original = b"def f(x):\r\n    # note\r\n    return x\r\n"
+    (tmp_path / "a.py").write_bytes(original)
+    fake_claude(tmp_path, monkeypatch, "mangle")
+
+    review(tmp_path)
+
+    assert (tmp_path / "a.py").read_bytes() == original
+
+
+@pytest.mark.parametrize("new", [
+    "set -e\n# clean\ndeploy --prod\n",
+    "",
+    "set -e\nrm -rf build\ndeploy --prod\nextra\n",
+])
+def test_edit_is_safe_rejects_deleted_code_emptied_files_and_additions(new):
+    old = "set -e\nrm -rf build\n# clean\ndeploy --prod\n"
+
+    assert not edit_is_safe("a.sh", old, new, {".sh": "hash"})
+
+
+def test_edit_is_safe_rejects_a_truncated_code_line_and_accepts_block_comment_removal():
+    styles = {".ts": "slash"}
+
+    assert not edit_is_safe("a.ts", "foo(a, b); // x\n", "foo(a,\n", styles)
+    assert edit_is_safe("a.ts", "/**\n * Inc.\n */\nrun(); // go\n", "run();\n", styles)
+    assert not edit_is_safe("a.c", "int a;\n*p = 1;\n", "int a;\n", {".c": "slash"})
+
+
+def test_review_deletes_a_file_the_reviewer_created(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    fake_claude(tmp_path, monkeypatch, "create")
+
+    assert "reverted reviewer edits to made.py" in review(tmp_path)
+    assert not (tmp_path / "made.py").exists()

@@ -36,12 +36,13 @@ uv run --python 3.12 <skill-dir>/scripts/trim_comments.py
 - The reviewer gets `Read` and `Edit` only (`--tools`, no MCP servers), through `claude -p`.
 - Shebangs, license headers, common lint, type and tooling directives, and PEP 723
   script blocks never reach the reviewer.
-- A reviewed file is checked after the edit: Python must keep the same syntax tree
-  apart from docstrings, and other files may only lose lines or line tails. A file
-  that fails is restored. Files the reviewer changed outside the flagged set are
-  reported.
-- A file is reviewed once per content: the post-review hash lives in
-  `<git-dir>/trim-comments.json`, so an unchanged dirty file costs no second call.
+- A reviewed file is checked after the edit and restored byte for byte when it
+  fails: Python must keep the same syntax tree apart from docstrings, and other
+  files may only lose comment lines or comment tails.
+- Files the reviewer changes outside the flagged set are restored too, and a file
+  it creates is deleted. The summary line names them.
+- Outside Python, a `#` line inside a multi-line string (a YAML block scalar, a
+  heredoc) reads as a comment and can be removed.
 - The hook fails open. A reviewer that errors or times out shows a warning and
   never blocks the session.
 - Only files with a known extension are read, and only outside the default

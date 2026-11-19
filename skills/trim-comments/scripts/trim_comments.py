@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import difflib
 import hashlib
 import io
 import json
@@ -226,18 +227,33 @@ def python_shape(source: str) -> str | None:
     return ast.dump(tree)
 
 
-def only_deletions(old: str, new: str) -> bool:
-    old_lines = old.splitlines()
-    i = 0
-    for line in new.splitlines():
-        text = line.rstrip()
-        while i < len(old_lines) and not (
-            old_lines[i].strip() == "" if not text else old_lines[i].startswith(text)
-        ):
-            i += 1
-        if i == len(old_lines):
+def comment_only(line: str) -> bool:
+    text = line.strip()
+    return not text or text.startswith(("#", "//", "/*", "* ", "*/")) or text == "*"
+
+
+def tail_trimmed(old: str, new: str) -> bool:
+    kept = new.rstrip()
+    return old.startswith(kept) and old[len(kept):].strip().startswith(("#", "//", "/*"))
+
+
+def only_comments_removed(old: str, new: str) -> bool:
+    old_lines, new_lines = old.splitlines(), new.splitlines()
+    matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            continue
+        if tag == "insert":
             return False
-        i += 1
+        kept = new_lines[j1:j2]
+        j = 0
+        for line in old_lines[i1:i2]:
+            if j < len(kept) and (line.rstrip() == kept[j].rstrip() or tail_trimmed(line, kept[j])):
+                j += 1
+            elif not comment_only(line):
+                return False
+        if j != len(kept):
+            return False
     return True
 
 
@@ -246,7 +262,7 @@ def edit_is_safe(rel: str, old: str, new: str, styles: dict[str, str]) -> bool:
         shape = python_shape(old)
         if shape is not None:
             return python_shape(new) == shape
-    return only_deletions(old, new)
+    return only_comments_removed(old, new)
 
 
 def git(root: str, *args: str) -> list[str]:
@@ -277,9 +293,10 @@ def digest(path: Path) -> str:
 
 def load_reviewed(state: Path) -> dict[str, str]:
     try:
-        return json.loads(state.read_text())
+        reviewed = json.loads(state.read_text())
     except (OSError, ValueError):
         return {}
+    return reviewed if isinstance(reviewed, dict) else {}
 
 
 def worker_model(transcript_path: str) -> str:
@@ -391,9 +408,23 @@ def targets(session_dir: str, transcript_path: str) -> dict[str, set[str]]:
     return found
 
 
-def snapshot(root: str) -> dict[str, str]:
-    files = (Path(root, rel) for rel in touched_files(root))
-    return {str(path.relative_to(root)): digest(path) for path in files if path.is_file()}
+def snapshot(root: str) -> dict[str, bytes]:
+    files = {rel: Path(root, rel) for rel in touched_files(root)}
+    return {rel: path.read_bytes() for rel, path in files.items() if path.is_file()}
+
+
+def undo_strays(root: str, flagged: dict[str, list[Comment]], before: dict[str, bytes]) -> list[str]:
+    undone = []
+    for rel, content in snapshot(root).items():
+        if rel in flagged or before.get(rel) == content:
+            continue
+        path = Path(root, rel)
+        if rel in before:
+            path.write_bytes(before[rel])
+        elif subprocess.run(["git", "-C", root, "checkout", "--", rel], capture_output=True).returncode:
+            path.unlink()
+        undone.append(rel)
+    return undone
 
 
 def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: float) -> str | None:
@@ -410,18 +441,19 @@ def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: 
     reviewed = load_reviewed(state)
 
     flagged: dict[str, list[Comment]] = {}
-    originals: dict[str, str] = {}
+    originals: dict[str, bytes] = {}
     for rel in filter(scope.allows, sorted(rels)):
         path = Path(root, rel)
         if not path.is_file() or reviewed.get(rel) == digest(path):
             continue
+        raw = path.read_bytes()
         try:
-            source = path.read_text()
+            source = raw.decode()
         except UnicodeDecodeError:
             continue
         if comments := find_comments(rel, source, scope.styles):
             flagged[rel] = comments
-            originals[rel] = source
+            originals[rel] = raw
     if not flagged:
         return None
 
@@ -446,18 +478,17 @@ def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: 
     for rel in flagged:
         path = Path(root, rel)
         try:
-            new = path.read_text()
+            new = path.read_bytes().decode()
         except (OSError, UnicodeDecodeError):
             new = None
-        if new is None or not edit_is_safe(rel, originals[rel], new, scope.styles):
-            path.write_text(originals[rel])
-            new = originals[rel]
+        if new is None or not edit_is_safe(rel, originals[rel].decode(), new, scope.styles):
+            path.write_bytes(originals[rel])
+            new = originals[rel].decode()
             notes.append(f"reverted unsafe edit to {rel}")
         after += len(find_comments(rel, new, scope.styles))
         reviewed[rel] = digest(path)
-    strays = [r for r, h in snapshot(root).items() if r not in flagged and untouched.get(r) != h]
-    if strays:
-        notes.append(f"reviewer also changed {', '.join(strays)}")
+    if undone := undo_strays(root, flagged, untouched):
+        notes.append(f"reverted reviewer edits to {', '.join(undone)}")
     try:
         state.write_text(json.dumps(reviewed))
     except OSError:
@@ -470,7 +501,7 @@ def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: 
 def main() -> int:
     if os.environ.get(GUARD):
         return 0
-    hook_input = {} if sys.stdin.isatty() else json.loads(sys.stdin.read() or "{}")
+    hook_input = {} if sys.stdin.isatty() else json.loads(sys.stdin.read().strip() or "{}")
     if hook_input.get("stop_hook_active"):
         return 0
     dry_run = "--dry-run" in sys.argv
