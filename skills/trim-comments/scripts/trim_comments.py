@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import tokenize
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,6 +20,12 @@ GUARD = "TRIM_COMMENTS_ACTIVE"
 MODEL_ENV = "TRIM_COMMENTS_MODEL"
 REVIEWER_MODELS = ("haiku", "sonnet")
 REVIEW_BUDGET = 280
+SNAPSHOT_LIMIT = 5_000_000
+UNSCOPABLE = set("*?[]{}()!")
+CONVENTIONAL_DIRS = {
+    "tests", "test", "__tests__", "spec", "fixtures", "testdata", "snapshots", "__snapshots__",
+    "migrations", "third_party", "examples",
+}
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 
 CONFIG_FILE = ".commentrc"
@@ -86,7 +93,7 @@ def python_comments(source: str) -> list[Comment]:
 def python_docstrings(source: str) -> list[Comment]:
     try:
         tree = ast.parse(source)
-    except SyntaxError:
+    except (SyntaxError, ValueError, RecursionError):
         return []
     found = []
     for node in ast.walk(tree):
@@ -190,6 +197,10 @@ def string_list(config: dict, key: str) -> list[str]:
     return value
 
 
+def with_subtrees(globs: list[str]) -> list[str]:
+    return [g for glob in globs for g in (glob, glob.rstrip("/") + "/**") if not glob.endswith("/**") or g == glob]
+
+
 def load_scope(root: str) -> Scope | None:
     try:
         text = Path(root, CONFIG_FILE).read_text()
@@ -210,34 +221,64 @@ def load_scope(root: str) -> Scope | None:
         raise ValueError(f"{CONFIG_FILE}: unknown style in extensions {unknown}")
     return Scope(
         styles,
-        tuple(glob_regex(g) for g in include),
-        tuple(glob_regex(g) for g in [*DEFAULT_EXCLUDE, *exclude]),
+        tuple(glob_regex(g) for g in with_subtrees(include)),
+        tuple(glob_regex(g) for g in [*DEFAULT_EXCLUDE, *with_subtrees(exclude)]),
     )
 
 
 def python_shape(source: str) -> str | None:
     try:
         tree = ast.parse(source)
-    except SyntaxError:
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                if ast.get_docstring(node, clean=False) is not None and len(node.body) > 1:
+                    node.body = node.body[1:]
+        return ast.dump(tree)
+    except (SyntaxError, ValueError, RecursionError):
         return None
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
-            if ast.get_docstring(node, clean=False) is not None and len(node.body) > 1:
-                node.body = node.body[1:]
-    return ast.dump(tree)
 
 
-def comment_only(line: str) -> bool:
+def comment_only(line: str, style: str) -> bool:
     text = line.strip()
-    return not text or text.startswith(("#", "//", "/*", "* ", "*/")) or text == "*"
+    if not text:
+        return True
+    if style == "slash":
+        return text.startswith(("//", "/*", "* ", "*/")) or text == "*"
+    return text.startswith("#") and not text.startswith("#!")
 
 
-def tail_trimmed(old: str, new: str) -> bool:
+def comment_start(line: str, style: str) -> int | None:
+    if style == "slash":
+        match, marker = SLASH_COMMENT.search(line), "//"
+        if not match:
+            match, marker = BLOCK_OPEN.search(line), "/*"
+    else:
+        match, marker = HASH_COMMENT.search(line), "#"
+    return line.index(marker, match.start()) if match else None
+
+
+def closes_strings(text: str, style: str) -> bool:
+    quotes = "\"'`" if style == "hash" else "\"`"
+    quote, escaped = "", False
+    for char in text:
+        if escaped:
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif quote:
+            quote = "" if char == quote else quote
+        elif char in quotes:
+            quote = char
+    return not quote
+
+
+def tail_trimmed(old: str, new: str, style: str) -> bool:
+    start = comment_start(old, style)
     kept = new.rstrip()
-    return old.startswith(kept) and old[len(kept):].strip().startswith(("#", "//", "/*"))
+    return start is not None and kept == old[:start].rstrip() and closes_strings(kept, style)
 
 
-def only_comments_removed(old: str, new: str) -> bool:
+def only_comments_removed(old: str, new: str, style: str) -> bool:
     old_lines, new_lines = old.splitlines(), new.splitlines()
     matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
@@ -248,9 +289,9 @@ def only_comments_removed(old: str, new: str) -> bool:
         kept = new_lines[j1:j2]
         j = 0
         for line in old_lines[i1:i2]:
-            if j < len(kept) and (line.rstrip() == kept[j].rstrip() or tail_trimmed(line, kept[j])):
+            if j < len(kept) and (line.rstrip() == kept[j].rstrip() or tail_trimmed(line, kept[j], style)):
                 j += 1
-            elif not comment_only(line):
+            elif not comment_only(line, style):
                 return False
         if j != len(kept):
             return False
@@ -258,11 +299,13 @@ def only_comments_removed(old: str, new: str) -> bool:
 
 
 def edit_is_safe(rel: str, old: str, new: str, styles: dict[str, str]) -> bool:
-    if styles.get(Path(rel).suffix) == "python":
+    style = styles.get(Path(rel).suffix, "hash")
+    if style == "python":
         shape = python_shape(old)
         if shape is not None:
             return python_shape(new) == shape
-    return only_comments_removed(old, new)
+        style = "hash"
+    return only_comments_removed(old, new, style)
 
 
 def git(root: str, *args: str) -> list[str]:
@@ -318,7 +361,7 @@ def reviewer_model(transcript_path: str) -> str:
     if forced := os.environ.get(MODEL_ENV):
         return forced
     worker = worker_model(transcript_path)
-    return next(model for model in REVIEWER_MODELS if model not in worker)
+    return next((model for model in REVIEWER_MODELS if model not in worker), REVIEWER_MODELS[0])
 
 
 def build_prompt(flagged: dict[str, list[Comment]]) -> str:
@@ -342,14 +385,17 @@ Done when every listed comment is either deleted or kept for a stated reason. Re
 """
 
 
-def run_reviewer(root: str, model: str, prompt: str, timeout: float) -> subprocess.CompletedProcess:
+def run_reviewer(
+    root: str, model: str, prompt: str, timeout: float, files: list[str]
+) -> subprocess.CompletedProcess:
+    allowed = ["Read", *(f"Edit(/{os.path.realpath(Path(root, rel))})" for rel in files)]
     return subprocess.run(
         [
             "claude", "-p", "--model", model,
             "--tools", "Read,Edit",
-            "--allowedTools", "Read,Edit",
+            "--allowedTools", *allowed,
             "--strict-mcp-config",
-            "--permission-mode", "acceptEdits",
+            "--permission-mode", "dontAsk",
             "--no-session-persistence",
         ],
         input=prompt,
@@ -403,14 +449,41 @@ def targets(session_dir: str, transcript_path: str) -> dict[str, set[str]]:
             continue
         root = repo_root(os.path.dirname(real), cache)
         rel = os.path.relpath(real, root) if root else ".."
-        if root and not rel.startswith(".."):
+        if root and rel != ".." and not rel.startswith(".." + os.sep):
             found.setdefault(root, set()).add(rel)
     return found
 
 
 def snapshot(root: str) -> dict[str, bytes]:
     files = {rel: Path(root, rel) for rel in touched_files(root)}
-    return {rel: path.read_bytes() for rel, path in files.items() if path.is_file()}
+    return {
+        rel: path.read_bytes()
+        for rel, path in files.items()
+        if path.is_file() and path.stat().st_size <= SNAPSHOT_LIMIT
+    }
+
+
+def git_path(root: str, name: str) -> Path | None:
+    found = git(root, "rev-parse", "--git-path", name)
+    return Path(root, found[0]) if found else None
+
+
+def stash_rejected(root: str, rel: str, content: bytes) -> None:
+    folder = git_path(root, "trim-comments-rejected")
+    if folder is None:
+        return
+    target = folder / rel
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+    except OSError:
+        pass
+
+
+def save_state(state: Path, reviewed: dict[str, str]) -> None:
+    temporary = state.with_name(state.name + ".tmp")
+    temporary.write_text(json.dumps(reviewed))
+    os.replace(temporary, state)
 
 
 def undo_strays(root: str, flagged: dict[str, list[Comment]], before: dict[str, bytes]) -> list[str]:
@@ -419,6 +492,7 @@ def undo_strays(root: str, flagged: dict[str, list[Comment]], before: dict[str, 
         if rel in flagged or before.get(rel) == content:
             continue
         path = Path(root, rel)
+        stash_rejected(root, rel, content)
         if rel in before:
             path.write_bytes(before[rel])
         elif subprocess.run(["git", "-C", root, "checkout", "--", rel], capture_output=True).returncode:
@@ -437,14 +511,14 @@ def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: 
         if dry_run:
             print(f"{name}: no {CONFIG_FILE}; nothing to do", file=sys.stderr)
         return None
-    state = Path(root, git(root, "rev-parse", "--git-path", "trim-comments.json")[0])
-    reviewed = load_reviewed(state)
+    state = git_path(root, "trim-comments.json")
+    reviewed = load_reviewed(state) if state else {}
 
     flagged: dict[str, list[Comment]] = {}
     originals: dict[str, bytes] = {}
     for rel in filter(scope.allows, sorted(rels)):
         path = Path(root, rel)
-        if not path.is_file() or reviewed.get(rel) == digest(path):
+        if UNSCOPABLE & set(rel) or not path.is_file() or reviewed.get(rel) == digest(path):
             continue
         raw = path.read_bytes()
         try:
@@ -466,31 +540,42 @@ def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: 
     if remaining <= 0:
         return f"{name}: skipped, out of time"
     untouched = snapshot(root)
+    failure = None
     try:
-        result = run_reviewer(root, model, build_prompt(flagged), remaining)
+        result = run_reviewer(root, model, build_prompt(flagged), remaining, list(flagged))
+        if result.returncode != 0:
+            failure = f"reviewer ({model}) failed: {result.stderr.strip()[:300]}"
     except (OSError, subprocess.TimeoutExpired) as error:
-        return f"{name}: reviewer ({model}) did not run: {error}"
-    if result.returncode != 0:
-        return f"{name}: reviewer ({model}) failed: {result.stderr.strip()[:300]}"
+        failure = f"reviewer ({model}) did not run: {error}"
 
     after = 0
     notes = []
     for rel in flagged:
         path = Path(root, rel)
         try:
-            new = path.read_bytes().decode()
+            current = path.read_bytes()
+            new = current.decode()
         except (OSError, UnicodeDecodeError):
-            new = None
+            current, new = None, None
         if new is None or not edit_is_safe(rel, originals[rel].decode(), new, scope.styles):
+            if current is not None:
+                stash_rejected(root, rel, current)
             path.write_bytes(originals[rel])
             new = originals[rel].decode()
             notes.append(f"reverted unsafe edit to {rel}")
         after += len(find_comments(rel, new, scope.styles))
-        reviewed[rel] = digest(path)
+        if not failure:
+            reviewed[rel] = digest(path)
     if undone := undo_strays(root, flagged, untouched):
         notes.append(f"reverted reviewer edits to {', '.join(undone)}")
+    if notes:
+        notes.append("rejected copies are in the git dir's trim-comments-rejected folder")
+    if failure:
+        return "; ".join([f"{name}: {failure}", *notes])
     try:
-        state.write_text(json.dumps(reviewed))
+        if state is None:
+            raise OSError
+        save_state(state, reviewed)
     except OSError:
         notes.append("could not save review state")
     removed = max(before - after, 0)
@@ -498,10 +583,61 @@ def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: 
     return "; ".join([summary, *notes])
 
 
+def survey(root: str) -> str:
+    scope = load_scope(root) or Scope(
+        DEFAULT_STYLES, (), tuple(glob_regex(g) for g in DEFAULT_EXCLUDE)
+    )
+    files = git_files(root, "ls-files", "--cached", "--others", "--exclude-standard")
+    suffixes = Counter(Path(f).suffix for f in files if Path(f).suffix)
+    reviewable = [f for f in files if scope.allows(f)]
+    generated = [f for f in reviewable if is_generated(head(Path(root, f)))]
+    kept = [f for f in reviewable if f not in generated]
+    conventional = Counter(
+        part for f in kept for part in set(Path(f).parts[:-1]) if part in CONVENTIONAL_DIRS
+    )
+    lines = ["extensions (files, style):"]
+    lines += [f"  {ext} {n} {scope.styles.get(ext, 'unsupported')}" for ext, n in suffixes.most_common(15)]
+    lines.append("reviewable files per top-level directory:")
+    lines += [f"  {d} {n}" for d, n in Counter(f.split("/")[0] if "/" in f else "." for f in kept).most_common()]
+    lines.append(f"generated files skipped: {len(generated)}")
+    lines.append("conventional directories present (reviewable files):")
+    lines += [f"  {d} {n}" for d, n in conventional.most_common()]
+    return "\n".join(lines)
+
+
+def head(path: Path) -> str:
+    try:
+        with path.open("rb") as handle:
+            return handle.read(400).decode(errors="ignore")
+    except OSError:
+        return ""
+
+
+def read_hook_input() -> dict:
+    if sys.stdin.isatty():
+        return {}
+    try:
+        value = json.loads(sys.stdin.read().strip() or "{}")
+    except ValueError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
 def main() -> int:
+    if "--survey" in sys.argv:
+        top = git(os.getcwd(), "rev-parse", "--show-toplevel")
+        if not top:
+            print("not a git repository", file=sys.stderr)
+            return 1
+        try:
+            print(survey(top[0]))
+        except ValueError as error:
+            print(f"bad config: {error}", file=sys.stderr)
+            return 1
+        return 0
     if os.environ.get(GUARD):
         return 0
-    hook_input = {} if sys.stdin.isatty() else json.loads(sys.stdin.read().strip() or "{}")
+    hook_input = read_hook_input()
     if hook_input.get("stop_hook_active"):
         return 0
     dry_run = "--dry-run" in sys.argv

@@ -175,3 +175,14 @@ prints the `bd create` commands for an epic plus one bead per candidate, which
 it runs only for the candidates you pick. It keeps `GLOSSARY.md`,
 `ARCHITECTURE.md`, and `docs/adr/` current as decisions land. Words after the
 command name a direction. User-invoked only.
+
+## Trim comments
+
+The `trim-comments` plugin hook runs on every Stop in Claude Code. It finds the
+comments and docstrings in the files the session edited, in any repo, and has a
+reviewer on a different model delete the ones the code already says. The reviewer
+may edit only the flagged files, and anything outside a comment is restored.
+It acts only in repos that opt in with a `.commentrc` at the root, and it needs
+`uv` and the `claude` CLI. `/setup-trim-comments` surveys a repo and writes that file;
+`/trim-comments` runs the trimmer by hand. See `skills/trim-comments/SKILL.md` for
+the config keys and the exact checks. Both are user-invoked only.

@@ -117,6 +117,18 @@
       "version": "5.6.0"
     },
     {
+      "name": "setup-trim-comments",
+      "source": "./",
+      "description": "Define a project's .commentrc for trim-comments by surveying the repo and asking which directories and extensions to cover.",
+      "strict": false,
+      "skills": [
+        "./skills/setup-trim-comments"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.6.0"
+    },
+    {
       "name": "trim-comments",
       "source": "./",
       "description": "Run the comment trimmer by hand on the files changed in this checkout. On Claude Code the plugin also runs it on every Stop.",
@@ -133,7 +145,7 @@
             "hooks": [
               {
                 "type": "command",
-                "command": "[ -z \"${CLAUDE_PLUGIN_ROOT}\" ] || uv run --python 3.12 \"${CLAUDE_PLUGIN_ROOT}/skills/trim-comments/scripts/trim_comments.py\"",
+                "command": "R=\"${CLAUDE_PLUGIN_ROOT}\"; for S in \"$R/skills/trim-comments/scripts/trim_comments.py\" \"$R/scripts/trim_comments.py\"; do if [ -f \"$S\" ] && command -v uv >/dev/null; then exec uv run --python 3.12 \"$S\"; fi; done; exit 0",
                 "timeout": 300
               }
             ]
@@ -168,6 +180,7 @@
         "./skills/restate",
         "./skills/session-eject",
         "./skills/setup-agents-md",
+        "./skills/setup-trim-comments",
         "./skills/trim-comments",
         "./skills/wait-for-action"
       ],
@@ -180,7 +193,7 @@
             "hooks": [
               {
                 "type": "command",
-                "command": "[ -z \"${CLAUDE_PLUGIN_ROOT}\" ] || uv run --python 3.12 \"${CLAUDE_PLUGIN_ROOT}/skills/trim-comments/scripts/trim_comments.py\"",
+                "command": "R=\"${CLAUDE_PLUGIN_ROOT}\"; for S in \"$R/skills/trim-comments/scripts/trim_comments.py\" \"$R/scripts/trim_comments.py\"; do if [ -f \"$S\" ] && command -v uv >/dev/null; then exec uv run --python 3.12 \"$S\"; fi; done; exit 0",
                 "timeout": 300
               }
             ]
