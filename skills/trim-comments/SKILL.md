@@ -1,6 +1,6 @@
 ---
 name: trim-comments
-description: Run the comment trimmer by hand on the files changed in this checkout. Installing the plugin also runs it on every Stop.
+description: Run the comment trimmer by hand on the files changed in this checkout. On Claude Code the plugin also runs it on every Stop.
 disable-model-invocation: true
 ---
 
@@ -21,9 +21,7 @@ Each repo is reviewed under its own `.commentrc`, with `cwd` set to that repo.
 Edits made by subagents are not in the parent transcript; the second source is
 the only thing that sees them, and only in the session's own repo.
 
-Run it by hand:
-
-From the checkout to review:
+Run it by hand from the checkout to review:
 
 ```bash
 uv run --python 3.12 <skill-dir>/scripts/trim_comments.py
@@ -36,8 +34,12 @@ uv run --python 3.12 <skill-dir>/scripts/trim_comments.py
 - The reviewer is `haiku`, or `sonnet` when the working agent ran on haiku, read
   from the session transcript. `TRIM_COMMENTS_MODEL` overrides it.
 - The reviewer gets `Read` and `Edit` only (`--tools`, no MCP servers), through `claude -p`.
-- Shebangs, license headers, lint and type directives, and PEP 723 script
-  blocks never reach the reviewer.
+- Shebangs, license headers, common lint, type and tooling directives, and PEP 723
+  script blocks never reach the reviewer.
+- A reviewed file is checked after the edit: Python must keep the same syntax tree
+  apart from docstrings, and other files may only lose lines or line tails. A file
+  that fails is restored. Files the reviewer changed outside the flagged set are
+  reported.
 - A file is reviewed once per content: the post-review hash lives in
   `<git-dir>/trim-comments.json`, so an unchanged dirty file costs no second call.
 - The hook fails open. A reviewer that errors or times out shows a warning and

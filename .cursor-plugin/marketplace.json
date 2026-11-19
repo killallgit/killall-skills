@@ -83,7 +83,7 @@
     {
       "name": "trim-comments",
       "source": "./skills/trim-comments",
-      "description": "Run the comment trimmer by hand on the files changed in this checkout. Installing the plugin also runs it on every Stop.",
+      "description": "Run the comment trimmer by hand on the files changed in this checkout. On Claude Code the plugin also runs it on every Stop.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
       "version": "5.5.0"

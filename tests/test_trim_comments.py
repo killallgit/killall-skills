@@ -1,11 +1,14 @@
 import json
+import os
 import subprocess
+import sys
+import time
 
 import pytest
 
 from trim_comments import (
-    Comment, edited_paths, find_comments, is_generated, load_scope, reviewer_model, targets, touched_files,
-    worker_model,
+    Comment, edit_is_safe, edited_paths, find_comments, is_generated, load_scope, review_repo, reviewer_model,
+    targets, touched_files, worker_model,
 )
 
 PY = '''#!/usr/bin/env python3
@@ -215,3 +218,108 @@ def test_touched_files_include_staged_files_before_the_first_commit_and_unquoted
     subprocess.run(["git", "-C", str(tmp_path), "add", "staged.py"], check=True)
 
     assert touched_files(str(tmp_path)) == ["café.py", "staged.py"]
+
+
+def fake_claude(tmp_path, monkeypatch, mode):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    script = bin_dir / "claude"
+    script.write_text(
+        f"#!{sys.executable}\n"
+        "import os, sys\n"
+        "mode = os.environ['FAKE_CLAUDE']\n"
+        "if mode == 'fail':\n"
+        "    sys.stderr.write('quota'); sys.exit(1)\n"
+        "lines = open('a.py').read().splitlines(True)\n"
+        "if mode == 'trim':\n"
+        "    lines = [l for l in lines if '# note' not in l]\n"
+        "if mode == 'mangle':\n"
+        "    lines = [l.replace('return x', 'return 0') for l in lines if '# note' not in l]\n"
+        "if mode == 'stray':\n"
+        "    open('other.py', 'a').write('x = 2\\n')\n"
+        "open('a.py', 'w').write(''.join(lines))\n"
+    )
+    script.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+    monkeypatch.setenv("FAKE_CLAUDE", mode)
+
+
+def repo_with_comment(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / ".commentrc").write_text("{}")
+    (tmp_path / "a.py").write_text("def f(x):\n    # note\n    return x\n")
+    (tmp_path / "other.py").write_text("y = 1\n")
+
+
+def review(tmp_path, rels=("a.py",)):
+    return review_repo(str(tmp_path), set(rels), "haiku", False, time.monotonic() + 60)
+
+
+def test_review_trims_and_skips_the_same_content_next_time(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    fake_claude(tmp_path, monkeypatch, "trim")
+
+    assert "removed 1 of 1 comments in 1 files" in review(tmp_path)
+    assert (tmp_path / "a.py").read_text() == "def f(x):\n    return x\n"
+    assert review(tmp_path) is None
+
+
+def test_review_restores_a_file_whose_code_changed(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    original = (tmp_path / "a.py").read_text()
+    fake_claude(tmp_path, monkeypatch, "mangle")
+
+    message = review(tmp_path)
+
+    assert "reverted unsafe edit to a.py" in message
+    assert (tmp_path / "a.py").read_text() == original
+
+
+def test_review_reports_files_changed_outside_the_flagged_set(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    fake_claude(tmp_path, monkeypatch, "stray")
+
+    assert "reviewer also changed other.py" in review(tmp_path)
+
+
+def test_review_reports_a_failing_reviewer_and_leaves_files_alone(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    original = (tmp_path / "a.py").read_text()
+    fake_claude(tmp_path, monkeypatch, "fail")
+
+    assert "reviewer (haiku) failed: quota" in review(tmp_path)
+    assert (tmp_path / "a.py").read_text() == original
+
+
+def test_review_without_commentrc_does_nothing(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    (tmp_path / ".commentrc").unlink()
+    fake_claude(tmp_path, monkeypatch, "trim")
+
+    assert review(tmp_path) is None
+    assert "# note" in (tmp_path / "a.py").read_text()
+
+
+def test_edit_is_safe_ignores_docstrings_but_not_code():
+    styles = {".py": "python", ".sh": "hash"}
+    old = 'def f(x):\n    """Return x."""\n    return x\n'
+
+    assert edit_is_safe("a.py", old, "def f(x):\n    return x\n", styles)
+    assert not edit_is_safe("a.py", old, 'def f(x):\n    """Return x."""\n    return 0\n', styles)
+    assert not edit_is_safe("a.py", old, "def f(x:\n", styles)
+    assert edit_is_safe("a.sh", "echo a  # b\n# c\n\nls\n", "echo a\n\nls\n", styles)
+    assert not edit_is_safe("a.sh", "echo a  # b\nls\n", "echo b\nls\n", styles)
+
+
+def test_more_directives_and_ruby_interpolation_are_not_comments():
+    ts = '/// <reference types="node" />\nconst a = 1; // biome-ignore lint: x\n'
+    rb = '# frozen_string_literal: true\nputs "Hello #{name}"\nx = 1 # nosec\n'
+
+    assert find_comments("a.ts", ts) == []
+    assert find_comments("a.rb", rb) == []
+
+
+def test_a_stray_script_marker_does_not_swallow_later_comments():
+    source = "# /// note\nx = 1  # real\n"
+
+    assert find_comments("a.py", source) == [Comment(1, "/// note"), Comment(2, "real")]
