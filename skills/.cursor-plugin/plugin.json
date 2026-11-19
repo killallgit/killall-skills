@@ -11,6 +11,7 @@
     "./restate",
     "./session-eject",
     "./setup-agents-md",
+    "./trim-comments",
     "./wait-for-action"
   ]
 }
