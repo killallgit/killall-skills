@@ -85,7 +85,9 @@ nothing there; an empty file enables the defaults. Every key is optional:
 - `exclude`: added to the default excludes.
 - `extensions`: maps a suffix to a style, adding it or overriding a default.
 - Globs match repo-relative paths: `*` stays within a directory, `**` crosses them.
-  A plain directory name such as `tests` or `src/` covers everything under it.
+  Patterns follow gitignore: a name without a slash (`tests`, `*.snap.py`) matches at any
+  depth, and covers everything under a directory of that name; a path with a slash
+  (`src/gen`) is anchored at the repo root.
 - An invalid config shows a warning and skips the run.
 
 ## Hosts

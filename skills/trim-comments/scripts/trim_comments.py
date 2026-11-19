@@ -198,7 +198,16 @@ def string_list(config: dict, key: str) -> list[str]:
 
 
 def with_subtrees(globs: list[str]) -> list[str]:
-    return [g for glob in globs for g in (glob, glob.rstrip("/") + "/**") if not glob.endswith("/**") or g == glob]
+    expanded = []
+    for glob in globs:
+        name = glob.rstrip("/")
+        anchored = "/" in name
+        expanded.append(glob)
+        if not anchored:
+            expanded.append(f"**/{name}")
+        if not glob.endswith("/**"):
+            expanded.append(f"{name}/**" if anchored else f"**/{name}/**")
+    return expanded
 
 
 def load_scope(root: str) -> Scope | None:
@@ -238,29 +247,35 @@ def python_shape(source: str) -> str | None:
         return None
 
 
-def comment_only(line: str, style: str) -> bool:
+def comment_only(line: str, style: str, inside_block: bool = False) -> bool:
     text = line.strip()
     if not text:
         return True
-    if style == "slash":
-        return text.startswith(("//", "/*", "* ", "*/")) or text == "*"
-    return text.startswith("#") and not text.startswith("#!")
+    if style != "slash":
+        return text.startswith("#") and not text.startswith("#!")
+    closes_cleanly = "*/" not in text or text.endswith("*/")
+    if inside_block:
+        return closes_cleanly
+    return (text.startswith("//") or text.startswith("/*")) and closes_cleanly
+
+
+def block_flags(lines: list[str]) -> list[bool]:
+    flags, open_block = [], False
+    for line in lines:
+        flags.append(open_block)
+        if open_block:
+            open_block = "*/" not in line
+        else:
+            opener = line.find("/*")
+            open_block = opener >= 0 and "*/" not in line[opener:]
+    return flags
 
 
 def comment_start(line: str, style: str) -> int | None:
-    if style == "slash":
-        match, marker = SLASH_COMMENT.search(line), "//"
-        if not match:
-            match, marker = BLOCK_OPEN.search(line), "/*"
-    else:
-        match, marker = HASH_COMMENT.search(line), "#"
-    return line.index(marker, match.start()) if match else None
-
-
-def closes_strings(text: str, style: str) -> bool:
     quotes = "\"'`" if style == "hash" else "\"`"
+    markers = ("//", "/*") if style == "slash" else ("#",)
     quote, escaped = "", False
-    for char in text:
+    for i, char in enumerate(line):
         if escaped:
             escaped = False
         elif char == "\\":
@@ -269,17 +284,22 @@ def closes_strings(text: str, style: str) -> bool:
             quote = "" if char == quote else quote
         elif char in quotes:
             quote = char
-    return not quote
+        elif line.startswith(markers, i) and (i == 0 or line[i - 1].isspace()):
+            return i
+    return None
 
 
 def tail_trimmed(old: str, new: str, style: str) -> bool:
     start = comment_start(old, style)
-    kept = new.rstrip()
-    return start is not None and kept == old[:start].rstrip() and closes_strings(kept, style)
+    if start is None or new.rstrip() != old[:start].rstrip():
+        return False
+    tail = old[start:]
+    return not tail.startswith("/*") or "*/" not in tail or tail.rstrip().endswith("*/")
 
 
 def only_comments_removed(old: str, new: str, style: str) -> bool:
     old_lines, new_lines = old.splitlines(), new.splitlines()
+    inside = block_flags(old_lines)
     matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
@@ -288,10 +308,11 @@ def only_comments_removed(old: str, new: str, style: str) -> bool:
             return False
         kept = new_lines[j1:j2]
         j = 0
-        for line in old_lines[i1:i2]:
+        for i in range(i1, i2):
+            line = old_lines[i]
             if j < len(kept) and (line.rstrip() == kept[j].rstrip() or tail_trimmed(line, kept[j], style)):
                 j += 1
-            elif not comment_only(line, style):
+            elif not comment_only(line, style, inside[i]):
                 return False
         if j != len(kept):
             return False
@@ -472,7 +493,7 @@ def stash_rejected(root: str, rel: str, content: bytes) -> None:
     folder = git_path(root, "trim-comments-rejected")
     if folder is None:
         return
-    target = folder / rel
+    target = folder / f"{rel}.{time.time_ns()}"
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
@@ -589,7 +610,9 @@ def survey(root: str) -> str:
     )
     files = git_files(root, "ls-files", "--cached", "--others", "--exclude-standard")
     suffixes = Counter(Path(f).suffix for f in files if Path(f).suffix)
-    reviewable = [f for f in files if scope.allows(f)]
+    allowed = [f for f in files if scope.allows(f)]
+    unscopable = [f for f in allowed if UNSCOPABLE & set(f)]
+    reviewable = [f for f in allowed if f not in unscopable]
     generated = [f for f in reviewable if is_generated(head(Path(root, f)))]
     kept = [f for f in reviewable if f not in generated]
     conventional = Counter(
@@ -600,6 +623,7 @@ def survey(root: str) -> str:
     lines.append("reviewable files per top-level directory:")
     lines += [f"  {d} {n}" for d, n in Counter(f.split("/")[0] if "/" in f else "." for f in kept).most_common()]
     lines.append(f"generated files skipped: {len(generated)}")
+    lines.append(f"files skipped for special characters in the path: {len(unscopable)}")
     lines.append("conventional directories present (reviewable files):")
     lines += [f"  {d} {n}" for d, n in conventional.most_common()]
     return "\n".join(lines)

@@ -292,7 +292,7 @@ def test_review_restores_a_file_whose_code_changed(tmp_path, monkeypatch):
 
     assert "reverted unsafe edit to a.py" in message
     assert (tmp_path / "a.py").read_text() == original
-    rejected = tmp_path / ".git" / "trim-comments-rejected" / "a.py"
+    (rejected,) = (tmp_path / ".git" / "trim-comments-rejected").glob("a.py.*")
     assert "return 0" in rejected.read_text()
 
 
@@ -528,3 +528,56 @@ def test_targets_accept_files_whose_names_start_with_two_dots(tmp_path, tmp_path
     log.write_text(edit_event("Edit", file_path=str(base / "..odd.py")))
 
     assert targets(str(base), str(log)) == {str(base): {"..odd.py"}}
+
+
+def test_a_second_rejection_of_the_same_file_keeps_both_copies(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    fake_claude(tmp_path, monkeypatch, "mangle")
+
+    review(tmp_path)
+    (tmp_path / "a.py").write_text("def f(x):\n    # note two\n    return x\n")
+    review(tmp_path)
+
+    assert len(list((tmp_path / ".git" / "trim-comments-rejected").glob("a.py.*"))) == 2
+
+
+def test_bare_names_match_at_any_depth_and_slashed_paths_stay_anchored(tmp_path):
+    scope = scope_in(tmp_path, {"exclude": ["tests", "src/gen", "*.snap.py"]})
+
+    assert not scope.allows("pkg/a/tests/t.py") and not scope.allows("tests/t.py")
+    assert not scope.allows("src/gen/a.py") and scope.allows("pkg/src/gen/a.py")
+    assert not scope.allows("deep/x.snap.py")
+    assert scope_in(tmp_path, {"include": ["src"]}).allows("pkg/src/a.py")
+
+
+@pytest.mark.parametrize("old,new", [
+    ("/* c */ foo();\n", "\n"),
+    ("const x = a\n  * b;\n", "const x = a\n"),
+    ("/* open\n*/ foo();\n", "\n"),
+])
+def test_slash_edits_that_delete_code_beside_or_after_a_block_marker_are_unsafe(old, new):
+    assert not edit_is_safe("a.c", old, new, {".c": "slash"})
+
+
+def test_a_trailing_comment_after_an_in_string_marker_is_a_safe_removal():
+    assert edit_is_safe("a.sh", 'echo "Issue #5"  # report\n', 'echo "Issue #5"\n', {".sh": "hash"})
+    assert edit_is_safe("a.ts", 'const u = "a // b"; // c\n', 'const u = "a // b";\n', {".ts": "slash"})
+    assert not edit_is_safe("a.sh", 'echo "Issue #5"\n', 'echo "Issue\n', {".sh": "hash"})
+
+
+def test_survey_counts_files_the_hook_would_skip_for_path_characters(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / "app" / "[id]").mkdir(parents=True)
+    (tmp_path / "app" / "[id]" / "page.ts").write_text("a();\n")
+    (tmp_path / "app" / "ok.ts").write_text("a();\n")
+
+    report = survey(str(tmp_path))
+
+    assert "files skipped for special characters in the path: 1" in report
+    assert "  app 1" in report
+
+
+def test_a_trailing_block_comment_is_a_safe_removal_but_code_after_it_is_not():
+    assert edit_is_safe("a.c", "int a; /* why */\n", "int a;\n", {".c": "slash"})
+    assert edit_is_safe("a.c", "int a; /* open\n more */\n", "int a;\n", {".c": "slash"})
+    assert not edit_is_safe("a.c", "int a; /* c */ b();\n", "int a;\n", {".c": "slash"})

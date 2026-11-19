@@ -48,14 +48,16 @@ of `exclude`.
 
 Write `.commentrc` at the repo root as JSON. A new file holds only the keys that
 differ from the defaults, and `{}` enables the defaults. An existing file keeps
-every key this run did not change, even one equal to a default. A directory is a
-plain name (`src`, `tests`); a glob such as `**/migrations/**` also works, with `*`
-staying within a directory and `**` crossing them.
+every key this run did not change, even one equal to a default. Write a directory as a plain
+name (`tests`) to match it at any depth, or as a path (`src/gen`) to anchor it at the
+repo root; a glob such as `**/migrations/**` also works, with `*` staying within a
+directory and `**` crossing them.
 
 ## 4. Verify
 
-Run the survey again. Done when it prints no `bad config` and the per-directory
-counts match what the user chose. Fix the file and rerun until they do.
+Run the survey again. Done when it prints no `bad config`, the per-directory
+counts match what the user chose, and each excluded conventional directory has left
+the `conventional directories present` list. Fix the file and rerun until they do.
 
 End with the file's contents and one line: commit `.commentrc` so teammates and
 worktrees inherit it.
