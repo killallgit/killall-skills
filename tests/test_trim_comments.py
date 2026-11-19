@@ -547,7 +547,13 @@ def test_bare_names_match_at_any_depth_and_slashed_paths_stay_anchored(tmp_path)
     assert not scope.allows("pkg/a/tests/t.py") and not scope.allows("tests/t.py")
     assert not scope.allows("src/gen/a.py") and scope.allows("pkg/src/gen/a.py")
     assert not scope.allows("deep/x.snap.py")
-    assert scope_in(tmp_path, {"include": ["src"]}).allows("pkg/src/a.py")
+
+
+def test_include_names_are_anchored_at_the_repo_root_unless_written_as_globs(tmp_path):
+    scope = scope_in(tmp_path, {"include": ["src", "**/lib"]})
+
+    assert scope.allows("src/a.py") and not scope.allows("docs/src/a.py")
+    assert scope.allows("pkg/lib/b.py")
 
 
 @pytest.mark.parametrize("old,new", [
@@ -581,3 +587,10 @@ def test_a_trailing_block_comment_is_a_safe_removal_but_code_after_it_is_not():
     assert edit_is_safe("a.c", "int a; /* why */\n", "int a;\n", {".c": "slash"})
     assert edit_is_safe("a.c", "int a; /* open\n more */\n", "int a;\n", {".c": "slash"})
     assert not edit_is_safe("a.c", "int a; /* c */ b();\n", "int a;\n", {".c": "slash"})
+
+
+def test_a_block_opener_inside_a_string_does_not_make_later_lines_comment_only():
+    old = 'const g = glob("src/*.ts");\nimportant();\nmore();\n'
+
+    assert not edit_is_safe("a.js", old, 'const g = glob("src/*.ts");\n', {".js": "slash"})
+    assert edit_is_safe("a.js", "/*\n note\n*/\nrun();\n", "run();\n", {".js": "slash"})

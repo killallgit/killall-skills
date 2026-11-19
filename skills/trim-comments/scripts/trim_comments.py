@@ -197,16 +197,16 @@ def string_list(config: dict, key: str) -> list[str]:
     return value
 
 
-def with_subtrees(globs: list[str]) -> list[str]:
+def with_subtrees(globs: list[str], any_depth: bool) -> list[str]:
     expanded = []
     for glob in globs:
         name = glob.rstrip("/")
-        anchored = "/" in name
+        floating = any_depth and "/" not in name
         expanded.append(glob)
-        if not anchored:
+        if floating:
             expanded.append(f"**/{name}")
         if not glob.endswith("/**"):
-            expanded.append(f"{name}/**" if anchored else f"**/{name}/**")
+            expanded.append(f"**/{name}/**" if floating else f"{name}/**")
     return expanded
 
 
@@ -230,8 +230,8 @@ def load_scope(root: str) -> Scope | None:
         raise ValueError(f"{CONFIG_FILE}: unknown style in extensions {unknown}")
     return Scope(
         styles,
-        tuple(glob_regex(g) for g in with_subtrees(include)),
-        tuple(glob_regex(g) for g in [*DEFAULT_EXCLUDE, *with_subtrees(exclude)]),
+        tuple(glob_regex(g) for g in with_subtrees(include, any_depth=False)),
+        tuple(glob_regex(g) for g in [*DEFAULT_EXCLUDE, *with_subtrees(exclude, any_depth=True)]),
     )
 
 
@@ -266,8 +266,8 @@ def block_flags(lines: list[str]) -> list[bool]:
         if open_block:
             open_block = "*/" not in line
         else:
-            opener = line.find("/*")
-            open_block = opener >= 0 and "*/" not in line[opener:]
+            opener = comment_start(line, "slash")
+            open_block = opener is not None and line.startswith("/*", opener) and "*/" not in line[opener:]
     return flags
 
 

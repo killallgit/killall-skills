@@ -48,10 +48,11 @@ of `exclude`.
 
 Write `.commentrc` at the repo root as JSON. A new file holds only the keys that
 differ from the defaults, and `{}` enables the defaults. An existing file keeps
-every key this run did not change, even one equal to a default. Write a directory as a plain
-name (`tests`) to match it at any depth, or as a path (`src/gen`) to anchor it at the
-repo root; a glob such as `**/migrations/**` also works, with `*` staying within a
-directory and `**` crossing them.
+every key this run did not change, even one equal to a default. In `exclude`, write a directory as a
+plain name (`tests`) to match it at any depth, or as a path (`src/gen`) to anchor it at
+the repo root. In `include`, plain names are anchored at the repo root (`src`); use
+`**/lib` for any depth. A glob such as `**/migrations/**` works in both, with `*`
+staying within a directory and `**` crossing them.
 
 ## 4. Verify
 
