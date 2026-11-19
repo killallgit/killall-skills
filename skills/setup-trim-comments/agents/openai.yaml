@@ -1,0 +1,5 @@
+interface:
+  display_name: "Set up trim-comments"
+  short_description: "Write a project's .commentrc by surveying the repo and asking what to cover."
+policy:
+  allow_implicit_invocation: false

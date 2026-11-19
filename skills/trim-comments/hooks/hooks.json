@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -z \"${CLAUDE_PLUGIN_ROOT}\" ] || uv run --python 3.12 \"${CLAUDE_PLUGIN_ROOT}/skills/trim-comments/scripts/trim_comments.py\"",
+            "command": "R=\"${CLAUDE_PLUGIN_ROOT}\"; for S in \"$R/skills/trim-comments/scripts/trim_comments.py\" \"$R/scripts/trim_comments.py\"; do if [ -f \"$S\" ] && command -v uv >/dev/null; then exec uv run --python 3.12 \"$S\"; fi; done; exit 0",
             "timeout": 300
           }
         ]
