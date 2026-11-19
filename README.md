@@ -179,9 +179,12 @@ command name a direction. User-invoked only.
 ## Trim comments
 
 The `trim-comments` plugin hook runs on every Stop in Claude Code. It finds the
-comments and docstrings in the files the session edited, in any repo, and has a
-reviewer on a different model delete the ones the code already says. The reviewer
-may edit only the flagged files, and anything outside a comment is restored.
+comments and docstrings in the files the session edited, in any repo, plus every
+uncommitted or untracked file in the repo the session started in, including work
+that predates the session. A reviewer on a different model deletes the ones the code
+already says. The reviewer may edit only the flagged files, and an edit that changes
+code is restored; outside Python, a `#` line inside a multi-line string (a YAML block
+scalar, a heredoc) reads as a comment and can be removed.
 It acts only in repos that opt in with a `.commentrc` at the root, and it needs
 `uv` and the `claude` CLI. `/setup-trim-comments` surveys a repo and writes that file;
 `/trim-comments` runs the trimmer by hand. See `skills/trim-comments/SKILL.md` for

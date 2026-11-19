@@ -271,8 +271,10 @@ def block_flags(lines: list[str]) -> list[bool]:
     return flags
 
 
-def comment_start(line: str, style: str) -> int | None:
-    quotes = "\"'`" if style == "hash" else "\"`"
+def comment_start(line: str, style: str, single_quotes: bool | None = None) -> int | None:
+    if single_quotes is None:
+        single_quotes = style == "hash"
+    quotes = "\"`'" if single_quotes else "\"`"
     markers = ("//", "/*") if style == "slash" else ("#",)
     quote, escaped = "", False
     for i, char in enumerate(line):
@@ -289,15 +291,15 @@ def comment_start(line: str, style: str) -> int | None:
     return None
 
 
-def tail_trimmed(old: str, new: str, style: str) -> bool:
-    start = comment_start(old, style)
+def tail_trimmed(old: str, new: str, style: str, single_quotes: bool) -> bool:
+    start = comment_start(old, style, single_quotes)
     if start is None or new.rstrip() != old[:start].rstrip():
         return False
     tail = old[start:]
     return not tail.startswith("/*") or "*/" not in tail or tail.rstrip().endswith("*/")
 
 
-def only_comments_removed(old: str, new: str, style: str) -> bool:
+def only_comments_removed(old: str, new: str, style: str, single_quotes: bool = True) -> bool:
     old_lines, new_lines = old.splitlines(), new.splitlines()
     inside = block_flags(old_lines)
     matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
@@ -310,7 +312,7 @@ def only_comments_removed(old: str, new: str, style: str) -> bool:
         j = 0
         for i in range(i1, i2):
             line = old_lines[i]
-            if j < len(kept) and (line.rstrip() == kept[j].rstrip() or tail_trimmed(line, kept[j], style)):
+            if j < len(kept) and (line.rstrip() == kept[j].rstrip() or tail_trimmed(line, kept[j], style, single_quotes)):
                 j += 1
             elif not comment_only(line, style, inside[i]):
                 return False
@@ -326,7 +328,7 @@ def edit_is_safe(rel: str, old: str, new: str, styles: dict[str, str]) -> bool:
         if shape is not None:
             return python_shape(new) == shape
         style = "hash"
-    return only_comments_removed(old, new, style)
+    return only_comments_removed(old, new, style, Path(rel).suffix != ".rs")
 
 
 def git(root: str, *args: str) -> list[str]:
@@ -416,6 +418,7 @@ def run_reviewer(
             "--tools", "Read,Edit",
             "--allowedTools", *allowed,
             "--strict-mcp-config",
+            "--setting-sources", "",
             "--permission-mode", "dontAsk",
             "--no-session-persistence",
         ],
@@ -475,12 +478,12 @@ def targets(session_dir: str, transcript_path: str) -> dict[str, set[str]]:
     return found
 
 
-def snapshot(root: str) -> dict[str, bytes]:
+def snapshot(root: str) -> dict[str, bytes | None]:
     files = {rel: Path(root, rel) for rel in touched_files(root)}
     return {
-        rel: path.read_bytes()
+        rel: path.read_bytes() if path.stat().st_size <= SNAPSHOT_LIMIT else None
         for rel, path in files.items()
-        if path.is_file() and path.stat().st_size <= SNAPSHOT_LIMIT
+        if path.is_file()
     }
 
 
@@ -507,10 +510,14 @@ def save_state(state: Path, reviewed: dict[str, str]) -> None:
     os.replace(temporary, state)
 
 
-def undo_strays(root: str, flagged: dict[str, list[Comment]], before: dict[str, bytes]) -> list[str]:
+def undo_strays(
+    root: str, flagged: dict[str, list[Comment]], before: dict[str, bytes | None]
+) -> list[str]:
     undone = []
     for rel, content in snapshot(root).items():
         if rel in flagged or before.get(rel) == content:
+            continue
+        if content is None or (rel in before and before[rel] is None):
             continue
         path = Path(root, rel)
         stash_rejected(root, rel, content)
@@ -575,9 +582,12 @@ def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: 
         path = Path(root, rel)
         try:
             current = path.read_bytes()
-            new = current.decode()
-        except (OSError, UnicodeDecodeError):
-            current, new = None, None
+        except OSError:
+            current = None
+        try:
+            new = current.decode() if current is not None else None
+        except UnicodeDecodeError:
+            new = None
         if new is None or not edit_is_safe(rel, originals[rel].decode(), new, scope.styles):
             if current is not None:
                 stash_rejected(root, rel, current)

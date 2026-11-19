@@ -242,6 +242,11 @@ def fake_claude(tmp_path, monkeypatch, mode):
         "    open('a.py', 'w').write('def f(x):\\n    return 0\\n')\n"
         "    open('other.py', 'a').write('x = 2\\n')\n"
         "    sys.stderr.write('quota'); sys.exit(1)\n"
+        "if mode == 'badbytes':\n"
+        "    open('a.py', 'wb').write(b'\\xff\\xfe not utf8\\n')\n"
+        "    sys.exit(0)\n"
+        "if mode == 'truncate':\n"
+        "    open('other.py', 'w').write('y\\n')\n"
         "if mode == 'stray':\n"
         "    open('other.py', 'a').write('x = 2\\n')\n"
         "if mode == 'create':\n"
@@ -456,6 +461,7 @@ def test_reviewer_may_edit_only_the_flagged_files(tmp_path, monkeypatch):
     allowed = args[args.index("--allowedTools") + 1:args.index("--strict-mcp-config")]
     assert allowed == ["Read", f"Edit(/{root}/a.py)", f"Edit(/{root}/sub/with space.py)"]
     assert args[args.index("--permission-mode") + 1] == "dontAsk"
+    assert args[args.index("--setting-sources") + 1] == ""
 
 
 def test_files_with_pattern_characters_in_the_path_are_not_reviewed(tmp_path, monkeypatch):
@@ -594,3 +600,36 @@ def test_a_block_opener_inside_a_string_does_not_make_later_lines_comment_only()
 
     assert not edit_is_safe("a.js", old, 'const g = glob("src/*.ts");\n', {".js": "slash"})
     assert edit_is_safe("a.js", "/*\n note\n*/\nrun();\n", "run();\n", {".js": "slash"})
+
+
+def test_a_cut_inside_a_single_quoted_js_string_is_unsafe_but_rust_lifetimes_are_not_quotes():
+    assert not edit_is_safe("a.js", "const s = 'a //b';\n", "const s = 'a\n", {".js": "slash"})
+    assert edit_is_safe("a.js", "const s = 'a'; // why\n", "const s = 'a';\n", {".js": "slash"})
+    assert edit_is_safe("a.rs", "fn f<'a>(x: &'a str) {} // why\n", "fn f<'a>(x: &'a str) {}\n", {".rs": "slash"})
+
+
+def test_an_oversized_file_the_reviewer_truncates_is_neither_deleted_nor_overwritten(tmp_path, monkeypatch):
+    import trim_comments
+
+    repo_with_comment(tmp_path)
+    (tmp_path / "other.py").write_text("y = 1\n" * 10)
+    monkeypatch.setattr(trim_comments, "SNAPSHOT_LIMIT", 20)
+    fake_claude(tmp_path, monkeypatch, "truncate")
+
+    message = review(tmp_path)
+
+    assert "other.py" not in message
+    assert (tmp_path / "other.py").read_text() == "y\n"
+
+
+def test_rejected_bytes_survive_when_the_reviewer_writes_invalid_utf8(tmp_path, monkeypatch):
+    repo_with_comment(tmp_path)
+    original = (tmp_path / "a.py").read_bytes()
+    fake_claude(tmp_path, monkeypatch, "badbytes")
+
+    message = review(tmp_path)
+
+    assert "reverted unsafe edit to a.py" in message
+    assert (tmp_path / "a.py").read_bytes() == original
+    (rejected,) = (tmp_path / ".git" / "trim-comments-rejected").glob("a.py.*")
+    assert rejected.read_bytes() == b"\xff\xfe not utf8\n"

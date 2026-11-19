@@ -39,7 +39,7 @@ directory, the generated-file count and the conventional directories present.
 - The reviewer is `haiku`, or `sonnet` when the working agent ran on haiku, read
   from the session transcript. `TRIM_COMMENTS_MODEL` overrides it.
 - The reviewer runs through `claude -p` with `Read` and `Edit` only, no MCP
-  servers, and `dontAsk` permissions. `Edit` is allowed on the flagged files by
+  servers, no user, project or local settings, and `dontAsk` permissions. `Edit` is allowed on the flagged files by
   path and denied everywhere else. A file whose path holds `* ? [ ] { } ( ) !` is
   skipped, because those characters read as permission patterns.
 - Shebangs, license headers, common lint, type and tooling directives, and PEP 723
@@ -47,8 +47,8 @@ directory, the generated-file count and the conventional directories present.
 - A reviewed file is checked after the edit and restored byte for byte when it
   fails: Python must keep the same syntax tree apart from docstrings, and other
   files may only lose comment lines or comment tails.
-- The check runs when the reviewer fails or times out too, so a half-finished edit
-  is rolled back. A failed run is retried on the next Stop.
+- The check runs when the reviewer fails or times out too. An unsafe edit is rolled
+  back; a deletion that passes is kept, and the file is retried on the next Stop.
 - Files the reviewer changes outside the flagged set are restored, and a file it
   creates is deleted. The summary line names them.
 - Everything the hook discards is copied into the git dir's
