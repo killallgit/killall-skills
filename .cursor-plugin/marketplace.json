@@ -81,6 +81,14 @@
       "version": "5.5.0"
     },
     {
+      "name": "trim-comments",
+      "source": "./skills/trim-comments",
+      "description": "Run the comment trimmer by hand on the files changed in this checkout. On Claude Code the plugin also runs it on every Stop.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.5.0"
+    },
+    {
       "name": "wait-for-action",
       "source": "./skills/wait-for-action",
       "description": "Wait for observable GitHub PR activity to settle in one read-only call. Discovers CI and bot reviewers, including activity outside Actions. Never triggers reviews or decides what is required. Use after a push or when checking what is still running.",
@@ -105,6 +113,7 @@
         "./restate",
         "./session-eject",
         "./setup-agents-md",
+        "./trim-comments",
         "./wait-for-action"
       ]
     }

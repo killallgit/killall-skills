@@ -116,6 +116,31 @@
       "version": "5.5.0"
     },
     {
+      "name": "trim-comments",
+      "source": "./",
+      "description": "Run the comment trimmer by hand on the files changed in this checkout. On Claude Code the plugin also runs it on every Stop.",
+      "strict": false,
+      "skills": [
+        "./skills/trim-comments"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.5.0",
+      "hooks": {
+        "Stop": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "[ -z \"${CLAUDE_PLUGIN_ROOT}\" ] || uv run --python 3.12 \"${CLAUDE_PLUGIN_ROOT}/skills/trim-comments/scripts/trim_comments.py\"",
+                "timeout": 300
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "wait-for-action",
       "source": "./",
       "description": "Wait for observable GitHub PR activity to settle in one read-only call. Discovers CI and bot reviewers, including activity outside Actions. Never triggers reviews or decides what is required. Use after a push or when checking what is still running.",
@@ -142,11 +167,25 @@
         "./skills/restate",
         "./skills/session-eject",
         "./skills/setup-agents-md",
+        "./skills/trim-comments",
         "./skills/wait-for-action"
       ],
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.5.0"
+      "version": "5.5.0",
+      "hooks": {
+        "Stop": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "[ -z \"${CLAUDE_PLUGIN_ROOT}\" ] || uv run --python 3.12 \"${CLAUDE_PLUGIN_ROOT}/skills/trim-comments/scripts/trim_comments.py\"",
+                "timeout": 300
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

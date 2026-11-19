@@ -1,0 +1,4 @@
+{
+  "name": "trim-comments",
+  "description": "Run the comment trimmer by hand on the files changed in this checkout. On Claude Code the plugin also runs it on every Stop."
+}
