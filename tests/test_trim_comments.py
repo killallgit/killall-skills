@@ -633,3 +633,20 @@ def test_rejected_bytes_survive_when_the_reviewer_writes_invalid_utf8(tmp_path, 
     assert (tmp_path / "a.py").read_bytes() == original
     (rejected,) = (tmp_path / ".git" / "trim-comments-rejected").glob("a.py.*")
     assert rejected.read_bytes() == b"\xff\xfe not utf8\n"
+
+
+def test_a_marker_inside_a_string_is_not_a_comment():
+    assert find_comments("a.sh", 'echo "a # b"\n') == []
+    assert find_comments("a.ts", "const s = 'a // b';\n") == []
+
+
+def test_rust_lifetimes_do_not_hide_a_trailing_comment():
+    source = "fn f<'a>(x: &'a str) -> &'a str { x } // keep\n"
+
+    assert find_comments("a.rs", source) == [Comment(1, "keep")]
+
+
+def test_a_block_opener_inside_a_single_quoted_string_does_not_make_later_lines_comment_only():
+    old = "const s = 'a /* x';\nrun();\n"
+
+    assert not edit_is_safe("a.ts", old, "const s = 'a /* x';\n", {".ts": "slash"})

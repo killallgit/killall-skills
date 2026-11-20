@@ -52,9 +52,6 @@ DIRECTIVE = re.compile(
     r"|SPDX|Copyright)",
     re.IGNORECASE,
 )
-HASH_COMMENT = re.compile(r"(?:^|\s)#(?!\{)\s?(.*)")
-SLASH_COMMENT = re.compile(r"(?:^|\s)//\s?(.*)")
-BLOCK_OPEN = re.compile(r"(?:^|\s)/\*+\s?(.*)")
 GENERATED = re.compile(r"do not edit|@generated|code generated|auto-generated", re.IGNORECASE)
 SCRIPT_BLOCK_OPEN = re.compile(r"#\s*///\s*script\s*$")
 SCRIPT_BLOCK_CLOSE = re.compile(r"#\s*///\s*$")
@@ -105,41 +102,46 @@ def python_docstrings(source: str) -> list[Comment]:
     return found
 
 
-def hash_comments(source: str) -> list[Comment]:
+def uses_single_quotes(path: str) -> bool:
+    return Path(path).suffix != ".rs"
+
+
+def hash_comments(source: str, single_quotes: bool) -> list[Comment]:
     found = []
     for number, line in enumerate(source.splitlines(), 1):
-        match = HASH_COMMENT.search(line)
-        if match and not is_directive(match.group(1)) and match.group(1).strip():
-            found.append(Comment(number, match.group(1).strip()))
+        start = comment_start(line, "hash", single_quotes)
+        text = line[start + 1:].strip() if start is not None else ""
+        if text and not is_directive(text):
+            found.append(Comment(number, text))
     return found
 
 
-def slash_comments(source: str) -> list[Comment]:
+def slash_comments(source: str, single_quotes: bool) -> list[Comment]:
     found = []
-    in_block = False
     pending = 0
-    for number, line in enumerate(source.splitlines(), 1):
-        if in_block:
-            in_block = "*/" not in line
+    lines = source.splitlines()
+    flags = block_flags(lines, "slash", single_quotes)
+    for number, line in enumerate(lines, 1):
+        still_open = flags[number]
+        if flags[number - 1]:
             if pending:
                 text = line.replace("*/", "").strip().lstrip("*").strip()
                 if text:
                     if not is_directive(text):
                         found.append(Comment(pending, text))
                     pending = 0
-                elif not in_block:
+                elif not still_open:
                     pending = 0
             continue
-        match = SLASH_COMMENT.search(line) or BLOCK_OPEN.search(line)
-        if not match:
+        start = comment_start(line, "slash", single_quotes)
+        if start is None:
             continue
-        if BLOCK_OPEN.search(line) and not SLASH_COMMENT.search(line):
-            in_block = "*/" not in line
-        text = match.group(1).replace("*/", "").strip()
+        body = line[start + 2:]
+        text = (body.lstrip("*") if line.startswith("/*", start) else body).replace("*/", "").strip()
         if text:
             if not is_directive(text):
                 found.append(Comment(number, text))
-        elif in_block:
+        elif still_open:
             pending = number
     return found
 
@@ -152,12 +154,18 @@ def python_all(source: str) -> list[Comment]:
     return sorted([*python_comments(source), *python_docstrings(source)], key=lambda c: c.line)
 
 
-FINDERS = {"python": python_all, "hash": hash_comments, "slash": slash_comments}
+FINDERS = {
+    "python": lambda source, single_quotes: python_all(source),
+    "hash": hash_comments,
+    "slash": slash_comments,
+}
 
 
 def find_comments(path: str, source: str, styles: dict[str, str] = DEFAULT_STYLES) -> list[Comment]:
     style = styles.get(Path(path).suffix)
-    return FINDERS[style](source) if style and not is_generated(source) else []
+    if not style or is_generated(source):
+        return []
+    return FINDERS[style](source, uses_single_quotes(path))
 
 
 def glob_regex(pattern: str) -> re.Pattern:
@@ -252,28 +260,25 @@ def comment_only(line: str, style: str, inside_block: bool = False) -> bool:
     if not text:
         return True
     if style != "slash":
-        return text.startswith("#") and not text.startswith("#!")
+        return comment_start(text, style, True) == 0 and not text.startswith("#!")
     closes_cleanly = "*/" not in text or text.endswith("*/")
-    if inside_block:
-        return closes_cleanly
-    return (text.startswith("//") or text.startswith("/*")) and closes_cleanly
+    return closes_cleanly and (inside_block or comment_start(text, style, True) == 0)
 
 
-def block_flags(lines: list[str]) -> list[bool]:
-    flags, open_block = [], False
+def block_flags(lines: list[str], style: str, single_quotes: bool) -> list[bool]:
+    flags = [False]
     for line in lines:
-        flags.append(open_block)
+        open_block = flags[-1]
         if open_block:
             open_block = "*/" not in line
-        else:
-            opener = comment_start(line, "slash")
+        elif style == "slash":
+            opener = comment_start(line, style, single_quotes)
             open_block = opener is not None and line.startswith("/*", opener) and "*/" not in line[opener:]
+        flags.append(open_block)
     return flags
 
 
-def comment_start(line: str, style: str, single_quotes: bool | None = None) -> int | None:
-    if single_quotes is None:
-        single_quotes = style == "hash"
+def comment_start(line: str, style: str, single_quotes: bool) -> int | None:
     quotes = "\"`'" if single_quotes else "\"`"
     markers = ("//", "/*") if style == "slash" else ("#",)
     quote, escaped = "", False
@@ -286,7 +291,7 @@ def comment_start(line: str, style: str, single_quotes: bool | None = None) -> i
             quote = "" if char == quote else quote
         elif char in quotes:
             quote = char
-        elif line.startswith(markers, i) and (i == 0 or line[i - 1].isspace()):
+        elif line.startswith(markers, i) and (i == 0 or line[i - 1].isspace()) and not line.startswith("#{", i):
             return i
     return None
 
@@ -299,9 +304,9 @@ def tail_trimmed(old: str, new: str, style: str, single_quotes: bool) -> bool:
     return not tail.startswith("/*") or "*/" not in tail or tail.rstrip().endswith("*/")
 
 
-def only_comments_removed(old: str, new: str, style: str, single_quotes: bool = True) -> bool:
+def only_comments_removed(old: str, new: str, style: str, single_quotes: bool) -> bool:
     old_lines, new_lines = old.splitlines(), new.splitlines()
-    inside = block_flags(old_lines)
+    inside = block_flags(old_lines, style, single_quotes)
     matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
@@ -328,7 +333,7 @@ def edit_is_safe(rel: str, old: str, new: str, styles: dict[str, str]) -> bool:
         if shape is not None:
             return python_shape(new) == shape
         style = "hash"
-    return only_comments_removed(old, new, style, Path(rel).suffix != ".rs")
+    return only_comments_removed(old, new, style, uses_single_quotes(rel))
 
 
 def git(root: str, *args: str) -> list[str]:
