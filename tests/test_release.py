@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 import release
-from release import bump_version, check_steps, generate_step, publish_steps
+from release import bump_version
 
 
 @pytest.mark.parametrize(
@@ -30,25 +30,6 @@ def test_bump_version_rejects_unknown_level():
 def test_bump_version_rejects_malformed_version():
     with pytest.raises(ValueError):
         bump_version("1.2", "patch")
-
-
-def test_check_steps_run_the_tests_and_the_manifest_check():
-    steps = check_steps()
-
-    assert any("pytest" in step for step in steps)
-    assert any(step[-2:] == ["scripts/generate_manifests.py", "--check"] for step in steps)
-
-
-def test_publish_steps_tag_after_the_release_commit():
-    verbs = [step[1] for step in publish_steps("1.3.0")]
-
-    assert verbs.index("commit") < verbs.index("tag")
-
-
-def test_publish_steps_push_branch_and_tag_atomically_last():
-    last = publish_steps("1.3.0")[-1]
-
-    assert last == ["git", "push", "--atomic", "origin", "HEAD:main", "v1.3.0"]
 
 
 def git(cwd: Path, *args: str) -> str:
@@ -117,10 +98,6 @@ def test_release_leaves_no_tag_or_worktree_when_the_push_is_rejected(checkout):
     assert git(origin, "tag", "--list").strip() == ""
 
 
-def test_the_manifest_is_generated_by_the_script_in_the_release_checkout():
-    assert generate_step()[-1] == "scripts/generate_manifests.py"
-
-
 def test_release_regenerates_the_manifest_with_the_checkout_generator(checkout):
     clone, origin = checkout
 
@@ -128,3 +105,31 @@ def test_release_regenerates_the_manifest_with_the_checkout_generator(checkout):
 
     manifest = json.loads(git(origin, "show", "main:.claude-plugin/marketplace.json"))
     assert {plugin["name"] for plugin in manifest["plugins"]} == {"b", "one"}
+
+
+def test_release_commit_holds_the_bump_and_every_regenerated_file(checkout):
+    clone, origin = checkout
+
+    tag = release.release(clone, "minor")
+
+    assert git(origin, "rev-parse", f"{tag}^{{commit}}") == git(origin, "rev-parse", "main")
+    changed = git(origin, "diff-tree", "--no-commit-id", "--name-only", "-r", tag).split()
+    assert sorted(changed) == [
+        ".claude-plugin/marketplace.json",
+        ".cursor-plugin/marketplace.json",
+        ".github/plugin/marketplace.json",
+        "scripts/marketplace.config.json",
+        "skills/.cursor-plugin/plugin.json",
+        "skills/one/.cursor-plugin/plugin.json",
+    ]
+    config = json.loads(git(origin, "show", f"{tag}:scripts/marketplace.config.json"))
+    assert config["version"] == "1.1.0"
+
+
+def test_release_ignores_a_stale_generator_in_the_checkout(checkout):
+    clone, origin = checkout
+    (clone / "scripts" / "generate_manifests.py").write_text("raise SystemExit(1)\n")
+
+    release.release(clone, "patch")
+
+    assert "v1.0.1" in git(origin, "tag", "--list")

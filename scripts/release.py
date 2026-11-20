@@ -11,12 +11,6 @@ from pathlib import Path
 
 SEMVER = re.compile(r"\A(\d+)\.(\d+)\.(\d+)\Z")
 LEVELS = ("patch", "minor", "major")
-RELEASE_FILES = [
-    ".claude-plugin/marketplace.json",
-    ".cursor-plugin/marketplace.json",
-    ".github/plugin/marketplace.json",
-    "scripts/marketplace.config.json",
-]
 
 
 def bump_version(current: str, level: str) -> str:
@@ -48,7 +42,7 @@ def generate_step() -> list[str]:
 def publish_steps(version: str) -> list[list[str]]:
     tag = f"v{version}"
     return [
-        ["git", "add", *RELEASE_FILES],
+        ["git", "add", "-A"],
         ["git", "commit", "-m", f"chore: release {tag}"],
         ["git", "tag", "-a", tag, "-m", tag],
         ["git", "push", "--atomic", "origin", "HEAD:main", tag],
