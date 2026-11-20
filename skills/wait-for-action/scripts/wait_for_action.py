@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 GOOD = {"success", "neutral", "skipped"}
+EXIT_DONE, EXIT_FAILED, EXIT_TIMEOUT, EXIT_ERROR, EXIT_NONE = 0, 1, 2, 3, 5
 
 
 class GhError(Exception):
@@ -206,7 +207,7 @@ def watch(client, pr, ttl, log_dir, clock=time, settle=10):
                     emit("PENDING", "; ".join(report["pending"] + report["failed"] + report["observations"]) or "no observable activity")
                 if report["failed"]:
                     emit("FAILED", "; ".join(report["failed"]))
-                    return 1
+                    return EXIT_FAILED
                 if not report["pending"] and clock.monotonic() - stable_at >= settle:
                     # Unknown/unacknowledged reviewers are reported, never promoted
                     # to running work or to a successful independent review.
@@ -214,10 +215,10 @@ def watch(client, pr, ttl, log_dir, clock=time, settle=10):
                         emit("OBSERVED", observation)
                     if not report["observed"]:
                         emit("NONE", f"no current-head execution or submitted bot review observed; work may not have registered yet {report['url']}")
-                        return 5
+                        return EXIT_NONE
                     emit("NOTE", "Late-registering work may still appear; enforce required checks/reviews separately")
                     emit("DONE", f"no observable work pending; not a merge/review approval {report['url']}")
-                    return 0
+                    return EXIT_DONE
         except TimeoutError:
             break
         except (GhError, ValueError, KeyError, TypeError, OSError) as err:
@@ -227,12 +228,12 @@ def watch(client, pr, ttl, log_dir, clock=time, settle=10):
             emit("PENDING", f"discovery error: {err}")
             if errors >= 3:
                 emit("ERROR", f"discovery failed: {err}")
-                return 3
+                return EXIT_ERROR
         remaining = client.deadline - clock.monotonic()
         if remaining > 0:
             clock.sleep(min(5, remaining))
     emit("TIMEOUT", f"activity not settled within {ttl}s; see {log_dir}")
-    return 2
+    return EXIT_TIMEOUT
 
 
 def main():
