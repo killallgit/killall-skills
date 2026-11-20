@@ -127,6 +127,8 @@ def literal_end(lines: list[str], start: int) -> int:
         end = start + 1
         while end < len(lines) and (not lines[end].strip() or len(lines[end]) - len(lines[end].lstrip()) > indent):
             end += 1
+        while end > start + 1 and not lines[end - 1].strip():
+            end -= 1
         return end
     heredoc = HEREDOC.search(line)
     opener = comment_start(line, "hash", True)

@@ -704,3 +704,15 @@ def test_a_heredoc_opener_without_a_terminator_protects_nothing():
     source = "echo $((1 << x))\n# real comment\n"
 
     assert find_comments("a.sh", source) == [Comment(2, "real comment")]
+
+
+def test_blank_lines_after_a_block_scalar_are_not_protected():
+    old = "run: |\n  echo hi\n\n# c\nnext: 1\n"
+
+    assert edit_is_safe("a.yml", old, "run: |\n  echo hi\nnext: 1\n", {".yml": "hash"})
+
+
+def test_a_blank_line_inside_a_block_scalar_is_protected():
+    old = "run: |\n  echo hi\n\n  echo bye\n"
+
+    assert not edit_is_safe("a.yml", old, "run: |\n  echo hi\n  echo bye\n", {".yml": "hash"})
