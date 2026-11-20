@@ -57,6 +57,14 @@
       "version": "5.7.0"
     },
     {
+      "name": "no-comment",
+      "source": "./skills/no-comment",
+      "description": "Delete comments that only restate the code in the files changed in this checkout, or set up the repo's .commentrc first. On Claude Code the plugin also runs it on every Stop.",
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.7.0"
+    },
+    {
       "name": "restate",
       "source": "./skills/restate",
       "description": "Restate the request and scope before acting, then wait for approval",
@@ -76,22 +84,6 @@
       "name": "setup-agents-md",
       "source": "./skills/setup-agents-md",
       "description": "Set up and review root AGENTS.md and CLAUDE.md. Merge shared instructions from both into AGENTS.md without losing unique or tool-generated guidance, simplify the combined instructions, verify them against the repo, and make CLAUDE.md import AGENTS.md with @AGENTS.md. Create missing files as needed. Use for \"setup agents md\", \"check the agent docs\", \"check project\", \"dedupe CLAUDE.md and AGENTS.md\", or /setup-agents-md.",
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.7.0"
-    },
-    {
-      "name": "setup-trim-comments",
-      "source": "./skills/setup-trim-comments",
-      "description": "Define a project's .commentrc for trim-comments by surveying the repo and asking which directories and extensions to cover.",
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.7.0"
-    },
-    {
-      "name": "trim-comments",
-      "source": "./skills/trim-comments",
-      "description": "Run the comment trimmer by hand on the files changed in this checkout. On Claude Code the plugin also runs it on every Stop.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
       "version": "5.7.0"
@@ -118,11 +110,10 @@
         "./git-janitor",
         "./independent-review",
         "./lets-finish",
+        "./no-comment",
         "./restate",
         "./session-eject",
         "./setup-agents-md",
-        "./setup-trim-comments",
-        "./trim-comments",
         "./wait-for-action"
       ]
     }

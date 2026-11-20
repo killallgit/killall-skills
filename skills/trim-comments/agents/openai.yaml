@@ -1,5 +1,0 @@
-interface:
-  display_name: "Trim comments"
-  short_description: "Have a second model delete comments that only restate the code."
-policy:
-  allow_implicit_invocation: false

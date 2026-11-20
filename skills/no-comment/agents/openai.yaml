@@ -1,0 +1,5 @@
+interface:
+  display_name: "No comment"
+  short_description: "Have a second model delete comments that only restate the code. Say setup to write the repo's .commentrc."
+policy:
+  allow_implicit_invocation: false
