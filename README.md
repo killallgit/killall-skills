@@ -198,9 +198,9 @@ it runs only for the candidates you pick. It keeps `GLOSSARY.md`,
 `ARCHITECTURE.md`, and `docs/adr/` current as decisions land. Words after the
 command name a direction. User-invoked only.
 
-## Trim comments
+## No comment
 
-The `trim-comments` plugin hook runs on every Stop in Claude Code. It finds the
+The `no-comment` plugin hook runs on every Stop in Claude Code. It finds the
 comments and docstrings in the files the session edited, in any repo, plus every
 uncommitted or untracked file in the repo the session started in, including work
 that predates the session. A reviewer on a different model deletes the ones the code
@@ -209,6 +209,7 @@ code is restored. YAML block scalars and heredocs are protected; a comment marke
 any other multi-line string (a TOML `"""` string, a Go raw string, a JS template
 literal) still reads as a comment and can be removed.
 It acts only in repos that opt in with a `.commentrc` at the root, and it needs
-`uv` and the `claude` CLI. `/setup-trim-comments` surveys a repo and writes that file;
-`/trim-comments` runs the trimmer by hand. See `skills/trim-comments/SKILL.md` for
-the config keys and the exact checks. Both are user-invoked only.
+`uv` and the `claude` CLI. `/no-comment setup` surveys a repo and writes that file;
+`/no-comment` runs it by hand, and does the setup first in a repo that has
+no `.commentrc`. See `skills/no-comment/SKILL.md` for the config keys and the exact
+checks. It is user-invoked only.

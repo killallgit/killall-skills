@@ -1,4 +1,0 @@
-{
-  "name": "setup-trim-comments",
-  "description": "Define a project's .commentrc for trim-comments by surveying the repo and asking which directories and extensions to cover."
-}

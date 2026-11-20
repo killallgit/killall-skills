@@ -80,6 +80,31 @@
       "version": "5.7.0"
     },
     {
+      "name": "no-comment",
+      "source": "./",
+      "description": "Delete comments that only restate the code in the files changed in this checkout, or set up the repo's .commentrc first. On Claude Code the plugin also runs it on every Stop.",
+      "strict": false,
+      "skills": [
+        "./skills/no-comment"
+      ],
+      "category": "workflow",
+      "homepage": "https://github.com/killallgit/killall-skills",
+      "version": "5.7.0",
+      "hooks": {
+        "Stop": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "R=\"${CLAUDE_PLUGIN_ROOT}\"; for S in \"$R/skills/no-comment/scripts/no_comment.py\" \"$R/scripts/no_comment.py\"; do if [ -f \"$S\" ] && command -v uv >/dev/null; then exec uv run --python 3.12 \"$S\"; fi; done; exit 0",
+                "timeout": 300
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "restate",
       "source": "./",
       "description": "Restate the request and scope before acting, then wait for approval",
@@ -116,43 +141,6 @@
       "version": "5.7.0"
     },
     {
-      "name": "setup-trim-comments",
-      "source": "./",
-      "description": "Define a project's .commentrc for trim-comments by surveying the repo and asking which directories and extensions to cover.",
-      "strict": false,
-      "skills": [
-        "./skills/setup-trim-comments"
-      ],
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.7.0"
-    },
-    {
-      "name": "trim-comments",
-      "source": "./",
-      "description": "Run the comment trimmer by hand on the files changed in this checkout. On Claude Code the plugin also runs it on every Stop.",
-      "strict": false,
-      "skills": [
-        "./skills/trim-comments"
-      ],
-      "category": "workflow",
-      "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "5.7.0",
-      "hooks": {
-        "Stop": [
-          {
-            "hooks": [
-              {
-                "type": "command",
-                "command": "R=\"${CLAUDE_PLUGIN_ROOT}\"; for S in \"$R/skills/trim-comments/scripts/trim_comments.py\" \"$R/scripts/trim_comments.py\"; do if [ -f \"$S\" ] && command -v uv >/dev/null; then exec uv run --python 3.12 \"$S\"; fi; done; exit 0",
-                "timeout": 300
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
       "name": "wait-for-action",
       "source": "./",
       "description": "Wait for observable GitHub PR activity to settle in one read-only call. Discovers CI and bot reviewers, including activity outside Actions. Never triggers reviews or decides what is required. Use after a push or when checking what is still running.",
@@ -176,11 +164,10 @@
         "./skills/git-janitor",
         "./skills/independent-review",
         "./skills/lets-finish",
+        "./skills/no-comment",
         "./skills/restate",
         "./skills/session-eject",
         "./skills/setup-agents-md",
-        "./skills/setup-trim-comments",
-        "./skills/trim-comments",
         "./skills/wait-for-action"
       ],
       "category": "workflow",
@@ -192,7 +179,7 @@
             "hooks": [
               {
                 "type": "command",
-                "command": "R=\"${CLAUDE_PLUGIN_ROOT}\"; for S in \"$R/skills/trim-comments/scripts/trim_comments.py\" \"$R/scripts/trim_comments.py\"; do if [ -f \"$S\" ] && command -v uv >/dev/null; then exec uv run --python 3.12 \"$S\"; fi; done; exit 0",
+                "command": "R=\"${CLAUDE_PLUGIN_ROOT}\"; for S in \"$R/skills/no-comment/scripts/no_comment.py\" \"$R/scripts/no_comment.py\"; do if [ -f \"$S\" ] && command -v uv >/dev/null; then exec uv run --python 3.12 \"$S\"; fi; done; exit 0",
                 "timeout": 300
               }
             ]

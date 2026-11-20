@@ -16,8 +16,8 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-GUARD = "TRIM_COMMENTS_ACTIVE"
-MODEL_ENV = "TRIM_COMMENTS_MODEL"
+GUARD = "NO_COMMENT_ACTIVE"
+MODEL_ENV = "NO_COMMENT_MODEL"
 REVIEWER_MODELS = ("haiku", "sonnet")
 REVIEW_BUDGET = 280
 SNAPSHOT_LIMIT = 5_000_000
@@ -477,7 +477,7 @@ def run_reviewer(
 
 
 def say(message: str) -> None:
-    print(json.dumps({"systemMessage": f"trim-comments: {message}"}))
+    print(json.dumps({"systemMessage": f"no-comment: {message}"}))
 
 
 def edited_paths(transcript_path: str) -> set[str]:
@@ -538,7 +538,7 @@ def git_path(root: str, name: str) -> Path | None:
 
 
 def stash_rejected(root: str, rel: str, content: bytes) -> None:
-    folder = git_path(root, "trim-comments-rejected")
+    folder = git_path(root, "no-comment-rejected")
     if folder is None:
         return
     target = folder / f"{rel}.{time.time_ns()}"
@@ -584,7 +584,7 @@ def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: 
         if dry_run:
             print(f"{name}: no {CONFIG_FILE}; nothing to do", file=sys.stderr)
         return None
-    state = git_path(root, "trim-comments.json")
+    state = git_path(root, "no-comment.json")
     reviewed = load_reviewed(state) if state else {}
 
     flagged: dict[str, list[Comment]] = {}
@@ -645,7 +645,7 @@ def review_repo(root: str, rels: set[str], model: str, dry_run: bool, deadline: 
     if undone := undo_strays(root, flagged, untouched):
         notes.append(f"reverted reviewer edits to {', '.join(undone)}")
     if notes:
-        notes.append("rejected copies are in the git dir's trim-comments-rejected folder")
+        notes.append("rejected copies are in the git dir's no-comment-rejected folder")
     if failure:
         return "; ".join([f"{name}: {failure}", *notes])
     try:

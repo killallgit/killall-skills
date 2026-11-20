@@ -1,0 +1,4 @@
+{
+  "name": "no-comment",
+  "description": "Delete comments that only restate the code in the files changed in this checkout, or set up the repo's .commentrc first. On Claude Code the plugin also runs it on every Stop."
+}
