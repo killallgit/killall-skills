@@ -205,8 +205,9 @@ comments and docstrings in the files the session edited, in any repo, plus every
 uncommitted or untracked file in the repo the session started in, including work
 that predates the session. A reviewer on a different model deletes the ones the code
 already says. The reviewer may edit only the flagged files, and an edit that changes
-code is restored; outside Python, a `#` line inside a multi-line string (a YAML block
-scalar, a heredoc) reads as a comment and can be removed.
+code is restored. YAML block scalars and heredocs are protected; a comment marker inside
+any other multi-line string (a TOML `"""` string, a Go raw string, a JS template
+literal) still reads as a comment and can be removed.
 It acts only in repos that opt in with a `.commentrc` at the root, and it needs
 `uv` and the `claude` CLI. `/setup-trim-comments` surveys a repo and writes that file;
 `/trim-comments` runs the trimmer by hand. See `skills/trim-comments/SKILL.md` for

@@ -650,3 +650,57 @@ def test_a_block_opener_inside_a_single_quoted_string_does_not_make_later_lines_
     old = "const s = 'a /* x';\nrun();\n"
 
     assert not edit_is_safe("a.ts", old, "const s = 'a /* x';\n", {".ts": "slash"})
+
+
+YAML_BLOCK = "run: |\n  echo hi\n  # a script line, not a yaml comment\n  echo bye\n"
+
+
+@pytest.mark.parametrize("opener, body", [
+    ("run: |", "  "), ("run: >-", "  "), ("run: |2", "  "), ("- |", "  "), ("- run: |+", "    "), ("a:\n  - |", "    "),
+])
+def test_a_hash_line_inside_a_yaml_block_scalar_is_not_a_comment(opener, body):
+    source = f"{opener}\n{body}echo hi\n{body}# script line\n{body}echo bye\n"
+
+    assert find_comments("a.yml", source) == []
+    assert not edit_is_safe("a.yml", source, source.replace(f"{body}# script line\n", ""), {".yml": "hash"})
+
+
+@pytest.mark.parametrize("source", [
+    "cat <<EOF\n# literal text\nEOF\n",
+    "cat <<-EOF\n# literal text\n\tEOF\n",
+    "cat <<~EOF\n  # literal text\n  EOF\n",
+    'cat <<"EOF"\n# literal text\nEOF\n',
+    "cat <<'EOF'\n# literal text\nEOF\n",
+])
+def test_a_hash_line_inside_a_heredoc_is_not_a_comment(source):
+    deleted = "".join(line for line in source.splitlines(True) if "# literal text" not in line)
+
+    assert find_comments("a.sh", source) == []
+    assert not edit_is_safe("a.sh", source, deleted, {".sh": "hash"})
+
+
+def test_real_comments_around_a_literal_block_are_still_found_and_deletable():
+    styles = {".yml": "hash", ".sh": "hash"}
+    yaml = "# before\nrun: |\n  # literal\nnext: 1\n# after\n"
+    shell = "# before\ncat <<EOF\n# literal\nEOF\n# after\n"
+
+    for path, source in (("a.yml", yaml), ("a.sh", shell)):
+        assert find_comments(path, source) == [Comment(1, "before"), Comment(5, "after")]
+        stripped = "".join(line for line in source.splitlines(True) if line not in ("# before\n", "# after\n"))
+        assert edit_is_safe(path, source, stripped, styles)
+
+
+def test_a_comment_after_the_block_indicator_is_still_a_comment():
+    assert find_comments("a.yml", "run: |  # note\n  echo hi\n") == [Comment(1, "note")]
+
+
+def test_an_indented_hash_line_after_a_block_scalar_ends_is_a_comment_again():
+    source = "run: |\n  echo hi\nnext: 1\n  # indented comment\n"
+
+    assert find_comments("a.yml", source) == [Comment(4, "indented comment")]
+
+
+def test_a_heredoc_opener_without_a_terminator_protects_nothing():
+    source = "echo $((1 << x))\n# real comment\n"
+
+    assert find_comments("a.sh", source) == [Comment(2, "real comment")]
