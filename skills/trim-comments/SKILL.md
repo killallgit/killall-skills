@@ -53,8 +53,9 @@ directory, the generated-file count and the conventional directories present.
   creates is deleted. The summary line names them.
 - Everything the hook discards is copied into the git dir's
   `trim-comments-rejected` folder first.
-- Outside Python, a `#` line inside a multi-line string (a YAML block scalar, a
-  heredoc) reads as a comment and can be removed. The check cannot tell it apart.
+- YAML block scalars and heredocs are protected. A comment marker inside any other
+  multi-line string (a TOML `"""` string, a Go raw string, a JS template literal)
+  reads as a comment and can be removed. The check cannot tell it apart.
 - The hook fails open. A reviewer error, a timeout or a missing `uv` or `claude`
   shows a warning or does nothing, and never blocks the session. While the
   reviewer runs the Stop waits, for up to 5 minutes.

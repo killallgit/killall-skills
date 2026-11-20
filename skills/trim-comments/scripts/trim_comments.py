@@ -55,6 +55,8 @@ DIRECTIVE = re.compile(
 GENERATED = re.compile(r"do not edit|@generated|code generated|auto-generated", re.IGNORECASE)
 SCRIPT_BLOCK_OPEN = re.compile(r"#\s*///\s*script\s*$")
 SCRIPT_BLOCK_CLOSE = re.compile(r"#\s*///\s*$")
+BLOCK_SCALAR = re.compile(r"^(?P<lead>\s*(?:-\s+)*)(?P<key>[^#]*?[:-]\s+)?[|>][-+]?\d?[-+]?\s*(?:#.*)?$")
+HEREDOC = re.compile(r"(?<!<)<<([-~]?)\s*([\"']?)([A-Za-z_]\w*)\2")
 
 
 @dataclass(frozen=True)
@@ -106,9 +108,45 @@ def uses_single_quotes(path: str) -> bool:
     return Path(path).suffix != ".rs"
 
 
+def literal_flags(lines: list[str]) -> list[bool]:
+    flags = [False] * len(lines)
+    i = 0
+    while i < len(lines):
+        end = literal_end(lines, i)
+        flags[i + 1:end] = [True] * (end - i - 1)
+        i = end
+    return flags
+
+
+def literal_end(lines: list[str], start: int) -> int:
+    line = lines[start]
+    scalar = BLOCK_SCALAR.match(line)
+    if scalar:
+        lead = scalar.group("lead")
+        indent = len(lead) if scalar.group("key") or "-" not in lead else lead.rindex("-")
+        end = start + 1
+        while end < len(lines) and (not lines[end].strip() or len(lines[end]) - len(lines[end].lstrip()) > indent):
+            end += 1
+        while end > start + 1 and not lines[end - 1].strip():
+            end -= 1
+        return end
+    heredoc = HEREDOC.search(line)
+    opener = comment_start(line, "hash", True)
+    if heredoc and (opener is None or opener > heredoc.start()):
+        dash, word = heredoc.group(1), heredoc.group(3)
+        for end in range(start + 1, len(lines)):
+            if (lines[end].strip() if dash else lines[end].rstrip()) == word:
+                return end
+    return start + 1
+
+
 def hash_comments(source: str, single_quotes: bool) -> list[Comment]:
     found = []
-    for number, line in enumerate(source.splitlines(), 1):
+    lines = source.splitlines()
+    literal = literal_flags(lines)
+    for number, line in enumerate(lines, 1):
+        if literal[number - 1]:
+            continue
         start = comment_start(line, "hash", single_quotes)
         text = line[start + 1:].strip() if start is not None else ""
         if text and not is_directive(text):
@@ -307,6 +345,7 @@ def tail_trimmed(old: str, new: str, style: str, single_quotes: bool) -> bool:
 def only_comments_removed(old: str, new: str, style: str, single_quotes: bool) -> bool:
     old_lines, new_lines = old.splitlines(), new.splitlines()
     inside = block_flags(old_lines, style, single_quotes)
+    literal = literal_flags(old_lines) if style == "hash" else [False] * len(old_lines)
     matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
@@ -317,9 +356,10 @@ def only_comments_removed(old: str, new: str, style: str, single_quotes: bool) -
         j = 0
         for i in range(i1, i2):
             line = old_lines[i]
-            if j < len(kept) and (line.rstrip() == kept[j].rstrip() or tail_trimmed(line, kept[j], style, single_quotes)):
+            same = j < len(kept) and (line.rstrip() == kept[j].rstrip() or tail_trimmed(line, kept[j], style, single_quotes))
+            if same and not (literal[i] and line.rstrip() != kept[j].rstrip()):
                 j += 1
-            elif not comment_only(line, style, inside[i]):
+            elif literal[i] or not comment_only(line, style, inside[i]):
                 return False
         if j != len(kept):
             return False
