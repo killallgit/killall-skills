@@ -11,6 +11,9 @@ from pathlib import Path
 import yaml
 
 FRONTMATTER = re.compile(r"\A---\n(.*?)\n---", re.DOTALL)
+HYPHEN_CASE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+MAX_NAME = 64
+MAX_DESCRIPTION = 1024
 
 
 @dataclass(frozen=True)
@@ -18,6 +21,7 @@ class Skill:
     name: str
     description: str
     hooks: dict | None = None
+    user_only: bool = False
 
 
 def parse_skill(text: str) -> Skill:
@@ -27,7 +31,24 @@ def parse_skill(text: str) -> Skill:
     fields = yaml.safe_load(match.group(1)) or {}
     if not fields.get("name") or not fields.get("description"):
         raise ValueError("frontmatter needs name and description")
-    return Skill(fields["name"], " ".join(fields["description"].split()))
+    name = fields["name"]
+    description = " ".join(fields["description"].split())
+    if not HYPHEN_CASE.fullmatch(name) or len(name) > MAX_NAME:
+        raise ValueError(f"{name}: name must be hyphen-case, at most {MAX_NAME} characters")
+    if len(description) > MAX_DESCRIPTION:
+        raise ValueError(f"{name}: description is over {MAX_DESCRIPTION} characters")
+    return Skill(name, description, user_only=bool(fields.get("disable-model-invocation")))
+
+
+def check_codex_policy(skill_dir: Path, skill: Skill) -> None:
+    policy_file = skill_dir / "agents" / "openai.yaml"
+    if not policy_file.exists():
+        if skill.user_only:
+            raise ValueError(f"{skill.name}: user-only skills need agents/openai.yaml")
+        return
+    policy = (yaml.safe_load(policy_file.read_text()) or {}).get("policy") or {}
+    if policy.get("allow_implicit_invocation", True) != (not skill.user_only):
+        raise ValueError(f"{skill.name}: agents/openai.yaml disagrees with disable-model-invocation")
 
 
 def read_skills(skills_dir: Path) -> tuple[Skill, ...]:
@@ -36,6 +57,7 @@ def read_skills(skills_dir: Path) -> tuple[Skill, ...]:
         skill = parse_skill(skill_md.read_text())
         if skill.name != skill_md.parent.name:
             raise ValueError(f"{skill_md.parent.name} declares name {skill.name}")
+        check_codex_policy(skill_md.parent, skill)
         hooks_file = skill_md.parent / "hooks" / "hooks.json"
         hooks = json.loads(hooks_file.read_text())["hooks"] if hooks_file.exists() else None
         skills.append(replace(skill, hooks=hooks))

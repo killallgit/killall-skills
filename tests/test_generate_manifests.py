@@ -279,3 +279,85 @@ def test_read_skills_loads_the_hooks_of_a_skill(tmp_path):
     (hooks_dir / "hooks.json").write_text(json.dumps({"hooks": ALPHA_HOOKS}))
 
     assert read_skills(tmp_path / "skills")[0].hooks == ALPHA_HOOKS
+
+
+@pytest.mark.parametrize("name", ["Alpha", "al_pha", "-alpha", "alpha-", "al--pha", "a" * 65])
+def test_parse_skill_rejects_a_name_that_is_not_hyphen_case_within_64_characters(name):
+    with pytest.raises(ValueError):
+        parse_skill(f"---\nname: {name}\ndescription: first\n---\nbody")
+
+
+def test_parse_skill_accepts_the_longest_name_and_description():
+    parse_skill(f"---\nname: {'a' * 64}\ndescription: {'x' * 1024}\n---\nbody")
+
+
+def test_parse_skill_rejects_a_description_over_1024_characters():
+    with pytest.raises(ValueError):
+        parse_skill(f"---\nname: alpha\ndescription: {'x' * 1025}\n---\nbody")
+
+
+def test_parse_skill_reads_disable_model_invocation():
+    text = "---\nname: alpha\ndescription: first\ndisable-model-invocation: true\n---\nbody"
+
+    assert parse_skill(text).user_only
+
+
+USER_ONLY = "name: alpha\ndescription: first\ndisable-model-invocation: true"
+IMPLICIT = "name: alpha\ndescription: first"
+
+
+def write_codex_policy(root: Path, allow_implicit: bool) -> None:
+    agents = root / "skills" / "alpha" / "agents"
+    agents.mkdir()
+    (agents / "openai.yaml").write_text(
+        f"policy:\n  allow_implicit_invocation: {str(allow_implicit).lower()}\n"
+    )
+
+
+def test_read_skills_rejects_a_user_only_skill_without_a_codex_policy(tmp_path):
+    write_skill(tmp_path, "alpha", USER_ONLY)
+
+    with pytest.raises(ValueError):
+        read_skills(tmp_path / "skills")
+
+
+@pytest.mark.parametrize(("frontmatter", "allow_implicit"), [(USER_ONLY, True), (IMPLICIT, False)])
+def test_read_skills_rejects_a_codex_policy_that_disagrees_with_the_frontmatter(
+    tmp_path, frontmatter, allow_implicit
+):
+    write_skill(tmp_path, "alpha", frontmatter)
+    write_codex_policy(tmp_path, allow_implicit)
+
+    with pytest.raises(ValueError):
+        read_skills(tmp_path / "skills")
+
+
+@pytest.mark.parametrize(("frontmatter", "allow_implicit"), [(USER_ONLY, False), (IMPLICIT, True)])
+def test_read_skills_accepts_a_codex_policy_that_matches_the_frontmatter(
+    tmp_path, frontmatter, allow_implicit
+):
+    write_skill(tmp_path, "alpha", frontmatter)
+    write_codex_policy(tmp_path, allow_implicit)
+
+    assert read_skills(tmp_path / "skills")[0].name == "alpha"
+
+
+def test_read_skills_accepts_a_model_invocable_skill_without_a_codex_policy(tmp_path):
+    write_skill(tmp_path, "alpha", IMPLICIT)
+
+    assert read_skills(tmp_path / "skills")[0].name == "alpha"
+
+
+REPO = Path(__file__).resolve().parent.parent
+
+
+def test_readme_names_every_skill():
+    readme = (REPO / "README.md").read_text()
+
+    undocumented = [
+        skill.name
+        for skill in read_skills(REPO / "skills")
+        if f"`{skill.name}`" not in readme and f"`/{skill.name}`" not in readme
+    ]
+
+    assert undocumented == []

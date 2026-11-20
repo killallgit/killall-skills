@@ -115,8 +115,7 @@ was fixed and declined, and leaves the PR open. If a local reviewer fails, it
 tries other viable independent routes. If none works, it reports **BLOCKED**
 and stops the calling workflow before merge or release unless the user
 explicitly waives review. Self-review and passing tests are not substitutes;
-a waiver is reported as **WAIVED**, not reviewed. Other skills, such as `ship`
-and `lets-finish`, run it too.
+a waiver is reported as **WAIVED**, not reviewed. `lets-finish` runs it too.
 
 ## Wait for action
 
@@ -141,7 +140,7 @@ squash-merges. It finds the beads, Jira tickets, and GitHub issues the PR
 relates to and updates them: closed when the PR closes them, commented when it
 only mentions them. It prints one `[+]`, `[-]`, or `[x]` line per step, stops
 at the first failed step, and ends by asking `[y/n]` whether to remove the branch and
-worktree. It calls the `wait-for-action` and `independent-review` skills. User-invoked only.
+worktree. It calls the `wait-for-action` and `independent-review` skills.
 
 ## End session
 
@@ -161,6 +160,29 @@ what is left; a branch without one gets a draft PR titled
 commits, pushes, and opens the draft PR at once. Work on the default branch
 moves to an `eject/` branch first. It ends by printing a handoff paragraph to
 paste into a fresh agent so it can resume. User-invoked only.
+
+## Catch up
+
+`/catch-up` (or "catch me up", "where were we") rebuilds your context after time
+away. It first reconciles the current checkout: it commits changes that belong
+to an open PR, discards changes that already landed or are scratch, and syncs
+the branch. Changes it cannot place stay untouched. It then writes where things
+stand, what was reconciled, the decisions made, the open items, and the single
+next step.
+
+## Restate
+
+`/restate` followed by your prompt makes the agent restate your request in two
+sentences and say what it will not touch before it acts. It marks inferences as `(assumed)`,
+labels any design as current or proposed, stays read-only until you say "ok",
+and then stops to wait. User-invoked only.
+
+## Setup AGENTS.md
+
+`/setup-agents-md` merges the shared instructions in `AGENTS.md` and `CLAUDE.md`
+into `AGENTS.md` without losing guidance unique to either file, simplifies them,
+checks them against the repo, and makes `CLAUDE.md` import `@AGENTS.md`. It
+creates a missing file.
 
 ## Architectural review
 
