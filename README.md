@@ -47,6 +47,24 @@ npx skills add killallgit/killall-skills
 
 Claude Code runs a skill as `/name`; Codex runs it as `$name`.
 
+## Skills
+
+<!-- skills:start -->
+| Skill | Invoked by | What it does |
+| --- | --- | --- |
+| `/architectural-review` | user only | Review a codebase's architecture. |
+| `/catch-up` | user or model | Rebuild a human's lost context on the work in flight after reconciling the current checkout's dangling changes — commit what belongs to an open PR, discard what already landed, sync the branch — then summarize the state of play, decisions, live PRs and tickets, and the single next step. |
+| `/end-session` | user only | Bring this session's branch up to date, land or discard its work, and archive the session. |
+| `/git-janitor` | user only | Clean up local Git, only when the user runs /git-janitor. |
+| `/independent-review` | user or model | Get the current branch reviewed by someone who did not write it. |
+| `/lets-finish` | user or model | Land finished work. |
+| `/no-comment` | user only | Delete comments that only restate the code in the files changed in this checkout, or set up the repo's .commentrc first. |
+| `/restate` | user only | Restate the request and scope before acting, then wait for approval |
+| `/session-eject` | user only | Save all work before usage runs out — commit, push, update or open draft PRs, and stop. |
+| `/setup-agents-md` | user or model | Set up and review root AGENTS.md and CLAUDE.md. |
+| `/wait-for-action` | user or model | Wait for observable GitHub PR activity to settle in one read-only call. |
+<!-- skills:end -->
+
 ## Development
 
 `task manifests` regenerates the catalogs from each skill's `SKILL.md`
@@ -55,6 +73,8 @@ frontmatter and `scripts/marketplace.config.json`:
 - `.claude-plugin/marketplace.json` for Claude Code, Codex, and `npx skills`
 - `.cursor-plugin/marketplace.json` for Cursor
 - `.github/plugin/marketplace.json` for GitHub Copilot CLI
+- the skills table above, between the `skills:start` and `skills:end` markers in this file
+
 After adding, renaming, or editing a skill description:
 
 ```
@@ -121,10 +141,8 @@ a waiver is reported as **WAIVED**, not reviewed. `lets-finish` runs it too.
 
 `python3 skills/wait-for-action/scripts/wait_for_action.py [--pr N]` does one thing:
 wait for observable PR activity to settle. It discovers checks, statuses,
-Actions workflows, and bot-review signals in a single read-only loop. It never triggers or requires reviews. Exit 0 means no observable work
-is pending, not merge approval or a completed independent review. Exit 5 means
-no current-head execution/review was observed; newly pushed work may not have
-registered yet, even after other fast checks have completed.
+Actions workflows, and bot-review signals in a single read-only loop. It never triggers or requires reviews. Its exit codes are in
+`skills/wait-for-action/SKILL.md`.
 
 Only `--pr`, `--repo`, `--ttl`, and `--log-dir` are supported. Polling is fixed
 at five seconds, failures stop immediately, and API calls share the total budget.
@@ -148,7 +166,6 @@ worktree. It calls the `wait-for-action` and `independent-review` skills.
 and rebases the session branch onto the default branch. Work that already
 landed or was superseded is discarded with its worktree. Otherwise it asks
 once whether a PR is required, opens one if so, and archives the session.
-User-invoked only.
 
 ## Session eject
 
@@ -159,7 +176,7 @@ what is left; a branch without one gets a draft PR titled
 `[ejected session]: <short desc>`. `/session-eject now` skips the wait and
 commits, pushes, and opens the draft PR at once. Work on the default branch
 moves to an `eject/` branch first. It ends by printing a handoff paragraph to
-paste into a fresh agent so it can resume. User-invoked only.
+paste into a fresh agent so it can resume.
 
 ## Catch up
 
@@ -175,7 +192,7 @@ next step.
 `/restate` followed by your prompt makes the agent restate your request in two
 sentences and say what it will not touch before it acts. It marks inferences as `(assumed)`,
 labels any design as current or proposed, stays read-only until you say "ok",
-and then stops to wait. User-invoked only.
+and then stops to wait.
 
 ## Setup AGENTS.md
 
@@ -196,7 +213,7 @@ candidates with before/after Mermaid diagrams and proposed glossary terms, and
 prints the `bd create` commands for an epic plus one bead per candidate, which
 it runs only for the candidates you pick. It keeps `GLOSSARY.md`,
 `ARCHITECTURE.md`, and `docs/adr/` current as decisions land. Words after the
-command name a direction. User-invoked only.
+command name a direction.
 
 ## No comment
 
@@ -212,4 +229,4 @@ It acts only in repos that opt in with a `.commentrc` at the root, and it needs
 `uv` and the `claude` CLI. `/no-comment setup` surveys a repo and writes that file;
 `/no-comment` runs it by hand, and does the setup first in a repo that has
 no `.commentrc`. See `skills/no-comment/SKILL.md` for the config keys and the exact
-checks. It is user-invoked only.
+checks.

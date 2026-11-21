@@ -716,3 +716,24 @@ def test_a_blank_line_inside_a_block_scalar_is_protected():
     old = "run: |\n  echo hi\n\n  echo bye\n"
 
     assert not edit_is_safe("a.yml", old, "run: |\n  echo hi\n  echo bye\n", {".yml": "hash"})
+
+
+def test_an_apostrophe_in_jsx_text_does_not_hide_a_trailing_comment():
+    source = "const a = <p>don't</p>; // note\n"
+
+    assert find_comments("a.tsx", source) == [Comment(1, "note")]
+    assert edit_is_safe("a.tsx", source, "const a = <p>don't</p>;\n", {".tsx": "slash"})
+
+
+def test_code_after_an_unterminated_apostrophe_is_still_protected():
+    old = "const a = <p>don't</p>; // note\nrun();\n"
+    styles = {".tsx": "slash"}
+
+    assert not edit_is_safe("a.tsx", old, "const a = <p>don't</p>; // note\n", styles)
+    assert not edit_is_safe("a.tsx", old, "const a = <p>don\nrun();\n", styles)
+    assert not edit_is_safe("a.tsx", "isn't ready();\n", "", styles)
+
+
+def test_a_comment_marker_inside_a_closed_single_quoted_string_is_not_a_comment():
+    assert find_comments("a.ts", "const s = 'a // b'; // real\n") == [Comment(1, "real")]
+    assert find_comments("a.ts", "const s = 'a // b';\n") == []

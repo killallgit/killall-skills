@@ -62,6 +62,7 @@ def checkout(tmp_path, monkeypatch):
     (clone / "scripts").mkdir()
     (clone / "scripts" / "marketplace.config.json").write_text(json.dumps(config))
     (clone / "scripts" / "generate_manifests.py").write_text(generator.read_text())
+    (clone / "README.md").write_text("<!-- skills:start -->\n<!-- skills:end -->\n")
     skill = clone / "skills" / "one"
     skill.mkdir(parents=True)
     (skill / "SKILL.md").write_text("---\nname: one\ndescription: first\n---\n")
@@ -118,6 +119,7 @@ def test_release_commit_holds_the_bump_and_every_regenerated_file(checkout):
         ".claude-plugin/marketplace.json",
         ".cursor-plugin/marketplace.json",
         ".github/plugin/marketplace.json",
+        "README.md",
         "scripts/marketplace.config.json",
         "skills/.cursor-plugin/plugin.json",
         "skills/one/.cursor-plugin/plugin.json",

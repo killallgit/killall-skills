@@ -24,6 +24,7 @@ CONFIG = {
     "bundle": {"name": "bundle", "description": "all"},
 }
 SKILLS = (Skill("alpha", "first"), Skill("beta", "second"))
+README = "# title\n\nbefore\n\n<!-- skills:start -->\n<!-- skills:end -->\n\nafter\n"
 
 
 def write_skill(root: Path, dirname: str, frontmatter: str) -> None:
@@ -37,6 +38,7 @@ def write_repo(root: Path) -> None:
     scripts = root / "scripts"
     scripts.mkdir()
     (scripts / "marketplace.config.json").write_text(json.dumps(CONFIG))
+    (root / "README.md").write_text(README)
 
 
 def test_parse_skill_reads_plain_description():
@@ -131,6 +133,7 @@ def test_generated_files_cover_claude_cursor_and_copilot(tmp_path):
         tmp_path / ".github" / "plugin" / "marketplace.json",
         tmp_path / "skills" / "alpha" / ".cursor-plugin" / "plugin.json",
         tmp_path / "skills" / ".cursor-plugin" / "plugin.json",
+        tmp_path / "README.md",
     }
 
 
@@ -348,16 +351,57 @@ def test_read_skills_accepts_a_model_invocable_skill_without_a_codex_policy(tmp_
     assert read_skills(tmp_path / "skills")[0].name == "alpha"
 
 
-REPO = Path(__file__).resolve().parent.parent
+def readme_of(root: Path) -> str:
+    return generated_files(root)[root / "README.md"]
 
 
-def test_readme_names_every_skill():
-    readme = (REPO / "README.md").read_text()
+def test_readme_index_has_one_row_per_skill_with_its_first_sentence(tmp_path):
+    write_skill(tmp_path, "alpha", "name: alpha\ndescription: Does the first thing. Then more.")
+    write_skill(tmp_path, "beta", "name: beta\ndescription: second")
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "marketplace.config.json").write_text(json.dumps(CONFIG))
+    (tmp_path / "README.md").write_text(README)
 
-    undocumented = [
-        skill.name
-        for skill in read_skills(REPO / "skills")
-        if f"`{skill.name}`" not in readme and f"`/{skill.name}`" not in readme
-    ]
+    rows = [line for line in readme_of(tmp_path).splitlines() if line.startswith("| `/")]
 
-    assert undocumented == []
+    assert [row.split("|")[1].strip() for row in rows] == ["`/alpha`", "`/beta`"]
+    assert "Does the first thing." in rows[0] and "Then more" not in rows[0]
+
+
+def test_readme_index_marks_a_user_only_skill(tmp_path):
+    write_skill(tmp_path, "alpha", USER_ONLY)
+    write_codex_policy(tmp_path, False)
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "marketplace.config.json").write_text(json.dumps(CONFIG))
+    (tmp_path / "README.md").write_text(README)
+
+    (row,) = [line for line in readme_of(tmp_path).splitlines() if line.startswith("| `/alpha`")]
+
+    assert "user only" in row
+
+
+def test_readme_text_outside_the_markers_is_untouched(tmp_path):
+    write_repo(tmp_path)
+
+    readme = readme_of(tmp_path)
+
+    assert readme.startswith("# title\n\nbefore\n\n<!-- skills:start -->\n")
+    assert readme.endswith("<!-- skills:end -->\n\nafter\n")
+
+
+def test_a_stale_readme_index_is_reported_as_drift(tmp_path):
+    write_repo(tmp_path)
+    write_files(generated_files(tmp_path))
+    readme = tmp_path / "README.md"
+    readme.write_text(readme.read_text().replace("| `/alpha`", "| `/gone`"))
+
+    assert drifted_files(generated_files(tmp_path)) == [readme]
+
+
+@pytest.mark.parametrize("text", ["no markers\n", "<!-- skills:start -->\nonly a start\n", "<!-- skills:end -->\n<!-- skills:start -->\n"])
+def test_a_readme_without_both_markers_in_order_is_an_error(tmp_path, text):
+    write_repo(tmp_path)
+    (tmp_path / "README.md").write_text(text)
+
+    with pytest.raises(ValueError):
+        generated_files(tmp_path)

@@ -318,6 +318,13 @@ def block_flags(lines: list[str], style: str, single_quotes: bool) -> list[bool]
 
 def comment_start(line: str, style: str, single_quotes: bool) -> int | None:
     quotes = "\"`'" if single_quotes else "\"`"
+    start, open_quote = scan_comment(line, style, quotes)
+    if start is None and open_quote == "'" and style == "slash":
+        start, _ = scan_comment(line, style, quotes.replace("'", ""))
+    return start
+
+
+def scan_comment(line: str, style: str, quotes: str) -> tuple[int | None, str]:
     markers = ("//", "/*") if style == "slash" else ("#",)
     quote, escaped = "", False
     for i, char in enumerate(line):
@@ -330,8 +337,8 @@ def comment_start(line: str, style: str, single_quotes: bool) -> int | None:
         elif char in quotes:
             quote = char
         elif line.startswith(markers, i) and (i == 0 or line[i - 1].isspace()) and not line.startswith("#{", i):
-            return i
-    return None
+            return i, quote
+    return None, quote
 
 
 def tail_trimmed(old: str, new: str, style: str, single_quotes: bool) -> bool:
