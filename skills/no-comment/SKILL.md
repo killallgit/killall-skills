@@ -1,10 +1,11 @@
 ---
-name: trim-comments
-description: Run the comment trimmer by hand on the files changed in this checkout. On Claude Code the plugin also runs it on every Stop.
+name: no-comment
+description: Delete comments that only restate the code in the files changed in this checkout, or set up the repo's .commentrc first. On Claude Code the plugin also runs it on every Stop.
+argument-hint: "[setup]"
 disable-model-invocation: true
 ---
 
-# Trim comments
+# No comment
 
 A Stop hook finds the comments in the files the session edited and hands them
 to a reviewer on a different model. The reviewer deletes each comment whose
@@ -22,22 +23,32 @@ Each repo is reviewed under its own `.commentrc`, with `cwd` set to that repo.
 Edits made by subagents are not in the parent transcript; the second source is
 the only thing that sees them, and only in the session's own repo.
 
-Requires `uv` and the `claude` CLI on `PATH`. Run it by hand from the checkout to review:
+## Commands
+
+Work from the repo root.
+
+- `/no-comment setup`: survey the repo and write or update its `.commentrc`.
+  See [Setup](#setup). Works whether or not the file exists.
+- `/no-comment` in a repo with a `.commentrc`: run it by hand.
+- `/no-comment` in a repo with no `.commentrc`: do Setup first. The hook and a manual run
+  do nothing there. Then run it.
+
+Requires `uv` and the `claude` CLI on `PATH`. It runs from the checkout:
 
 ```bash
-uv run --python 3.12 <skill-dir>/scripts/trim_comments.py
+uv run --python 3.12 <skill-dir>/scripts/no_comment.py
 ```
 
 `--dry-run` prints the flagged comments and the reviewer prompt without calling it.
 `--survey` prints, under the current `.commentrc`, the repo's most common extensions
 (top 15, counted over every tracked file), the reviewable files per top-level
 directory, the generated-file count and the conventional directories present.
-`/setup-trim-comments` uses it to write the `.commentrc`.
+Setup uses it to write the `.commentrc`.
 
 ## Fixed behavior
 
 - The reviewer is `haiku`, or `sonnet` when the working agent ran on haiku, read
-  from the session transcript. `TRIM_COMMENTS_MODEL` overrides it.
+  from the session transcript. `NO_COMMENT_MODEL` overrides it.
 - The reviewer runs through `claude -p` with `Read` and `Edit` only, no MCP
   servers, no user, project or local settings, and `dontAsk` permissions. `Edit` is allowed on the flagged files by
   path and denied everywhere else. A file whose path holds `* ? [ ] { } ( ) !` is
@@ -52,9 +63,10 @@ directory, the generated-file count and the conventional directories present.
 - Files the reviewer changes outside the flagged set are restored, and a file it
   creates is deleted. The summary line names them.
 - Everything the hook discards is copied into the git dir's
-  `trim-comments-rejected` folder first.
-- Outside Python, a `#` line inside a multi-line string (a YAML block scalar, a
-  heredoc) reads as a comment and can be removed. The check cannot tell it apart.
+  `no-comment-rejected` folder first.
+- YAML block scalars and heredocs are protected. A comment marker inside any other
+  multi-line string (a TOML `"""` string, a Go raw string, a JS template literal)
+  reads as a comment and can be removed. The check cannot tell it apart.
 - The hook fails open. A reviewer error, a timeout or a missing `uv` or `claude`
   shows a warning or does nothing, and never blocks the session. While the
   reviewer runs the Stop waits, for up to 5 minutes.
@@ -90,6 +102,59 @@ nothing there; an empty file enables the defaults. Every key is optional:
   (`src/gen`) and every `include` entry (`src`) is anchored at the repo root; write
   `**/lib` to include `lib` at any depth.
 - An invalid config shows a warning and skips the run.
+
+## Setup
+
+Write the project's `.commentrc`: the file that opts a repo into the hook and sets
+its `include`, `exclude` and `extensions`. The repo must be a git repository. When a
+`caveman` skill is available in this session, invoke it first.
+
+### 1. Survey
+
+Run `uv run --python 3.12 <skill-dir>/scripts/no_comment.py --survey` from the
+repo root. When `.commentrc` exists, read it too: its keys are the starting answers,
+and the survey already applies them.
+
+Done when you can say which directories hold the project's own code, which hold
+vendored, fixture or example code, and which suffixes are `unsupported`. The
+extension counts cover every tracked file, and the list stops at the top 15.
+
+### 2. Decide
+
+Ask one question per decision the survey leaves open, with a recommended option
+first. Skip a decision the survey settles.
+
+- **`include`**: the top-level directories to cover, such as `src`. Recommend the
+  ones holding the project's own code. Omit `include` when the code spans the whole tree.
+- **`exclude`**: the conventional directories present (`tests`, `fixtures`,
+  `migrations`, `examples`), tool and agent config directories (`.claude`,
+  `.agents`, `.beads`), and anything else vendored. Tests are the user's call: an
+  agent writes restating comments there too.
+- **`extensions`**: each `unsupported` suffix with many files, mapped to `hash`
+  (`#` comments) or `slash` (`//` and `/* */`). Leave out suffixes whose comment
+  syntax is neither.
+
+Generated files with a `do not edit` header are skipped already; leave them out
+of `exclude`.
+
+### 3. Write
+
+Write `.commentrc` at the repo root as JSON. A new file holds only the keys that
+differ from the defaults, and `{}` enables the defaults. An existing file keeps
+every key this run did not change, even one equal to a default. In `exclude`, write a directory as a
+plain name (`tests`) to match it at any depth, or as a path (`src/gen`) to anchor it at
+the repo root. In `include`, plain names are anchored at the repo root (`src`); use
+`**/lib` for any depth. A glob such as `**/migrations/**` works in both, with `*`
+staying within a directory and `**` crossing them.
+
+### 4. Verify
+
+Run the survey again. Done when it prints no `bad config`, the per-directory
+counts match what the user chose, and each excluded conventional directory has left
+the `conventional directories present` list. Fix the file and rerun until they do.
+
+End with the file's contents and one line: commit `.commentrc` so teammates and
+worktrees inherit it.
 
 ## Hosts
 

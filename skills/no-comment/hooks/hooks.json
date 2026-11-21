@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "R=\"${CLAUDE_PLUGIN_ROOT}\"; for S in \"$R/skills/no-comment/scripts/no_comment.py\" \"$R/scripts/no_comment.py\"; do if [ -f \"$S\" ] && command -v uv >/dev/null; then exec uv run --python 3.12 \"$S\"; fi; done; exit 0",
+            "timeout": 300
+          }
+        ]
+      }
+    ]
+  }
+}

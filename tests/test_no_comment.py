@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from trim_comments import (
+from no_comment import (
     Comment, edit_is_safe, edited_paths, find_comments, is_generated, load_scope, review_repo, reviewer_model,
     python_docstrings, python_shape, read_hook_input, run_reviewer, survey, targets, touched_files,
     worker_model,
@@ -63,7 +63,7 @@ def test_worker_model_is_the_last_real_assistant_model(tmp_path):
 
 
 def test_reviewer_differs_from_worker(tmp_path, monkeypatch):
-    monkeypatch.delenv("TRIM_COMMENTS_MODEL", raising=False)
+    monkeypatch.delenv("NO_COMMENT_MODEL", raising=False)
 
     assert reviewer_model(transcript(tmp_path, "claude-opus-5-5")) == "haiku"
     assert reviewer_model(transcript(tmp_path, "claude-haiku-5-5")) == "sonnet"
@@ -71,7 +71,7 @@ def test_reviewer_differs_from_worker(tmp_path, monkeypatch):
 
 
 def test_model_env_overrides(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRIM_COMMENTS_MODEL", "opus")
+    monkeypatch.setenv("NO_COMMENT_MODEL", "opus")
 
     assert reviewer_model("") == "opus"
 
@@ -297,7 +297,7 @@ def test_review_restores_a_file_whose_code_changed(tmp_path, monkeypatch):
 
     assert "reverted unsafe edit to a.py" in message
     assert (tmp_path / "a.py").read_text() == original
-    (rejected,) = (tmp_path / ".git" / "trim-comments-rejected").glob("a.py.*")
+    (rejected,) = (tmp_path / ".git" / "no-comment-rejected").glob("a.py.*")
     assert "return 0" in rejected.read_text()
 
 
@@ -521,7 +521,7 @@ def test_hook_input_tolerates_blank_and_invalid_stdin(monkeypatch):
 
 
 def test_reviewer_model_falls_back_when_the_worker_name_contains_every_candidate(tmp_path, monkeypatch):
-    monkeypatch.delenv("TRIM_COMMENTS_MODEL", raising=False)
+    monkeypatch.delenv("NO_COMMENT_MODEL", raising=False)
 
     assert reviewer_model(transcript(tmp_path, "haiku-sonnet-blend")) == "haiku"
 
@@ -544,7 +544,7 @@ def test_a_second_rejection_of_the_same_file_keeps_both_copies(tmp_path, monkeyp
     (tmp_path / "a.py").write_text("def f(x):\n    # note two\n    return x\n")
     review(tmp_path)
 
-    assert len(list((tmp_path / ".git" / "trim-comments-rejected").glob("a.py.*"))) == 2
+    assert len(list((tmp_path / ".git" / "no-comment-rejected").glob("a.py.*"))) == 2
 
 
 def test_bare_names_match_at_any_depth_and_slashed_paths_stay_anchored(tmp_path):
@@ -609,11 +609,11 @@ def test_a_cut_inside_a_single_quoted_js_string_is_unsafe_but_rust_lifetimes_are
 
 
 def test_an_oversized_file_the_reviewer_truncates_is_neither_deleted_nor_overwritten(tmp_path, monkeypatch):
-    import trim_comments
+    import no_comment
 
     repo_with_comment(tmp_path)
     (tmp_path / "other.py").write_text("y = 1\n" * 10)
-    monkeypatch.setattr(trim_comments, "SNAPSHOT_LIMIT", 20)
+    monkeypatch.setattr(no_comment, "SNAPSHOT_LIMIT", 20)
     fake_claude(tmp_path, monkeypatch, "truncate")
 
     message = review(tmp_path)
@@ -631,5 +631,88 @@ def test_rejected_bytes_survive_when_the_reviewer_writes_invalid_utf8(tmp_path, 
 
     assert "reverted unsafe edit to a.py" in message
     assert (tmp_path / "a.py").read_bytes() == original
-    (rejected,) = (tmp_path / ".git" / "trim-comments-rejected").glob("a.py.*")
+    (rejected,) = (tmp_path / ".git" / "no-comment-rejected").glob("a.py.*")
     assert rejected.read_bytes() == b"\xff\xfe not utf8\n"
+
+
+def test_a_marker_inside_a_string_is_not_a_comment():
+    assert find_comments("a.sh", 'echo "a # b"\n') == []
+    assert find_comments("a.ts", "const s = 'a // b';\n") == []
+
+
+def test_rust_lifetimes_do_not_hide_a_trailing_comment():
+    source = "fn f<'a>(x: &'a str) -> &'a str { x } // keep\n"
+
+    assert find_comments("a.rs", source) == [Comment(1, "keep")]
+
+
+def test_a_block_opener_inside_a_single_quoted_string_does_not_make_later_lines_comment_only():
+    old = "const s = 'a /* x';\nrun();\n"
+
+    assert not edit_is_safe("a.ts", old, "const s = 'a /* x';\n", {".ts": "slash"})
+
+
+YAML_BLOCK = "run: |\n  echo hi\n  # a script line, not a yaml comment\n  echo bye\n"
+
+
+@pytest.mark.parametrize("opener, body", [
+    ("run: |", "  "), ("run: >-", "  "), ("run: |2", "  "), ("- |", "  "), ("- run: |+", "    "), ("a:\n  - |", "    "),
+])
+def test_a_hash_line_inside_a_yaml_block_scalar_is_not_a_comment(opener, body):
+    source = f"{opener}\n{body}echo hi\n{body}# script line\n{body}echo bye\n"
+
+    assert find_comments("a.yml", source) == []
+    assert not edit_is_safe("a.yml", source, source.replace(f"{body}# script line\n", ""), {".yml": "hash"})
+
+
+@pytest.mark.parametrize("source", [
+    "cat <<EOF\n# literal text\nEOF\n",
+    "cat <<-EOF\n# literal text\n\tEOF\n",
+    "cat <<~EOF\n  # literal text\n  EOF\n",
+    'cat <<"EOF"\n# literal text\nEOF\n',
+    "cat <<'EOF'\n# literal text\nEOF\n",
+])
+def test_a_hash_line_inside_a_heredoc_is_not_a_comment(source):
+    deleted = "".join(line for line in source.splitlines(True) if "# literal text" not in line)
+
+    assert find_comments("a.sh", source) == []
+    assert not edit_is_safe("a.sh", source, deleted, {".sh": "hash"})
+
+
+def test_real_comments_around_a_literal_block_are_still_found_and_deletable():
+    styles = {".yml": "hash", ".sh": "hash"}
+    yaml = "# before\nrun: |\n  # literal\nnext: 1\n# after\n"
+    shell = "# before\ncat <<EOF\n# literal\nEOF\n# after\n"
+
+    for path, source in (("a.yml", yaml), ("a.sh", shell)):
+        assert find_comments(path, source) == [Comment(1, "before"), Comment(5, "after")]
+        stripped = "".join(line for line in source.splitlines(True) if line not in ("# before\n", "# after\n"))
+        assert edit_is_safe(path, source, stripped, styles)
+
+
+def test_a_comment_after_the_block_indicator_is_still_a_comment():
+    assert find_comments("a.yml", "run: |  # note\n  echo hi\n") == [Comment(1, "note")]
+
+
+def test_an_indented_hash_line_after_a_block_scalar_ends_is_a_comment_again():
+    source = "run: |\n  echo hi\nnext: 1\n  # indented comment\n"
+
+    assert find_comments("a.yml", source) == [Comment(4, "indented comment")]
+
+
+def test_a_heredoc_opener_without_a_terminator_protects_nothing():
+    source = "echo $((1 << x))\n# real comment\n"
+
+    assert find_comments("a.sh", source) == [Comment(2, "real comment")]
+
+
+def test_blank_lines_after_a_block_scalar_are_not_protected():
+    old = "run: |\n  echo hi\n\n# c\nnext: 1\n"
+
+    assert edit_is_safe("a.yml", old, "run: |\n  echo hi\nnext: 1\n", {".yml": "hash"})
+
+
+def test_a_blank_line_inside_a_block_scalar_is_protected():
+    old = "run: |\n  echo hi\n\n  echo bye\n"
+
+    assert not edit_is_safe("a.yml", old, "run: |\n  echo hi\n  echo bye\n", {".yml": "hash"})

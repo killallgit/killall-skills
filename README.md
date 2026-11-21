@@ -115,8 +115,7 @@ was fixed and declined, and leaves the PR open. If a local reviewer fails, it
 tries other viable independent routes. If none works, it reports **BLOCKED**
 and stops the calling workflow before merge or release unless the user
 explicitly waives review. Self-review and passing tests are not substitutes;
-a waiver is reported as **WAIVED**, not reviewed. Other skills, such as `ship`
-and `lets-finish`, run it too.
+a waiver is reported as **WAIVED**, not reviewed. `lets-finish` runs it too.
 
 ## Wait for action
 
@@ -141,7 +140,7 @@ squash-merges. It finds the beads, Jira tickets, and GitHub issues the PR
 relates to and updates them: closed when the PR closes them, commented when it
 only mentions them. It prints one `[+]`, `[-]`, or `[x]` line per step, stops
 at the first failed step, and ends by asking `[y/n]` whether to remove the branch and
-worktree. It calls the `wait-for-action` and `independent-review` skills. User-invoked only.
+worktree. It calls the `wait-for-action` and `independent-review` skills.
 
 ## End session
 
@@ -162,6 +161,29 @@ commits, pushes, and opens the draft PR at once. Work on the default branch
 moves to an `eject/` branch first. It ends by printing a handoff paragraph to
 paste into a fresh agent so it can resume. User-invoked only.
 
+## Catch up
+
+`/catch-up` (or "catch me up", "where were we") rebuilds your context after time
+away. It first reconciles the current checkout: it commits changes that belong
+to an open PR, discards changes that already landed or are scratch, and syncs
+the branch. Changes it cannot place stay untouched. It then writes where things
+stand, what was reconciled, the decisions made, the open items, and the single
+next step.
+
+## Restate
+
+`/restate` followed by your prompt makes the agent restate your request in two
+sentences and say what it will not touch before it acts. It marks inferences as `(assumed)`,
+labels any design as current or proposed, stays read-only until you say "ok",
+and then stops to wait. User-invoked only.
+
+## Setup AGENTS.md
+
+`/setup-agents-md` merges the shared instructions in `AGENTS.md` and `CLAUDE.md`
+into `AGENTS.md` without losing guidance unique to either file, simplifies them,
+checks them against the repo, and makes `CLAUDE.md` import `@AGENTS.md`. It
+creates a missing file.
+
 ## Architectural review
 
 `/architectural-review` reviews a codebase's architecture. A script ranks
@@ -176,16 +198,18 @@ it runs only for the candidates you pick. It keeps `GLOSSARY.md`,
 `ARCHITECTURE.md`, and `docs/adr/` current as decisions land. Words after the
 command name a direction. User-invoked only.
 
-## Trim comments
+## No comment
 
-The `trim-comments` plugin hook runs on every Stop in Claude Code. It finds the
+The `no-comment` plugin hook runs on every Stop in Claude Code. It finds the
 comments and docstrings in the files the session edited, in any repo, plus every
 uncommitted or untracked file in the repo the session started in, including work
 that predates the session. A reviewer on a different model deletes the ones the code
 already says. The reviewer may edit only the flagged files, and an edit that changes
-code is restored; outside Python, a `#` line inside a multi-line string (a YAML block
-scalar, a heredoc) reads as a comment and can be removed.
+code is restored. YAML block scalars and heredocs are protected; a comment marker inside
+any other multi-line string (a TOML `"""` string, a Go raw string, a JS template
+literal) still reads as a comment and can be removed.
 It acts only in repos that opt in with a `.commentrc` at the root, and it needs
-`uv` and the `claude` CLI. `/setup-trim-comments` surveys a repo and writes that file;
-`/trim-comments` runs the trimmer by hand. See `skills/trim-comments/SKILL.md` for
-the config keys and the exact checks. Both are user-invoked only.
+`uv` and the `claude` CLI. `/no-comment setup` surveys a repo and writes that file;
+`/no-comment` runs it by hand, and does the setup first in a repo that has
+no `.commentrc`. See `skills/no-comment/SKILL.md` for the config keys and the exact
+checks. It is user-invoked only.

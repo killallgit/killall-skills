@@ -1,0 +1,5 @@
+interface:
+  display_name: "Restate"
+  short_description: "Restate the request and scope before acting, then wait for approval."
+policy:
+  allow_implicit_invocation: false
