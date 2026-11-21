@@ -744,3 +744,12 @@ def test_jsx_text_after_an_apostrophe_is_not_taken_for_a_comment():
 
     assert find_comments("a.tsx", old) == []
     assert not edit_is_safe("a.tsx", old, "const a = <p>don't\n", {".tsx": "slash"})
+
+
+@pytest.mark.parametrize("old, new", [
+    ("const s = 'a; // b'; const t = <p>don't</p>;\n", "const s = 'a;\n"),
+    ("const u = 'a, //cdn.x.com/y'; <i>don't</i>\n", "const u = 'a,\n"),
+])
+def test_a_marker_inside_a_closed_string_is_not_a_comment_when_an_apostrophe_follows(old, new):
+    assert find_comments("a.tsx", old) == []
+    assert not edit_is_safe("a.tsx", old, new, {".tsx": "slash"})

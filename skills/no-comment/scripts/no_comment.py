@@ -321,7 +321,7 @@ def comment_start(line: str, style: str, single_quotes: bool) -> int | None:
     start, open_quote = scan_comment(line, style, quotes)
     if start is None and open_quote == "'" and style == "slash":
         start, _ = scan_comment(line, style, quotes.replace("'", ""))
-        if start is not None and not line[:start].rstrip().endswith(tuple(";,)}]>")):
+        if start is not None and (start < line.rfind("'") or not line[:start].rstrip().endswith(tuple(";,)}]>"))):
             return None
     return start
 
