@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Killallgit workflow skills.",
-    "version": "6.0.0"
+    "version": "6.0.1"
   },
   "plugins": [
     {
@@ -14,7 +14,7 @@
       "description": "Review a codebase's architecture. Finds hotspots in git history, walks them for friction, writes an HTML report of deepening candidates with before/after diagrams, proposes glossary terms, and suggests beads for the work. Words after the command name a direction (a module, a subsystem, a pain point).",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "catch-up",
@@ -22,7 +22,7 @@
       "description": "Rebuild a human's lost context on the work in flight after reconciling the current checkout's dangling changes \u2014 commit what belongs to an open PR, discard what already landed, sync the branch \u2014 then summarize the state of play, decisions, live PRs and tickets, and the single next step. Use when the user says \"catch me up\", \"where were we\", \"what's the state of this\", \"get back on track\", or invokes `/catch-up` after time away.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "end-session",
@@ -30,7 +30,7 @@
       "description": "Bring this session's branch up to date, land or discard its work, and archive the session.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "git-janitor",
@@ -38,7 +38,7 @@
       "description": "Clean up local Git, only when the user runs /git-janitor. Inspect uncommitted and unpublished work in every worktree first, discard work that is superseded or over 60 days old when justified, then remove merged and stale local worktrees and branches. Record what was discarded and why.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "independent-review",
@@ -46,7 +46,7 @@
       "description": "Get the current branch reviewed by someone who did not write it. Opens a PR if needed, observes existing bot-review activity without triggering it, uses a fresh-context local review agent when no independent verdict is available, and resolves findings. Use when the user asks for an independent review or another skill calls for one.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "lets-finish",
@@ -54,7 +54,7 @@
       "description": "Land finished work. Open the PR if there is none, wait for CI, get it independently reviewed, merge, update the tickets and beads it relates to, then clean up the branch and worktree. Use when the user says \"let's finish\", \"lets finish\", \"wrap up\", \"finish up\", \"ship it\", or invokes `/lets-finish`. Words after the command skip or stop steps, such as \"don't review\" or \"stop after CI\", \"and release\" or \"and deploy\" adds the project's release after the merge. Not for a question about status.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "no-comment",
@@ -62,7 +62,7 @@
       "description": "Delete comments that only restate the code in the files changed in this checkout, or set up the repo's .commentrc first. On Claude Code the plugin also runs it on every Stop.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "restate",
@@ -70,7 +70,7 @@
       "description": "Restate the request and scope before acting, then wait for approval",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "session-eject",
@@ -78,7 +78,7 @@
       "description": "Save all work before usage runs out \u2014 commit, push, update or open draft PRs, and stop. `now` skips waiting for subagents.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "setup-agents-md",
@@ -86,7 +86,7 @@
       "description": "Set up and review root AGENTS.md and CLAUDE.md. Merge shared instructions from both into AGENTS.md without losing unique or tool-generated guidance, simplify the combined instructions, verify them against the repo, and make CLAUDE.md import AGENTS.md with @AGENTS.md. Create missing files as needed. Use for \"setup agents md\", \"check the agent docs\", \"check project\", \"dedupe CLAUDE.md and AGENTS.md\", or /setup-agents-md.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "wait-for-action",
@@ -94,7 +94,7 @@
       "description": "Wait for observable GitHub PR activity to settle in one read-only call. Discovers CI and bot reviewers, including activity outside Actions. Never triggers reviews or decides what is required. Use after a push or when checking what is still running.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     {
       "name": "killall-skills",
@@ -102,7 +102,7 @@
       "description": "Helpful agent skills.",
       "category": "workflow",
       "homepage": "https://github.com/killallgit/killall-skills",
-      "version": "6.0.0",
+      "version": "6.0.1",
       "skills": [
         "./architectural-review",
         "./catch-up",
