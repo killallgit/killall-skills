@@ -737,3 +737,10 @@ def test_code_after_an_unterminated_apostrophe_is_still_protected():
 def test_a_comment_marker_inside_a_closed_single_quoted_string_is_not_a_comment():
     assert find_comments("a.ts", "const s = 'a // b'; // real\n") == [Comment(1, "real")]
     assert find_comments("a.ts", "const s = 'a // b';\n") == []
+
+
+def test_jsx_text_after_an_apostrophe_is_not_taken_for_a_comment():
+    old = "const a = <p>don't // really</p>;\n"
+
+    assert find_comments("a.tsx", old) == []
+    assert not edit_is_safe("a.tsx", old, "const a = <p>don't\n", {".tsx": "slash"})
