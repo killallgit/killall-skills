@@ -14,6 +14,9 @@ FRONTMATTER = re.compile(r"\A---\n(.*?)\n---", re.DOTALL)
 HYPHEN_CASE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 MAX_NAME = 64
 MAX_DESCRIPTION = 1024
+README_START = "<!-- skills:start -->"
+README_END = "<!-- skills:end -->"
+FIRST_SENTENCE = re.compile(r"(.*?[.!?])(?:\s|$)")
 
 
 @dataclass(frozen=True)
@@ -169,6 +172,22 @@ def build_cursor_marketplace(config: dict, skills: tuple[Skill, ...]) -> dict:
     }
 
 
+def skill_row(skill: Skill) -> str:
+    first = FIRST_SENTENCE.match(skill.description)
+    summary = (first.group(1) if first else skill.description).replace("|", "\\|")
+    invoked = "user only" if skill.user_only else "user or model"
+    return f"| `/{skill.name}` | {invoked} | {summary} |"
+
+
+def render_readme(readme: str, skills: tuple[Skill, ...]) -> str:
+    start, end = readme.find(README_START), readme.find(README_END)
+    if start == -1 or end < start:
+        raise ValueError(f"README.md needs {README_START} before {README_END}")
+    header = "| Skill | Invoked by | What it does |\n| --- | --- | --- |"
+    rows = "\n".join(skill_row(skill) for skill in skills)
+    return f"{readme[:start + len(README_START)]}\n{header}\n{rows}\n{readme[end:]}"
+
+
 def render(data: dict) -> str:
     return json.dumps(data, indent=2) + "\n"
 
@@ -185,6 +204,7 @@ def generated_files(root: Path) -> dict[Path, str]:
         root / ".github" / "plugin" / "marketplace.json": render(
             build_copilot_marketplace(config, skills)
         ),
+        root / "README.md": render_readme((root / "README.md").read_text(), skills),
     }
     for plugin in cursor["plugins"]:
         manifest = {key: plugin[key] for key in ("name", "description", "skills") if key in plugin}
